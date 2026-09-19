@@ -1,6 +1,6 @@
 import {
-  AppleAuthProvider,
   GoogleAuthProvider,
+  OAuthProvider,
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -13,7 +13,9 @@ import { auth } from "./firebase";
 import { apiFetch } from "./api";
 
 const googleProvider = new GoogleAuthProvider();
-const appleProvider = new AppleAuthProvider();
+const appleProvider = new OAuthProvider("apple.com");
+appleProvider.addScope("email");
+appleProvider.addScope("name");
 
 export const subscribeToAuth = (callback: (user: User | null) => void) =>
   onAuthStateChanged(auth, callback);
