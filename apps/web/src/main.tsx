@@ -41,10 +41,10 @@ const cfg: any = {
   orders: { title: "Заказы", sub: "Жизненный цикл заказа: от черновика до подтверждения и завершения.", endpoint: "orders", action: "Новый заказ", fields: [["customerId", "Клиент"], ["notes", "Примечания"]], cols: ["orderNumber", "customer", "status", "total", "createdAt"] },
   inventory: { title: "Остатки", sub: "Остатки по складам и SKU в реальном времени.", endpoint: "inventory", action: "Перемещение запасов", fields: [], cols: ["warehouse", "product", "sku", "quantity"] },
   purchases: { title: "Закупки", sub: "Закупки у поставщиков и приёмка поступивших запасов.", endpoint: "purchases", action: "Новая закупка", fields: [["name", "Поставщик"], ["phone", "Телефон"]], cols: ["name", "code", "phone"] },
-  payments: { title: "Платежи и задолженность", sub: "Платежи, ссылки на операции и контроль дебиторской задолженности.", endpoint: "payments", action: "Записать платёж", fields: [["orderId", "ID заказа"], ["customerId", "ID клиента"], ["amount", "Сумма"], ["method", "Способ"], ["reference", "Назначение"]], cols: ["customerId", "amount", "method", "status", "reference", "createdAt"] },
-  delivery: { title: "Доставка", sub: "Подготовка, отправка, отслеживание и подтверждение доставки.", endpoint: "deliveries", action: "Создать доставку", fields: [["orderId", "ID заказа"], ["address", "Адрес"], ["plannedAt", "Плановое время"]], cols: ["orderNumber", "customer", "status", "address", "plannedAt"] },
+  payments: { title: "Платежи и задолженность", sub: "Платежи, ссылки на операции и контроль дебиторской задолженности.", endpoint: "payments", action: "Записать платёж", fields: [["orderId", "Заказ"], ["customerId", "Клиент"], ["amount", "Сумма"], ["method", "Способ"], ["reference", "Назначение"]], cols: ["customerId", "amount", "method", "status", "reference", "createdAt"] },
+  delivery: { title: "Доставка", sub: "Подготовка, отправка, отслеживание и подтверждение доставки.", endpoint: "deliveries", action: "Создать доставку", fields: [["orderId", "Заказ"], ["address", "Адрес"], ["plannedAt", "Плановое время"]], cols: ["orderNumber", "customer", "status", "address", "plannedAt"] },
   routes: { title: "Маршруты", sub: "Планирование маршрутов и назначение ответственных за визиты.", endpoint: "routes", action: "Создать маршрут", fields: [["name", "Название маршрута"], ["routeDate", "Дата"], ["notes", "Примечания"]], cols: ["name", "routeDate", "status", "notes"] },
-  visits: { title: "Визиты", sub: "Цифровые визиты к клиентам, результаты, заметки и история выполнения.", endpoint: "visits", action: "Начать визит", fields: [["customerId", "ID клиента"], ["routeId", "ID маршрута"], ["notes", "Примечания"]], cols: ["customer", "status", "outcome", "notes", "createdAt"] },
+  visits: { title: "Визиты", sub: "Цифровые визиты к клиентам, результаты, заметки и история выполнения.", endpoint: "visits", action: "Начать визит", fields: [["customerId", "Клиент"], ["routeId", "Маршрут"], ["notes", "Примечания"]], cols: ["customer", "status", "outcome", "notes", "createdAt"] },
   promotions: { title: "Акции", sub: "Планирование акций, целевые клиенты и контроль выполнения.", endpoint: "promotions", action: "Новая акция", fields: [["name", "Название"], ["discount", "Скидка"], ["startDate", "Начало"], ["endDate", "Окончание"], ["notes", "Примечания"]], cols: ["name", "status", "discount", "startDate", "endDate"] },
   tasks: { title: "Задачи", sub: "Рабочие сигналы превращаются в ответственные действия с контролем сроков.", endpoint: "tasks", action: "Создать задачу", fields: [["title", "Название"], ["description", "Описание"], ["priority", "Приоритет"], ["dueAt", "Срок"]], cols: ["title", "status", "priority", "dueAt"] },
   team: { title: "Команда", sub: "Пользователи, обязанности и доступ внутри компании.", endpoint: "team", action: "Пригласить сотрудника", fields: [], cols: ["fullName", "email", "phone", "status", "createdAt"] },
@@ -52,7 +52,7 @@ const cfg: any = {
   integrations: { title: "Интеграции", sub: "ERP, платежные, фискальные и внешние подключения.", endpoint: "integrations", action: "Добавить интеграцию", fields: [["name", "Название"], ["provider", "Провайдер"], ["endpoint", "Адрес подключения"]], cols: ["name", "provider", "status", "lastSyncAt"] },
   reports: { title: "Отчёты", sub: "Сводные показатели на основе реальных данных рабочего пространства.", endpoint: "reports/summary", action: "Обновить", fields: [], cols: ["metric", "value"] },
   suppliers: { title: "Поставщики", sub: "Данные поставщиков для закупок и приёмки.", endpoint: "suppliers", action: "Добавить поставщика", fields: [["name", "Название"], ["phone", "Телефон"], ["address", "Адрес"]], cols: ["name", "code", "phone", "address", "createdAt"] },
-  warehouses: { title: "Склады", sub: "Склады и контроль запасов на уровне филиалов.", endpoint: "warehouses", action: "Добавить склад", fields: [["branchId", "ID филиала"], ["name", "Название"], ["code", "Код"]], cols: ["name", "code", "branchId", "isActive"] },
+  warehouses: { title: "Склады", sub: "Склады и контроль запасов на уровне филиалов.", endpoint: "warehouses", action: "Добавить склад", fields: [["branchId", "Филиал"], ["name", "Название"], ["code", "Код"]], cols: ["name", "code", "branchId", "isActive"] },
   transfers: { title: "Перемещения", sub: "Перемещение запасов между складами с полной историей операций.", endpoint: "transfers", action: "Новое перемещение", fields: [["fromWarehouseId", "Склад-источник"], ["toWarehouseId", "Склад-получатель"], ["productId", "Товар"], ["quantity", "Количество"], ["notes", "Примечания"]], cols: ["id", "status", "fromWarehouseId", "toWarehouseId", "createdAt"] },
   stockMovements: { title: "Движения запасов", sub: "Поступления, продажи, перемещения, корректировки и возвраты в едином журнале.", endpoint: "stock-movements", action: "Обновить журнал", fields: [], cols: ["type", "warehouseId", "productId", "quantity", "referenceType", "createdAt"] },
   auditLogs: { title: "Журнал аудита", sub: "История важных действий в пределах компании.", endpoint: "audit-logs", action: "Обновить", fields: [], cols: ["action", "entityType", "entityId", "createdAt"] },
@@ -296,7 +296,7 @@ function ModuleView({ page, user, toast }: any) {
        filtered.length === 0 ? <div className="empty-work"><h3>Записей пока нет</h3><p>{page === "stockMovements" || page === "auditLogs" || page === "notifications" ? "Пока нет записей для отображения." : "Создайте первую запись, чтобы начать работу с разделом."}</p></div> :
        <><Table rows={filtered} columns={c.cols} /><WorkflowBar page={page} rows={filtered} user={user} reload={reload} toast={toast} /></>}
     </section>
-    {open && <CreateModal config={c} close={() => setOpen(false)} save={create} user={user} />}
+    {open && (page === "orders" ? <OrderCreateModal close={() => setOpen(false)} save={create} user={user} /> : <CreateModal config={c} close={() => setOpen(false)} save={create} user={user} />)}
   </div>;
 }
 
@@ -388,7 +388,7 @@ function CustomerPicker({ user, value, onChange }: { user: User; value: string; 
   </div>;
 }
 
-function ReferencePicker({ user, type, value, onChange, placeholder }: { user: User; type: string; value: string; onChange: (id: string) => void; placeholder: string }) {
+function ReferencePicker({ user, type, value, onChange, placeholder, onSelect }: { user: User; type: string; value: string; onChange: (id: string) => void; placeholder: string; onSelect?: (item: any) => void }) {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
@@ -482,6 +482,75 @@ const referenceFieldTypes: Record<string, string> = {
   productId: "products",
   routeId: "routes",
 };
+
+function OrderCreateModal({ close, save, user }: { close: () => void; save: (d: any) => void; user: User }) {
+  const [customerId, setCustomerId] = useState("");
+  const [notes, setNotes] = useState("");
+  const [discount, setDiscount] = useState("");
+  const [items, setItems] = useState<any[]>([{ productId: "", quantity: "1", unitPrice: "", discount: "0", product: null }]);
+  const [error, setError] = useState("");
+
+  const updateItem = (index: number, patch: any) => {
+    setItems(prev => prev.map((item, i) => i === index ? { ...item, ...patch } : item));
+  };
+
+  const addItem = () => setItems(prev => [...prev, { productId: "", quantity: "1", unitPrice: "", discount: "0", product: null }]);
+  const removeItem = (index: number) => setItems(prev => prev.length === 1 ? prev : prev.filter((_, i) => i !== index));
+
+  const submit = () => {
+    setError("");
+    if (!customerId) return setError("Выберите клиента.");
+    if (!items.length) return setError("Добавьте хотя бы одну позицию.");
+    if (items.some(item => !item.productId)) return setError("Выберите товар для каждой позиции.");
+    if (items.some(item => Number(item.quantity) <= 0)) return setError("Количество должно быть больше нуля.");
+    if (items.some(item => Number(item.unitPrice) < 0 || item.unitPrice === "")) return setError("Укажите цену для каждой позиции.");
+    if (items.some(item => Number(item.discount) < 0)) return setError("Скидка позиции не может быть отрицательной.");
+    save({
+      customerId,
+      notes,
+      discount: Number(discount || 0),
+      items: items.map(({ product, ...item }) => ({
+        productId: item.productId,
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        discount: Number(item.discount || 0),
+      })),
+    });
+  };
+
+  return <div className="modal-backdrop"><div className="quick-modal order-modal">
+    <button className="modal-close" onClick={close}>×</button>
+    <span className="eyebrow">Создание записи</span><h2>Новый заказ</h2>
+    <label>Клиент
+      <ReferencePicker user={user} type="customers" value={customerId} onChange={setCustomerId} placeholder="Введите имя, адрес или телефон клиента" />
+    </label>
+    <div className="order-items-head"><strong>Позиции заказа</strong><button type="button" className="button outline" onClick={addItem}>+ Добавить позицию</button></div>
+    <div className="order-items">
+      {items.map((item, index) => <div className="order-item" key={index}>
+        <div className="order-item-product">
+          <label>Товар
+            <ReferencePicker
+              user={user}
+              type="products"
+              value={item.productId}
+              onChange={id => updateItem(index, { productId: id })}
+              onSelect={product => updateItem(index, { productId: String(product.id), product, unitPrice: item.unitPrice || product.salePrice || "0" })}
+              placeholder="Введите название, артикул или штрихкод"
+            />
+          </label>
+        </div>
+        <label>Количество<input type="number" min="0.001" step="0.001" value={item.quantity} onChange={e => updateItem(index, { quantity: e.target.value })} /></label>
+        <label>Цена<input type="number" min="0" step="0.01" value={item.unitPrice} onChange={e => updateItem(index, { unitPrice: e.target.value })} placeholder="Цена" /></label>
+        <label>Скидка<input type="number" min="0" step="0.01" value={item.discount} onChange={e => updateItem(index, { discount: e.target.value })} /></label>
+        <button type="button" className="modal-close order-item-remove" onClick={() => removeItem(index)} disabled={items.length === 1}>×</button>
+      </div>)}
+    </div>
+    <label>Скидка заказа<input type="number" min="0" step="0.01" value={discount} onChange={e => setDiscount(e.target.value)} placeholder="0" /></label>
+    <label>Примечания<textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Примечания" /></label>
+    {error && <small className="auth-error">{error}</small>}
+    <div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" onClick={submit}>Сохранить заказ</button></div>
+  </div></div>;
+}
 
 function CreateModal({ config, close, save, user }: { config: any; close: () => void; save: (d: any) => void; user: User }) {
   const [data, setData] = useState<any>({});
