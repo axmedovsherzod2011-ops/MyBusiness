@@ -87,7 +87,7 @@ function label(k: string) {
     action: "Действие", entityType: "Тип объекта", entityId: "ID объекта", title: "Название",
     body: "Сообщение", readAt: "Прочитано", metric: "Показатель", value: "Значение",
     sku: "Артикул", unit: "Единица", barcode: "Штрихкод", phone: "Телефон", code: "Код",
-    fullName: "Имя", email: "Электронная почта", priority: "Приоритет", description: "Описание",
+    name: "Ф.И.О", fullName: "Имя", email: "Электронная почта", priority: "Приоритет", description: "Описание",
     provider: "Провайдер", endpoint: "Адрес подключения", customer: "Клиент",
   } as any)[k] || "Поле";
 }
