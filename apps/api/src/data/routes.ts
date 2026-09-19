@@ -4,7 +4,7 @@ import { db } from "../db/index.js";
 import { branches, customers, inventory, orders, orderItems, payments, products, users, warehouses, suppliers, purchases, purchaseItems, routes, visits, promotions, tasks, deliveries, integrations, notifications } from "../db/schema.js";
 import { requireFirebaseAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 
-export const dataRouter = Router();
+export const dataRouter: ReturnType<typeof Router> = Router();
 dataRouter.use(requireFirebaseAuth);
 
 async function context(req: AuthenticatedRequest) {
@@ -95,4 +95,5 @@ dataRouter.get("/reports/summary", async(req,res)=>{try{const u=await companyUse
 dataRouter.post("/payments",async(req,res)=>{try{const u=await companyUser(req);const [row]=await db.insert(payments).values({companyId:u.companyId,orderId:req.body.orderId,customerId:req.body.customerId,amount:String(bodyNumber(req.body.amount)),method:req.body.method||"other",status:req.body.status||"paid",reference:bodyString(req.body.reference)||null,createdBy:u.id}).returning();return res.status(201).json(row)}catch(e){return fail(res,e)}});
 
 dataRouter.post("/orders",async(req,res)=>{try{const u=await companyUser(req);const [branch]=await db.select().from(branches).where(eq(branches.companyId,u.companyId)).limit(1);const [warehouse]=await db.select().from(warehouses).where(eq(warehouses.companyId,u.companyId)).limit(1);if(!branch||!warehouse) return res.status(400).json({message:"Create a branch and warehouse first."});const existing=await db.select({orderNumber:orders.orderNumber}).from(orders).where(eq(orders.companyId,u.companyId)).orderBy(desc(orders.orderNumber)).limit(1);const n=(existing[0]?.orderNumber||0)+1;const items=Array.isArray(req.body.items)?req.body.items:[];const subtotal=items.reduce((s:any,x:any)=>s+bodyNumber(x.quantity)*bodyNumber(x.unitPrice),0);const discount=bodyNumber(req.body.discount);const [order]=await db.insert(orders).values({companyId:u.companyId,branchId:branch.id,warehouseId:warehouse.id,customerId:req.body.customerId,createdBy:u.id,orderNumber:n,status:req.body.status||"draft",subtotal:String(subtotal),discount:String(discount),total:String(Math.max(0,subtotal-discount)),notes:bodyString(req.body.notes)||null}).returning();if(items.length){await db.insert(orderItems).values(items.map((x:any)=>({orderId:order.id,productId:x.productId,quantity:String(bodyNumber(x.quantity)),unitPrice:String(bodyNumber(x.unitPrice)),discount:String(bodyNumber(x.discount)),total:String(bodyNumber(x.quantity)*bodyNumber(x.unitPrice)-bodyNumber(x.discount))})))}return res.status(201).json(order)}catch(e){return fail(res,e)}});
-\nexport default dataRouter;
+
+export default dataRouter;
