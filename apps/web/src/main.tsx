@@ -456,7 +456,7 @@ const valueLabels: Record<string, string> = {
 };
 function displayValue(value: any) {
   const key = String(value ?? "");
-  return valueLabels[key] || (/[A-Za-z]/.test(key) ? "Значение" : key);
+  return valueLabels[key] || key;
 }
 function Table({ rows, columns }: { rows: Row[]; columns: string[] }) {
   return <div className="table-scroll"><table><thead><tr>{columns.map(c => <th key={c}>{label(c)}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i}>{columns.map(c => <td key={c}>
