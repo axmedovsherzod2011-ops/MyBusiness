@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { getApiStatus } from "./lib/api";
-import { logout, signInWithGoogle, subscribeToAuth } from "./lib/auth";
+import { logout, signInWithApple, signInWithEmail, signInWithGoogle, signUpWithEmail, subscribeToAuth, syncCurrentUser } from "./lib/auth";
 import type { User } from "firebase/auth";
 import "./styles.css";
 
@@ -22,9 +22,9 @@ const modules = [
 function App() {
   const [apiState, setApiState] = useState<ApiState>({ status: "loading" });
   const [user, setUser] = useState<User | null>(null);
-  const [authBusy, setAuthBusy] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);\n  const [authOpen, setAuthOpen] = useState(false);\n  const [authMode, setAuthMode] = useState<"signIn" | "signUp">("signIn");\n  const [email, setEmail] = useState("");\n  const [password, setPassword] = useState("");\n  const [authError, setAuthError] = useState("");\n\n  const runAuth = async (action: () => Promise<unknown>) => {\n    setAuthBusy(true);\n    setAuthError("");\n    try {\n      await action();\n      await syncCurrentUser();\n      setAuthOpen(false);\n      setPassword("");\n    } catch (error) {\n      setAuthError(error instanceof Error ? error.message : "Authentication failed");\n    } finally {\n      setAuthBusy(false);\n    }\n  };
 
-  useEffect(() => subscribeToAuth(setUser), []);
+  useEffect(() => subscribeToAuth(setUser), []);\n\n  useEffect(() => {\n    if (user) void syncCurrentUser().catch((error) => console.error("Account sync failed", error));\n  }, [user]);
 
   useEffect(() => {
     getApiStatus()
@@ -48,7 +48,7 @@ function App() {
           <a href="#modules">Modules</a>
           <a href="#status">System status</a>
         </nav>
-        <button className="button button-dark" type="button" disabled={authBusy} onClick={async () => { setAuthBusy(true); try { await signInWithGoogle(); } finally { setAuthBusy(false); } }}>{authBusy ? "Signing in..." : "Sign in"}</button>
+        {user ? (\n          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>\n            <span style={{ fontSize: 13, fontWeight: 600 }}>{user.displayName || user.email || "Account"}</span>\n            <button className="button button-dark" type="button" disabled={authBusy} onClick={() => runAuth(logout)}>{authBusy ? "..." : "Sign out"}</button>\n          </div>\n        ) : (\n          <button className="button button-dark" type="button" onClick={() => { setAuthError(""); setAuthOpen(true); }}>{authBusy ? "..." : "Sign in"}</button>\n        )}
       </header>
 
       <main>
