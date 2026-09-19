@@ -1,7 +1,7 @@
 import { Router, type Response, type Router as ExpressRouter } from "express";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { branches, customers, orders, products, users, warehouses } from "../db/schema.js";
+import { branches, customers, orders, products, routes, users, warehouses } from "../db/schema.js";
 import { requireFirebaseAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 
 export const lookupRouter: ExpressRouter = Router();
@@ -76,6 +76,13 @@ lookupRouter.get("/:type", async (req, res) => {
         .from(warehouses)
         .where(and(eq(warehouses.companyId, u.companyId), or(idMatches(warehouses.id, like), ilike(warehouses.code, like), ilike(warehouses.name, like))))
         .orderBy(warehouses.name).limit(20));
+    }
+
+    if (type === "routes") {
+      return res.json(await db.select({ id: routes.id, name: routes.name, routeDate: routes.routeDate })
+        .from(routes)
+        .where(and(eq(routes.companyId, u.companyId), or(idMatches(routes.id, like), ilike(routes.name, like), sql`CAST(${routes.routeDate} AS TEXT) ILIKE ${like}`)))
+        .orderBy(desc(routes.routeDate)).limit(20));
     }
 
     if (type === "orders") {
