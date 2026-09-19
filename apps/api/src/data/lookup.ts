@@ -36,9 +36,24 @@ lookupRouter.get("/:type", async (req, res) => {
     const type = String(req.params.type);
 
     if (type === "customers") {
+      // Search each entered word independently. PostgreSQL ILIKE is Unicode-aware,
+      // so Russian, Uzbek, English and other Unicode names/addresses can be found
+      // without translating the user's input or the stored customer data.
+      const terms = q.split(/\\s+/).map((term) => term.trim()).filter(Boolean).slice(0, 8);
+      const termConditions = terms.map((term) => {
+        const termLike = "%" + term + "%";
+        return or(
+          idMatches(customers.id, termLike),
+          ilike(customers.code, termLike),
+          ilike(customers.name, termLike),
+          ilike(customers.address, termLike),
+          ilike(customers.phone, termLike),
+        );
+      });
+
       return res.json(await db.select({ id: customers.id, code: customers.code, name: customers.name, phone: customers.phone, address: customers.address })
         .from(customers)
-        .where(and(eq(customers.companyId, u.companyId), or(idMatches(customers.id, like), ilike(customers.code, like), ilike(customers.name, like), ilike(customers.address, like), ilike(customers.phone, like))))
+        .where(and(eq(customers.companyId, u.companyId), ...termConditions))
         .orderBy(customers.name).limit(20));
     }
 
