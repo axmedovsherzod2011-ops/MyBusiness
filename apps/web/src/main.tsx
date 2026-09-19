@@ -83,8 +83,8 @@ function App() {
           <a href="#status">System status</a>
         </nav>
         {user ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>{user.displayName || user.email || "Account"}</span>
+          <div className="account-actions">
+            <span className="account-name">{user.displayName || user.email || "Account"}</span>
             <button className="button button-dark" type="button" disabled={authBusy} onClick={() => runAuth(logout)}>
               {authBusy ? "..." : "Sign out"}
             </button>
@@ -114,12 +114,12 @@ function App() {
               <span className="status-dot">Live</span>
             </div>
             <div className="metric-grid">
-              <div className="metric-card"><span>Orders</span><strong>1,248</strong><small>this month</small></div>
-              <div className="metric-card"><span>Revenue</span><strong>842.6M</strong><small>UZS</small></div>
-              <div className="metric-card"><span>Products</span><strong>524</strong><small>active</small></div>
-              <div className="metric-card"><span>Customers</span><strong>1,032</strong><small>accounts</small></div>
+              <div className="metric-card"><span>Sales</span><strong>Orders</strong><small>order workflow</small></div>
+              <div className="metric-card"><span>Stock</span><strong>Inventory</strong><small>warehouse control</small></div>
+              <div className="metric-card"><span>Customers</span><strong>Accounts</strong><small>contacts & balances</small></div>
+              <div className="metric-card"><span>Finance</span><strong>Payments</strong><small>cash & debt tracking</small></div>
             </div>
-            <div className="chart-placeholder"><div className="chart-line" /><div className="chart-bars"><i /><i /><i /><i /><i /><i /><i /><i /></div></div>
+            <div className="preview-note">This is a product preview. Your workspace will show your own business data.</div>
           </div>
         </section>
 
