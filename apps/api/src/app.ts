@@ -23,7 +23,7 @@ function rateLimit(max: number) {
     bucket.count += 1;
     if (bucket.count > max) {
       res.setHeader("Retry-After", Math.ceil((bucket.resetAt - now) / 1000));
-      return res.status(429).json({ error: "RATE_LIMITED", message: "Too many requests. Please try again shortly." });
+      return res.status(429).json({ error: "RATE_LIMITED", message: "Слишком много запросов. Повторите попытку немного позже." });
     }
     return next();
   };
@@ -52,7 +52,7 @@ app.use((req, res, next) => {
 app.use(cors({
   origin: (origin, callback) => !origin || corsOrigins.includes(origin)
     ? callback(null, true)
-    : callback(new Error("CORS origin is not allowed")),
+    : callback(new Error("Источник CORS не разрешён.")),
   credentials: false,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
@@ -86,13 +86,13 @@ app.use("/api/v1/auth", rateLimit(env.AUTH_RATE_LIMIT_MAX), authRouter);
 app.use("/api/v1/data", dataRouter);
 
 app.use((_req: Request, res: Response) => {
-  res.status(404).json({ error: "NOT_FOUND", message: "The requested resource was not found." });
+  res.status(404).json({ error: "NOT_FOUND", message: "Запрошенный ресурс не найден." });
 });
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error("Unhandled application error", error);
-  if (error instanceof Error && error.message === "CORS origin is not allowed") {
-    return res.status(403).json({ error: "CORS_FORBIDDEN", message: "Origin is not allowed." });
+  if (error instanceof Error && error.message === "Источник CORS не разрешён.") {
+    return res.status(403).json({ error: "CORS_FORBIDDEN", message: "Источник не разрешён." });
   }
-  return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "An unexpected error occurred." });
+  return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "Произошла непредвиденная ошибка." });
 });
