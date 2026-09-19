@@ -104,12 +104,19 @@ function App() {
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState("");
   const [toast, setToast] = useState("");
+  const [accountReady, setAccountReady] = useState(false);
 
   useEffect(() => subscribeToAuth(setUser), []);
   useEffect(() => {
     getApiStatus().then(x => setApi({ status: "online", version: x.version })).catch(e => setApi({ status: "offline", message: String(e) }));
   }, []);
-  useEffect(() => { if (user) void syncCurrentUser().catch(console.error); }, [user]);
+  useEffect(() => {
+    let active = true;
+    setAccountReady(!user ? false : false);
+    if (!user) return () => { active = false; };
+    void syncCurrentUser().then(() => { if (active) setAccountReady(true); }).catch((e) => { console.error(e); if (active) setAccountReady(false); });
+    return () => { active = false; };
+  }, [user]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(""), 2600);
@@ -135,6 +142,10 @@ function App() {
     return <Welcome api={api} open={() => setAuthOpen(true)} authOpen={authOpen} mode={authMode}
       setMode={setAuthMode} email={email} setEmail={setEmail} password={password} setPassword={setPassword}
       busy={authBusy} error={authError} setError={setAuthError} runAuth={runAuth} />;
+  }
+
+  if (!accountReady) {
+    return <div className="landing"><div className="empty-work"><h2>Подготовка рабочего пространства…</h2><p>Проверяем доступ к данным компании.</p></div></div>;
   }
 
   const title =
