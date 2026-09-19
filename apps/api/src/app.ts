@@ -1,9 +1,9 @@
 import cors from "cors";
-import express from "express";
+import express, { type Express } from "express";
 import { env } from "./config.js";
 import { checkDatabase } from "./db/health.js";
 
-export const app = express();
+export const app: Express = express();
 
 app.disable("x-powered-by");
 app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
