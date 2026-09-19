@@ -1,0 +1,16 @@
+{
+  "name": "mybusiness",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "dev": "pnpm --filter @mybusiness/api dev",
+    "build": "pnpm --filter @mybusiness/api build",
+    "start": "pnpm --filter @mybusiness/api start",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
