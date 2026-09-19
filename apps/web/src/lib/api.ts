@@ -26,3 +26,7 @@ export async function apiFetch<T>(
 export async function getApiStatus() {
   return apiFetch<{ name: string; version: string; status: string }>("/api/v1");
 }
+
+export async function apiFetchAuth<T>(path: string, token: string, init?: RequestInit) {
+  return apiFetch<T>(path, { ...init, headers: { ...(init?.headers || {}), Authorization: `Bearer ${token}` } });
+}
