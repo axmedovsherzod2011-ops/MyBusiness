@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import { env } from "./config.js";
+import { checkDatabase } from "./db/health.js";
 
 export const app = express();
 
@@ -15,6 +16,16 @@ app.get("/health", (_req, res) => {
     version: "0.1.0",
     timestamp: new Date().toISOString(),
   });
+});
+
+app.get("/ready", async (_req, res) => {
+  try {
+    await checkDatabase();
+    res.status(200).json({ ok: true, database: "ready" });
+  } catch (error) {
+    console.error("Database readiness check failed", error);
+    res.status(503).json({ ok: false, database: "unavailable" });
+  }
 });
 
 app.get("/api/v1", (_req, res) => {
