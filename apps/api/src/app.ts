@@ -2,6 +2,7 @@ import cors from "cors";
 import express, { type Express, type Request, type Response } from "express";
 import { env } from "./config.js";
 import { checkDatabase } from "./db/health.js";
+import { authRouter } from "./auth/routes.js";
 
 export const app: Express = express();
 
@@ -12,6 +13,7 @@ app.use(
   cors({
     origin: env.CORS_ORIGIN,
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 app.use(express.json({ limit: "1mb" }));
@@ -43,6 +45,8 @@ app.get("/api/v1", (_req: Request, res: Response) => {
     status: "ready",
   });
 });
+
+app.use("/api/v1/auth", authRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
