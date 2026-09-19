@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { getApiStatus } from "./lib/api";
+import { logout, signInWithGoogle, subscribeToAuth } from "./lib/auth";
+import type { User } from "firebase/auth";
 import "./styles.css";
 
 type ApiState =
@@ -19,6 +21,10 @@ const modules = [
 
 function App() {
   const [apiState, setApiState] = useState<ApiState>({ status: "loading" });
+  const [user, setUser] = useState<User | null>(null);
+  const [authBusy, setAuthBusy] = useState(false);
+
+  useEffect(() => subscribeToAuth(setUser), []);
 
   useEffect(() => {
     getApiStatus()
@@ -42,7 +48,7 @@ function App() {
           <a href="#modules">Modules</a>
           <a href="#status">System status</a>
         </nav>
-        <button className="button button-dark" type="button">Sign in</button>
+        <button className="button button-dark" type="button" disabled={authBusy} onClick={async () => { setAuthBusy(true); try { await signInWithGoogle(); } finally { setAuthBusy(false); } }}>{authBusy ? "Signing in..." : "Sign in"}</button>
       </header>
 
       <main>
