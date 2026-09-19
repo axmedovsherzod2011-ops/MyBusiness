@@ -88,7 +88,7 @@ function label(k: string) {
     sku: "SKU", unit: "Единица", barcode: "Штрихкод", phone: "Телефон", code: "Код",
     fullName: "Имя", email: "Электронная почта", priority: "Приоритет", description: "Описание",
     provider: "Провайдер", endpoint: "Адрес подключения", customer: "Клиент",
-  } as any)[k] || k.replace(/[A-Z]/g, m => " " + m).replace(/^./, m => m.toUpperCase());
+  } as any)[k] || "Поле";
 }
 
 function App() {
@@ -365,7 +365,7 @@ const valueLabels: Record<string, string> = {
 };
 function displayValue(value: any) {
   const key = String(value ?? "");
-  return valueLabels[key] || key;
+  return valueLabels[key] || (/[A-Za-z]/.test(key) ? "Значение" : key);
 }
 function Table({ rows, columns }: { rows: Row[]; columns: string[] }) {
   return <div className="table-scroll"><table><thead><tr>{columns.map(c => <th key={c}>{label(c)}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i}>{columns.map(c => <td key={c}>
