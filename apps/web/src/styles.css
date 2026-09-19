@@ -46,3 +46,10 @@
  .order-discount-btn{grid-column:2}.order-remove{grid-column:3;grid-row:2}
  .modal-actions{position:sticky;bottom:-16px;background:#fff;padding:12px 0 2px}
 }
+
+
+/* Product editor */
+.product-edit-modal{width:min(520px,100%);max-height:92vh;overflow:auto}
+.product-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.table-edit-btn{padding:7px 10px;font-size:12px;white-space:nowrap}
+@media(max-width:600px){.product-edit-grid{grid-template-columns:1fr}.product-edit-modal{max-height:94vh}}

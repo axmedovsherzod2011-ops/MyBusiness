@@ -268,6 +268,7 @@ function ModuleView({ page, user, toast }: any) {
   const { rows, setRows, loading, error, reload } = useApiData(c.endpoint, user);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Row | null>(null);
   const filtered = useMemo(() => rows.filter(r => JSON.stringify(r).toLowerCase().includes(search.toLowerCase())), [rows, search]);
 
   const create = async (data: any) => {
@@ -283,6 +284,17 @@ function ModuleView({ page, user, toast }: any) {
     } catch (e) { toast(e instanceof Error ? e.message : "Не удалось сохранить запись."); }
   };
 
+  const editProduct = async (data: any) => {
+    if (!editingProduct?.id) return;
+    try {
+      const t = await user.getIdToken();
+      const d = await apiFetchAuth<any>("/api/v1/data/products/" + editingProduct.id, t, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      setRows(x => x.map(row => row.id === d.id ? d : row));
+      setEditingProduct(null);
+      toast("Товар обновлён.");
+    } catch (e) { toast(e instanceof Error ? e.message : "Не удалось обновить товар."); }
+  };
+
   const stat = page === "reports" || page === "stockMovements" || page === "auditLogs" || page === "notifications" ? [] :
     [["Записи", rows.length], ["Активные", rows.filter(r => String(r.status || r.isActive).toLowerCase().includes("active") || r.isActive === true).length], ["Внимание", rows.filter(r => ["low", "pending", "overdue", "failed"].includes(String(r.status).toLowerCase())).length], ["Обновлено", "В реальном времени"]];
 
@@ -294,9 +306,10 @@ function ModuleView({ page, user, toast }: any) {
       {loading ? <div className="empty-work"><h3>Загрузка данных…</h3></div> :
        error ? <div className="empty-work"><h3>Не удалось загрузить данные</h3><p>{error}</p><button className="button outline" onClick={() => void reload()}>Повторить</button></div> :
        filtered.length === 0 ? <div className="empty-work"><h3>Записей пока нет</h3><p>{page === "stockMovements" || page === "auditLogs" || page === "notifications" ? "Пока нет записей для отображения." : "Создайте первую запись, чтобы начать работу с разделом."}</p></div> :
-       <><Table rows={filtered} columns={c.cols} /><WorkflowBar page={page} rows={filtered} user={user} reload={reload} toast={toast} /></>}
+       <><Table rows={filtered} columns={c.cols} onEdit={page === "products" ? setEditingProduct : undefined} /><WorkflowBar page={page} rows={filtered} user={user} reload={reload} toast={toast} /></>}
     </section>
     {open && (page === "orders" ? <OrderCreateModal close={() => setOpen(false)} save={create} user={user} /> : <CreateModal config={c} close={() => setOpen(false)} save={create} user={user} />)}
+    {editingProduct && <ProductEditModal product={editingProduct} close={() => setEditingProduct(null)} save={editProduct} />}
   </div>;
 }
 
@@ -633,11 +646,32 @@ function displayValue(value: any) {
   const key = String(value ?? "");
   return valueLabels[key] || key;
 }
-function Table({ rows, columns }: { rows: Row[]; columns: string[] }) {
-  return <div className="table-scroll"><table><thead><tr>{columns.map(c => <th key={c}>{label(c)}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i}>{columns.map(c => <td key={c}>
+function ProductEditModal({ product, close, save }: { product: Row; close: () => void; save: (data: any) => void }) {
+  const [data, setData] = useState<any>({
+    name: product.name ?? "",
+    sku: product.sku ?? "",
+    unit: product.unit ?? "pcs",
+    barcode: product.barcode ?? "",
+    costPrice: product.costPrice ?? "0",
+    salePrice: product.salePrice ?? "0",
+  });
+  return <div className="modal-backdrop"><div className="quick-modal product-edit-modal">
+    <button className="modal-close" onClick={close}>×</button>
+    <span className="eyebrow">Редактор товара</span><h2>Изменить товар</h2>
+    <label>Название<input value={data.name} onChange={e => setData({ ...data, name: e.target.value })} required /></label>
+    <label>SKU<input value={data.sku} onChange={e => setData({ ...data, sku: e.target.value })} required /></label>
+    <label>Единица<input value={data.unit} onChange={e => setData({ ...data, unit: e.target.value })} required /></label>
+    <label>Штрихкод<input value={data.barcode} onChange={e => setData({ ...data, barcode: e.target.value })} /></label>
+    <div className="product-edit-grid"><label>Себестоимость<input type="number" min="0" step="0.01" value={data.costPrice} onChange={e => setData({ ...data, costPrice: e.target.value })} /></label><label>Цена продажи<input type="number" min="0" step="0.01" value={data.salePrice} onChange={e => setData({ ...data, salePrice: e.target.value })} /></label></div>
+    <div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" onClick={() => save(data)}>Сохранить</button></div>
+  </div></div>;
+}
+
+function Table({ rows, columns, onEdit }: { rows: Row[]; columns: string[]; onEdit?: (row: Row) => void }) {
+  return <div className="table-scroll"><table><thead><tr>{columns.map(c => <th key={c}>{label(c)}</th>)}{onEdit && <th>Действия</th>}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i}>{columns.map(c => <td key={c}>
     {c === "status" || c === "isActive" ? <Badge>{c === "isActive" ? (r[c] ? "Активен" : "Неактивен") : displayValue(r[c])}</Badge> :
      ["total", "amount", "creditLimit", "costPrice", "salePrice", "sales", "collected"].includes(c) ? <b>{money(r[c])}</b> : displayValue(r[c])}
-  </td>)}</tr>)}</tbody></table></div>;
+  </td>)}{onEdit && <td><button className="button outline table-edit-btn" onClick={() => onEdit(r)}>Изменить</button></td>}</tr>)}</tbody></table></div>;
 }
 
 createRoot(document.getElementById("root")!).render(<React.StrictMode><App /></React.StrictMode>);
