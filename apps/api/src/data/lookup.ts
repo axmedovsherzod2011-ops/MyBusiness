@@ -39,7 +39,7 @@ lookupRouter.get("/:type", async (req, res) => {
       // Search each entered word independently. PostgreSQL ILIKE is Unicode-aware,
       // so Russian, Uzbek, English and other Unicode names/addresses can be found
       // without translating the user's input or the stored customer data.
-      const terms = q.split(/\\s+/).map((term) => term.trim()).filter(Boolean).slice(0, 8);
+      const terms = q.split(/\s+/).map((term) => term.trim()).filter(Boolean).slice(0, 8);
       const termConditions = terms.map((term) => {
         const termLike = "%" + term + "%";
         return or(
