@@ -58,7 +58,7 @@ lookupRouter.get("/:type", async (req, res) => {
     }
 
     if (type === "products") {
-      return res.json(await db.select({ id: products.id, sku: products.sku, barcode: products.barcode, name: products.name })
+      return res.json(await db.select({ id: products.id, sku: products.sku, barcode: products.barcode, name: products.name, unit: products.unit, costPrice: products.costPrice, salePrice: products.salePrice })
         .from(products)
         .where(and(eq(products.companyId, u.companyId), or(idMatches(products.id, like), ilike(products.sku, like), ilike(products.barcode, like), ilike(products.name, like))))
         .orderBy(products.name).limit(20));
