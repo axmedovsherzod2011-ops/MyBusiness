@@ -522,7 +522,7 @@ function OrderCreateModal({ close, save, user }: { close: () => void; save: (d: 
     <div className="order-cart">
       {items.map((item,index) => <div className="order-cart-item" key={item.productId}>
         <span className="product-thumb">▧</span>
-        <div className="order-cart-main"><strong>{item.product.name}</strong><small>{Number(item.product.salePrice || 0).toLocaleString("ru-RU")} ₽ × {item.quantity} = {lineTotal(item).toLocaleString("ru-RU")} ₽</small></div>
+        <div className="order-cart-main"><strong>{item.product.name}</strong><small>{Number(item.product.salePrice || 0).toLocaleString("ru-RU")} сум × {item.quantity} = {lineTotal(item).toLocaleString("ru-RU")} сум</small></div>
         <div className="order-cart-controls"><button type="button" onClick={() => changeQty(index,-1)}>-</button><b>{item.quantity}</b><button type="button" onClick={() => changeQty(index,1)}>+</button></div>
         <button type="button" className="order-discount-btn" onClick={() => setDiscountModal(index)}>Скидка</button>
         <button type="button" className="order-remove" onClick={() => removeProduct(index)}>×</button>
@@ -532,13 +532,13 @@ function OrderCreateModal({ close, save, user }: { close: () => void; save: (d: 
     {discountModal !== null && items[discountModal] && <div className="order-discount-backdrop" onMouseDown={() => setDiscountModal(null)}>
       <div className="order-discount-modal" onMouseDown={e => e.stopPropagation()}>
         <button className="modal-close" onClick={() => setDiscountModal(null)}>×</button>
-        <h3>Скидка</h3><p>Цена: <b>{Number(items[discountModal].product.salePrice || 0).toLocaleString("ru-RU")} ₽</b></p>
+        <h3>Скидка</h3><p>Цена: <b>{Number(items[discountModal].product.salePrice || 0).toLocaleString("ru-RU")} сум</b></p>
         <label>Скидка<input autoFocus type="number" min="0" value={items[discountModal].discount} onChange={e => setItems(prev => prev.map((x,i)=>i===discountModal?{...x,discount:Number(e.target.value||0)}:x))} /></label>
         <button className="button primary full" onClick={() => setDiscountModal(null)}>Готово</button>
       </div>
     </div>}
 
-    <div className="order-total"><span>Общая сумма</span><strong>{grandTotal.toLocaleString("ru-RU")} ₽</strong></div>
+    <div className="order-total"><span>Общая сумма</span><strong>{grandTotal.toLocaleString("ru-RU")} сум</strong></div>
     <label>Примечания<textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Примечания" /></label>
     {error && <small className="auth-error">{error}</small>}
     <div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" onClick={submit}>Оформить заказ</button></div>
