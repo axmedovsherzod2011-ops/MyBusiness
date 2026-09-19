@@ -9,6 +9,7 @@ import {
   signUpWithEmail,
   subscribeToAuth,
   syncCurrentUser,
+  getAuthErrorMessage,
 } from "./lib/auth";
 import type { User } from "firebase/auth";
 import "./styles.css";
@@ -85,7 +86,7 @@ function label(k: string) {
     productId: "Товар", type: "Тип", warehouseId: "Склад", referenceType: "Тип операции",
     action: "Действие", entityType: "Тип объекта", entityId: "ID объекта", title: "Название",
     body: "Сообщение", readAt: "Прочитано", metric: "Показатель", value: "Значение",
-    sku: "SKU", unit: "Единица", barcode: "Штрихкод", phone: "Телефон", code: "Код",
+    sku: "Артикул", unit: "Единица", barcode: "Штрихкод", phone: "Телефон", code: "Код",
     fullName: "Имя", email: "Электронная почта", priority: "Приоритет", description: "Описание",
     provider: "Провайдер", endpoint: "Адрес подключения", customer: "Клиент",
   } as any)[k] || "Поле";
@@ -124,7 +125,7 @@ function App() {
       setAuthOpen(false);
       setToast("Добро пожаловать в МойБизнес.");
     } catch (e) {
-      setAuthError(e instanceof Error ? e.message : "Ошибка авторизации.");
+      setAuthError(getAuthErrorMessage(e));
     } finally {
       setAuthBusy(false);
     }
