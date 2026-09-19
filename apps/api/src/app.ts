@@ -1,15 +1,23 @@
 import cors from "cors";
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response } from "express";
 import { env } from "./config.js";
 import { checkDatabase } from "./db/health.js";
 
 export const app: Express = express();
 
 app.disable("x-powered-by");
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
-app.use(express.json({ limit: "1mb" }));
+app.set("trust proxy", 1);
 
-app.get("/health", (_req, res) => {
+app.use(
+  cors({
+    origin: env.CORS_ORIGIN,
+    credentials: true,
+  }),
+);
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+
+app.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({
     ok: true,
     service: "mybusiness-api",
@@ -18,7 +26,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.get("/ready", async (_req, res) => {
+app.get("/ready", async (_req: Request, res: Response) => {
   try {
     await checkDatabase();
     res.status(200).json({ ok: true, database: "ready" });
@@ -28,10 +36,25 @@ app.get("/ready", async (_req, res) => {
   }
 });
 
-app.get("/api/v1", (_req, res) => {
-  res.json({ name: "MyBusiness API", version: "v1" });
+app.get("/api/v1", (_req: Request, res: Response) => {
+  res.json({
+    name: "MyBusiness API",
+    version: "v1",
+    status: "ready",
+  });
 });
 
-app.use((_req, res) => {
-  res.status(404).json({ error: "NOT_FOUND" });
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({
+    error: "NOT_FOUND",
+    message: "The requested resource was not found.",
+  });
+});
+
+app.use((error: unknown, _req: Request, res: Response, _next: unknown) => {
+  console.error("Unhandled application error", error);
+  res.status(500).json({
+    error: "INTERNAL_SERVER_ERROR",
+    message: "An unexpected error occurred.",
+  });
 });
