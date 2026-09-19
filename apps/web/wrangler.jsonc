@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/wrangler@4.135.0/config-schema.json",
+  "name": "mybusiness",
+  "compatibility_date": "2026-09-19",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
