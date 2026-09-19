@@ -353,10 +353,24 @@ function PageHeader({ title, subtitle, actions }: { title: string; subtitle: str
 function PanelHead({ title, action, onClick }: { title: string; action?: string; onClick?: () => void }) {
   return <div className="panel-head"><h2>{title}</h2>{action && <button onClick={onClick}>{action} →</button>}</div>;
 }
+const valueLabels: Record<string, string> = {
+  draft: "Черновик", confirmed: "Подтверждён", cancelled: "Отменён", completed: "Завершён",
+  planned: "Запланирован", started: "Начат", prepared: "Подготовлен", in_transit: "В пути",
+  delivered: "Доставлен", failed: "Ошибка", active: "Активен", pending: "Ожидает",
+  processing: "Обрабатывается", open: "Открыта", in_progress: "В работе", review: "На проверке",
+  paid: "Оплачен", received: "Принята", disconnected: "Не подключено", connected: "Подключено",
+  normal: "Обычный", low: "Низкий", high: "Высокий", other: "Другое",
+  cash: "Наличные", card: "Карта", receipt: "Поступление", sale: "Продажа",
+  transfer_in: "Приход перемещения", transfer_out: "Расход перемещения", adjustment: "Корректировка", return: "Возврат",
+};
+function displayValue(value: any) {
+  const key = String(value ?? "");
+  return valueLabels[key] || key;
+}
 function Table({ rows, columns }: { rows: Row[]; columns: string[] }) {
   return <div className="table-scroll"><table><thead><tr>{columns.map(c => <th key={c}>{label(c)}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i}>{columns.map(c => <td key={c}>
-    {c === "status" || c === "isActive" ? <Badge>{c === "isActive" ? (r[c] ? "Активен" : "Неактивен") : r[c]}</Badge> :
-     ["total", "amount", "creditLimit", "costPrice", "salePrice", "sales", "collected"].includes(c) ? <b>{money(r[c])}</b> : String(r[c] ?? "—")}
+    {c === "status" || c === "isActive" ? <Badge>{c === "isActive" ? (r[c] ? "Активен" : "Неактивен") : displayValue(r[c])}</Badge> :
+     ["total", "amount", "creditLimit", "costPrice", "salePrice", "sales", "collected"].includes(c) ? <b>{money(r[c])}</b> : displayValue(r[c])}
   </td>)}</tr>)}</tbody></table></div>;
 }
 
