@@ -14,7 +14,20 @@ async function context(req: AuthenticatedRequest) {
 }
 function fail(res: Response, error: unknown) {
   console.error(error);
-  return res.status(500).json({ error: "INTERNAL_ERROR", message: "Не удалось выполнить запрос." });
+  const code = error instanceof Error ? error.message : "INTERNAL_ERROR";
+  const messages: Record<string,string> = {
+    BRANCH_WAREHOUSE_REQUIRED: "Сначала создайте филиал и склад.",
+    CUSTOMER_NOT_FOUND: "Клиент не найден.",
+    PRODUCT_NOT_FOUND: "Товар не найден.",
+    ORDER_ITEMS_REQUIRED: "Добавьте хотя бы одну позицию в заказ.",
+    INVALID_ORDER_ITEM: "Проверьте товар, количество, цену и скидку в позициях заказа.",
+    INVALID_ORDER_DISCOUNT: "Скидка заказа указана некорректно.",
+    ORDER_CREATE_FAILED: "Не удалось создать заказ.",
+    ORDER_FINALIZED: "Завершённый или отменённый заказ нельзя изменить.",
+    INSUFFICIENT_STOCK: "Недостаточно товара на складе.",
+  };
+  const message = messages[code];
+  return res.status(message ? 400 : 500).json({ error: message ? code : "INTERNAL_ERROR", message: message || "Не удалось выполнить запрос." });
 }
 
 dataRouter.get("/bootstrap", async (req,res)=>{ try {
