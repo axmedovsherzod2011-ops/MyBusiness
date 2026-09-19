@@ -77,7 +77,7 @@ function App(){
  const visibleProducts=useMemo(()=>products.filter(r=>Object.values(r).join(" ").toLowerCase().includes(search.toLowerCase())),[products,search]);
  const visibleOrders=useMemo(()=>orders.filter(r=>Object.values(r).join(" ").toLowerCase().includes(search.toLowerCase())),[orders,search]);
 
- if(!user) return <Welcome api={api} openAuth={()=>setAuthOpen(true)} authOpen={authOpen} setAuthOpen={setAuthOpen} authMode={authMode} setAuthMode={setAuthMode} email={email} setEmail={setEmail} password={password} setPassword={setPassword} authBusy={authBusy} authError={authError} runAuth={runAuth}/>;
+ if(!user) return <Welcome api={api} openAuth={()=>setAuthOpen(true)} authOpen={authOpen} setAuthOpen={setAuthOpen} authMode={authMode} setAuthMode={setAuthMode} email={email} setEmail={setEmail} password={password} setPassword={setPassword} authBusy={authBusy} authError={authError} runAuth={runAuth} setAuthError={setAuthError}/>;
 
  return <div className="workspace">
    <aside className={"sidebar "+(sidebar?"":"collapsed")}>
