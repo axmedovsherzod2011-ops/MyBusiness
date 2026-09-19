@@ -7,7 +7,7 @@ import {
   type AuthenticatedRequest,
 } from "./middleware.js";
 
-export const authRouter = Router();
+export const authRouter: ReturnType<typeof Router> = Router();
 
 authRouter.get(
   "/me",
