@@ -72,14 +72,14 @@ app.get("/ready", async (_req: Request, res: Response) => {
     await checkDatabase();
     res.status(200).json({ ok: true, database: "ready", version: env.APP_VERSION });
   } catch (error) {
-    console.error("Database readiness check failed", error);
+    console.error("Не удалось проверить готовность базы данных", error);
     res.status(503).json({ ok: false, database: "unavailable" });
   }
 });
 
 app.get("/api/v1", (_req: Request, res: Response) => {
   res.setHeader("Cache-Control", "no-store");
-  res.json({ name: "MyBusiness API", version: "v1", release: env.APP_VERSION, status: "ready" });
+  res.json({ name: "API МойБизнес", version: "v1", release: env.APP_VERSION, status: "ready" });
 });
 
 app.use("/api/v1/auth", rateLimit(env.AUTH_RATE_LIMIT_MAX), authRouter);
@@ -90,7 +90,7 @@ app.use((_req: Request, res: Response) => {
 });
 
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
-  console.error("Unhandled application error", error);
+  console.error("Произошла непредвиденная ошибка приложения", error);
   if (error instanceof Error && error.message === "Источник CORS не разрешён.") {
     return res.status(403).json({ error: "CORS_FORBIDDEN", message: "Источник не разрешён." });
   }
