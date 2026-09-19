@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { getApiStatus } from "./lib/api";
+import { apiFetchAuth, getApiStatus } from "./lib/api";
 import {
   logout, signInWithApple, signInWithEmail, signInWithGoogle, signUpWithEmail,
   subscribeToAuth, syncCurrentUser,
@@ -66,7 +66,7 @@ function App(){
  const [authMode,setAuthMode]=useState<"signIn"|"signUp">("signIn");
  const [email,setEmail]=useState(""); const [password,setPassword]=useState(""); const [authBusy,setAuthBusy]=useState(false); const [authError,setAuthError]=useState("");
  const [toast,setToast]=useState("");
- const [customers,setCustomers]=useState(customers0); const [products,setProducts]=useState(products0); const [orders,setOrders]=useState(orders0);
+ const [customers,setCustomers]=useState(customers0); const [products,setProducts]=useState(products0); const [orders,setOrders]=useState(orders0);\n useEffect(()=>{ if(!user) return; let cancelled=false; void user.getIdToken().then(token=>token && apiFetchAuth<any>("/api/v1/data/bootstrap",token)).then(data=>{ if(cancelled||!data) return; setCustomers(data.customers.map((x:any)=>({id:x.id,name:x.name,code:x.code,phone:x.phone||"—",address:x.address||"—",balance:x.creditLimit||"0",status:x.isActive?"Active":"Inactive"}))); setProducts(data.products.map((x:any)=>({id:x.id,name:x.name,sku:x.sku,category:"—",unit:x.unit,price:x.salePrice,stock:"—",status:x.isActive?"In stock":"Inactive"}))); setOrders(data.orders.map((x:any)=>({id:x.id,order:"#SO-"+x.orderNumber,customer:x.customerName||"—",date:new Date(x.createdAt).toLocaleDateString(),amount:x.total,status:x.status,payment:"Pending"}))); }).catch(e=>console.error("Bootstrap failed",e)); return ()=>{cancelled=true}; },[user]);
  useEffect(()=>subscribeToAuth(setUser),[]);
  useEffect(()=>{getApiStatus().then(d=>setApi({status:"online",version:d.version})).catch(e=>setApi({status:"offline",message:e instanceof Error?e.message:"offline"}))},[]);
  useEffect(()=>{if(user) void syncCurrentUser().catch(e=>console.error(e))},[user]);
