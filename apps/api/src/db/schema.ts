@@ -286,6 +286,31 @@ export const payments = pgTable("payments", {
   index("payments_customer_idx").on(table.customerId, table.createdAt),
 ]);
 
+export const stockMovementType = pgEnum("stock_movement_type", ["receipt","sale","transfer_in","transfer_out","adjustment","return"]);
+
+export const stockMovements = pgTable("stock_movements", {
+  id: id(), companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }).notNull(),
+  warehouseId: uuid("warehouse_id").references(() => warehouses.id, { onDelete: "restrict" }).notNull(),
+  productId: uuid("product_id").references(() => products.id, { onDelete: "restrict" }).notNull(),
+  type: stockMovementType("type").notNull(), quantity: numeric("quantity", { precision: 18, scale: 3 }).notNull(),
+  referenceType: text("reference_type"), referenceId: uuid("reference_id"), notes: text("notes"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "restrict" }).notNull(), createdAt: createdAt(),
+}, t => [index("stock_movements_company_created_idx").on(t.companyId,t.createdAt), index("stock_movements_warehouse_product_idx").on(t.warehouseId,t.productId,t.createdAt)]);
+
+export const warehouseTransfers = pgTable("warehouse_transfers", {
+  id: id(), companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }).notNull(),
+  fromWarehouseId: uuid("from_warehouse_id").references(() => warehouses.id, { onDelete: "restrict" }).notNull(),
+  toWarehouseId: uuid("to_warehouse_id").references(() => warehouses.id, { onDelete: "restrict" }).notNull(),
+  status: text("status").notNull().default("draft"), notes: text("notes"),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "restrict" }).notNull(), createdAt: createdAt(), updatedAt: updatedAt(),
+}, t => [index("warehouse_transfers_company_created_idx").on(t.companyId,t.createdAt)]);
+
+export const warehouseTransferItems = pgTable("warehouse_transfer_items", {
+  id: id(), transferId: uuid("transfer_id").references(() => warehouseTransfers.id, { onDelete: "cascade" }).notNull(),
+  productId: uuid("product_id").references(() => products.id, { onDelete: "restrict" }).notNull(),
+  quantity: numeric("quantity", { precision: 18, scale: 3 }).notNull(),
+}, t => [index("warehouse_transfer_items_transfer_idx").on(t.transferId)]);
+
 export const auditLogs = pgTable("audit_logs", {
   id: id(),
   companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }).notNull(),
