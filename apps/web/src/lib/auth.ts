@@ -50,3 +50,21 @@ export async function syncCurrentUser() {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+
+export function getAuthErrorMessage(error: unknown): string {
+  const code = typeof error === "object" && error && "code" in error ? String((error as any).code) : "";
+  const messages: Record<string, string> = {
+    "auth/invalid-credential": "Неверная электронная почта или пароль.",
+    "auth/invalid-email": "Укажите корректный адрес электронной почты.",
+    "auth/email-already-in-use": "Этот адрес электронной почты уже используется.",
+    "auth/weak-password": "Пароль слишком простой. Используйте более надёжный пароль.",
+    "auth/user-not-found": "Пользователь с таким адресом не найден.",
+    "auth/wrong-password": "Неверный пароль.",
+    "auth/popup-closed-by-user": "Окно авторизации было закрыто.",
+    "auth/popup-blocked": "Браузер заблокировал окно авторизации.",
+    "auth/network-request-failed": "Не удалось подключиться к серверу. Проверьте интернет-соединение.",
+    "auth/too-many-requests": "Слишком много попыток. Повторите позже.",
+  };
+  return messages[code] || "Не удалось выполнить авторизацию. Попробуйте ещё раз.";
+}
