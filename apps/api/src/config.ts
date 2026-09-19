@@ -13,6 +13,7 @@ const envSchema = z.object({
   FIREBASE_PROJECT_ID: z.string().trim().min(1).optional(),
   FIREBASE_CLIENT_EMAIL: z.string().trim().min(1).optional(),
   FIREBASE_PRIVATE_KEY: z.string().trim().min(1).optional(),
+  DB_AUTO_PUSH: z.coerce.boolean().default(false),
 });
 
 export const env = envSchema.parse(process.env);
