@@ -49,6 +49,10 @@ authRouter.get(
         })
         .returning({ id: companies.id });
 
+      if (!company) {
+        throw new Error("Failed to create company");
+      }
+
       const [user] = await tx
         .insert(users)
         .values({
@@ -65,6 +69,10 @@ authRouter.get(
           status: users.status,
         });
 
+      if (!user) {
+        throw new Error("Failed to create user");
+      }
+
       const [ownerRole] = await tx
         .insert(roles)
         .values({
@@ -73,6 +81,10 @@ authRouter.get(
           description: "Initial company owner",
         })
         .returning({ id: roles.id });
+
+      if (!ownerRole) {
+        throw new Error("Failed to create owner role");
+      }
 
       await tx.insert(userRoles).values({
         userId: user.id,
