@@ -5,6 +5,7 @@ import { env, corsOrigins } from "./config.js";
 import { checkDatabase } from "./db/health.js";
 import { authRouter } from "./auth/routes.js";
 import { dataRouter } from "./data/routes.js";
+import { lookupRouter } from "./data/lookup.js";
 
 type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
@@ -84,6 +85,7 @@ app.get("/api/v1", (_req: Request, res: Response) => {
 
 app.use("/api/v1/auth", rateLimit(env.AUTH_RATE_LIMIT_MAX), authRouter);
 app.use("/api/v1/data", dataRouter);
+app.use("/api/v1/lookups", rateLimit(60), lookupRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "NOT_FOUND", message: "Запрошенный ресурс не найден." });
