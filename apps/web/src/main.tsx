@@ -1,91 +1,363 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { apiFetchAuth, getApiСтатус } from "./lib/api";
-import { logout, signInWithApple, signInWithЭлектронная почта, signInWithGoogle, signUpWithЭлектронная почта, subscribeToAuth, syncТекущиеUser } from "./lib/auth";
+import { apiFetchAuth, getApiStatus } from "./lib/api";
+import {
+  logout,
+  signInWithApple,
+  signInWithEmail,
+  signInWithGoogle,
+  signUpWithEmail,
+  subscribeToAuth,
+  syncCurrentUser,
+} from "./lib/auth";
 import type { User } from "firebase/auth";
 import "./styles.css";
 
-type Page = "dashboard"|"orders"|"customers"|"products"|"inventory"|"purchases"|"payments"|"delivery"|"reports"|"analytics"|"routes"|"visits"|"promotions"|"tasks"|"team"|"branches"|"warehouses"|"suppliers"|"transfers"|"stockMovements"|"auditLogs"|"notifications"|"lowStock"|"integrations"|"settings";
+type Page =
+  | "dashboard" | "orders" | "customers" | "products" | "inventory"
+  | "purchases" | "payments" | "delivery" | "reports" | "analytics"
+  | "routes" | "visits" | "promotions" | "tasks" | "team" | "branches"
+  | "warehouses" | "suppliers" | "transfers" | "stockMovements"
+  | "auditLogs" | "notifications" | "lowStock" | "integrations" | "settings";
 type Row = Record<string, any>;
-type ApiState = {status:"loading"}|{status:"online";version:string}|{status:"offline";message:string};
+type ApiState =
+  | { status: "loading" }
+  | { status: "online"; version: string }
+  | { status: "offline"; message: string };
 
-const navGroups:any[]=[
- {label:"Обзор",items:[["dashboard","Панель управления","⌂"],["analytics","Аналитика и BI","◒"]]},
- {label:"Продажи",items:[["orders","Заказы","↗"],["customers","Клиенты","◎"],["routes","Маршруты","⌁"],["visits","Визиты","✓"],["promotions","Акции","%"]]},
- {label:"Каталог и запасы",items:[["products","Товары","▦"],["inventory","Остатки","▤"],["lowStock","Низкие остатки","!"],["purchases","Закупки","↓"],["suppliers","Поставщики","♢"],["warehouses","Склады","⌂"],["transfers","Transfers","⇄"],["stockMovements","Движения запасов","↕"],["delivery","Доставка","⇢"]]},
- {label:"Финансы",items:[["payments","Платежи и задолженность","₮"],["reports","Отчёты","▥"]]},
- {label:"Управление",items:[["tasks","Задачи","☑"],["team","Команда","♙"],["branches","Филиалы","⌂"],["auditLogs","Журнал аудита","▤"],["notifications","Уведомления","◔"],["integrations","Интеграции","↔"]]},
- {label:"Система",items:[["settings","Настройки","⚙"]]},
+const navGroups: any[] = [
+  { label: "Обзор", items: [["dashboard", "Панель управления", "⌂"], ["analytics", "Аналитика и BI", "◒"]] },
+  { label: "Продажи", items: [["orders", "Заказы", "↗"], ["customers", "Клиенты", "◎"], ["routes", "Маршруты", "⌁"], ["visits", "Визиты", "✓"], ["promotions", "Акции", "%"]] },
+  { label: "Каталог и запасы", items: [["products", "Товары", "▦"], ["inventory", "Остатки", "▤"], ["lowStock", "Низкие остатки", "!"], ["purchases", "Закупки", "↓"], ["suppliers", "Поставщики", "♢"], ["warehouses", "Склады", "⌂"], ["transfers", "Перемещения", "⇄"], ["stockMovements", "Движения запасов", "↕"], ["delivery", "Доставка", "⇢"]] },
+  { label: "Финансы", items: [["payments", "Платежи и задолженность", "₮"], ["reports", "Отчёты", "▥"]] },
+  { label: "Управление", items: [["tasks", "Задачи", "☑"], ["team", "Команда", "♙"], ["branches", "Филиалы", "⌂"], ["auditLogs", "Журнал аудита", "▤"], ["notifications", "Уведомления", "◔"], ["integrations", "Интеграции", "↔"]] },
+  { label: "Система", items: [["settings", "Настройки", "⚙"]] },
 ];
 
-const cfg:any={
- customers:{title:"Клиенты",sub:"Аккаунтs, contacts, credit limits and customer history.",endpoint:"customers",action:"Add customer",fields:[["name","Name"],["phone","Phone"],["address","Address"],["creditLimit","Credit limit"]],cols:["name","code","phone","creditLimit","isАктивные"]},
- products:{title:"Товары",sub:"Master catalog, SKU, barcode, cost and selling prices.",endpoint:"products",action:"Add product",fields:[["name","Name"],["sku","SKU"],["unit","Unit"],["barcode","Barcode"],["costPrice","Cost price"],["salePrice","Sale price"]],cols:["name","sku","unit","costPrice","salePrice","isАктивные"]},
- orders:{title:"Заказы",sub:"Order lifecycle from draft through confirmation and completion.",endpoint:"orders",action:"Новый заказ",fields:[["customerId","Customer ID"],["notes","Notes"]],cols:["orderNumber","customer","status","total","createdAt"]},
- inventory:{title:"Остатки",sub:"В реальном времени stock by warehouse and SKU.",endpoint:"inventory",action:"Stock transfer",fields:[],cols:["warehouse","product","sku","quantity"]},
- purchases:{title:"Закупки",sub:"Supplier purchasing and inbound stock workflow.",endpoint:"purchases",action:"New purchase",fields:[["name","Supplier name"],["phone","Phone"]],cols:["name","code","phone"]},
- payments:{title:"Платежи и задолженность",sub:"Collections, payment references and receivables control.",endpoint:"payments",action:"Record payment",fields:[["orderId","Order ID"],["customerId","Customer ID"],["amount","Amount"],["method","Method"],["reference","Reference"]],cols:["customerId","amount","method","status","reference","createdAt"]},
- delivery:{title:"Доставка",sub:"Prepare, dispatch, track and confirm delivery.",endpoint:"deliveries",action:"Create delivery",fields:[["orderId","Order ID"],["address","Address"],["plannedAt","Planned time"]],cols:["orderNumber","customer","status","address","plannedAt"]},
- routes:{title:"Маршруты",sub:"Plan field routes and assign owners to outlet visits.",endpoint:"routes",action:"Create route",fields:[["name","Route name"],["routeDate","Date"],["notes","Notes"]],cols:["name","routeDate","status","notes"]},
- visits:{title:"Визиты",sub:"Digital outlet visits, outcomes, notes and execution history.",endpoint:"visits",action:"Start visit",fields:[["customerId","Customer ID"],["routeId","Route ID"],["notes","Notes"]],cols:["customer","status","outcome","notes","createdAt"]},
- promotions:{title:"Акции",sub:"Plan promotions, target customers and track execution.",endpoint:"promotions",action:"New promotion",fields:[["name","Name"],["discount","Discount"],["startDate","Start"],["endDate","End"],["notes","Notes"]],cols:["name","status","discount","startDate","endDate"]},
- tasks:{title:"Задачи",sub:"Работает signals become owned, deadline-driven actions.",endpoint:"tasks",action:"Create task",fields:[["title","Title"],["description","Description"],["priority","Priority"],["dueAt","Due date"]],cols:["title","status","priority","dueAt"]},
- team:{title:"Команда",sub:"Users, responsibilities and access within the company.",endpoint:"team",action:"Invite member",fields:[],cols:["fullName","email","phone","status","createdAt"]},
- branches:{title:"Филиалы",sub:"Operating locations, warehouses and branch-level control.",endpoint:"branches",action:"Add branch",fields:[["name","Name"],["code","Code"],["address","Address"],["phone","Phone"]],cols:["name","code","address","phone","isАктивные"]},
- integrations:{title:"Интеграции",sub:"ERP, payment, fiscal and external data connections.",endpoint:"integrations",action:"Add integration",fields:[["name","Name"],["provider","Provider"],["endpoint","Endpoint"]],cols:["name","provider","status","lastSyncAt"]},
- reports:{title:"Отчёты",sub:"Работает summaries based on real записей in your workspace.",endpoint:"reports/summary",action:"Обновить",fields:[],cols:["metric","value"]},
- suppliers:{title:"Поставщики",sub:"Supplier master data for purchasing and inbound operations.",endpoint:"suppliers",action:"Add supplier",fields:[["name","Name"],["phone","Phone"],["address","Address"]],cols:["name","code","phone","address","createdAt"]},
- warehouses:{title:"Склады",sub:"Warehouse locations and branch-level stock control.",endpoint:"warehouses",action:"Add warehouse",fields:[["branchId","Branch ID"],["name","Name"],["code","Code"]],cols:["name","code","branchId","isАктивные"]},
- transfers:{title:"Перемещения",sub:"Move stock between warehouses with traceable transfer записей.",endpoint:"transfers",action:"New transfer",fields:[["fromWarehouseId","From warehouse"],["toWarehouseId","To warehouse"],["productId","Product"],["quantity","Quantity"],["notes","Notes"]],cols:["id","status","fromWarehouseId","toWarehouseId","createdAt"]},
- stockMovements:{title:"Движения запасов",sub:"Receipts, sales, transfers, adjustments and returns in one ledger.",endpoint:"stock-movements",action:"Обновить ledger",fields:[],cols:["type","warehouseId","productId","quantity","referenceType","createdAt"]},
- auditLogs:{title:"Журнал аудита",sub:"Traceable company-scoped record of important system actions.",endpoint:"audit-logs",action:"Обновить",fields:[],cols:["action","entityType","entityId","createdAt"]},
- notifications:{title:"Уведомления",sub:"Работает alerts and user-specific messages.",endpoint:"notifications",action:"Обновить",fields:[],cols:["title","body","readAt","createdAt"]},
- lowStock:{title:"Низкие остатки",sub:"Товары at or below the operational stock threshold.",endpoint:"inventory/low-stock?threshold=5",action:"Обновить",fields:[],cols:["warehouse","product","sku","quantity"]},
+const cfg: any = {
+  customers: { title: "Клиенты", sub: "Контакты, кредитные лимиты и история клиентов.", endpoint: "customers", action: "Добавить клиента", fields: [["name", "Имя"], ["phone", "Телефон"], ["address", "Адрес"], ["creditLimit", "Кредитный лимит"]], cols: ["name", "code", "phone", "creditLimit", "isActive"] },
+  products: { title: "Товары", sub: "Каталог, SKU, штрихкоды, себестоимость и цены продажи.", endpoint: "products", action: "Добавить товар", fields: [["name", "Название"], ["sku", "SKU"], ["unit", "Единица"], ["barcode", "Штрихкод"], ["costPrice", "Себестоимость"], ["salePrice", "Цена продажи"]], cols: ["name", "sku", "unit", "costPrice", "salePrice", "isActive"] },
+  orders: { title: "Заказы", sub: "Жизненный цикл заказа: от черновика до подтверждения и завершения.", endpoint: "orders", action: "Новый заказ", fields: [["customerId", "ID клиента"], ["notes", "Примечания"]], cols: ["orderNumber", "customer", "status", "total", "createdAt"] },
+  inventory: { title: "Остатки", sub: "Остатки по складам и SKU в реальном времени.", endpoint: "inventory", action: "Перемещение запасов", fields: [], cols: ["warehouse", "product", "sku", "quantity"] },
+  purchases: { title: "Закупки", sub: "Закупки у поставщиков и приёмка поступивших запасов.", endpoint: "purchases", action: "Новая закупка", fields: [["name", "Поставщик"], ["phone", "Телефон"]], cols: ["name", "code", "phone"] },
+  payments: { title: "Платежи и задолженность", sub: "Платежи, ссылки на операции и контроль дебиторской задолженности.", endpoint: "payments", action: "Записать платёж", fields: [["orderId", "ID заказа"], ["customerId", "ID клиента"], ["amount", "Сумма"], ["method", "Способ"], ["reference", "Назначение"]], cols: ["customerId", "amount", "method", "status", "reference", "createdAt"] },
+  delivery: { title: "Доставка", sub: "Подготовка, отправка, отслеживание и подтверждение доставки.", endpoint: "deliveries", action: "Создать доставку", fields: [["orderId", "ID заказа"], ["address", "Адрес"], ["plannedAt", "Плановое время"]], cols: ["orderNumber", "customer", "status", "address", "plannedAt"] },
+  routes: { title: "Маршруты", sub: "Планирование маршрутов и назначение ответственных за визиты.", endpoint: "routes", action: "Создать маршрут", fields: [["name", "Название маршрута"], ["routeDate", "Дата"], ["notes", "Примечания"]], cols: ["name", "routeDate", "status", "notes"] },
+  visits: { title: "Визиты", sub: "Цифровые визиты к клиентам, результаты, заметки и история выполнения.", endpoint: "visits", action: "Начать визит", fields: [["customerId", "ID клиента"], ["routeId", "ID маршрута"], ["notes", "Примечания"]], cols: ["customer", "status", "outcome", "notes", "createdAt"] },
+  promotions: { title: "Акции", sub: "Планирование акций, целевые клиенты и контроль выполнения.", endpoint: "promotions", action: "Новая акция", fields: [["name", "Название"], ["discount", "Скидка"], ["startDate", "Начало"], ["endDate", "Окончание"], ["notes", "Примечания"]], cols: ["name", "status", "discount", "startDate", "endDate"] },
+  tasks: { title: "Задачи", sub: "Рабочие сигналы превращаются в ответственные действия с контролем сроков.", endpoint: "tasks", action: "Создать задачу", fields: [["title", "Название"], ["description", "Описание"], ["priority", "Приоритет"], ["dueAt", "Срок"]], cols: ["title", "status", "priority", "dueAt"] },
+  team: { title: "Команда", sub: "Пользователи, обязанности и доступ внутри компании.", endpoint: "team", action: "Пригласить сотрудника", fields: [], cols: ["fullName", "email", "phone", "status", "createdAt"] },
+  branches: { title: "Филиалы", sub: "Рабочие точки, склады и управление на уровне филиалов.", endpoint: "branches", action: "Добавить филиал", fields: [["name", "Название"], ["code", "Код"], ["address", "Адрес"], ["phone", "Телефон"]], cols: ["name", "code", "address", "phone", "isActive"] },
+  integrations: { title: "Интеграции", sub: "ERP, платежные, фискальные и внешние подключения.", endpoint: "integrations", action: "Добавить интеграцию", fields: [["name", "Название"], ["provider", "Провайдер"], ["endpoint", "Адрес подключения"]], cols: ["name", "provider", "status", "lastSyncAt"] },
+  reports: { title: "Отчёты", sub: "Сводные показатели на основе реальных данных рабочего пространства.", endpoint: "reports/summary", action: "Обновить", fields: [], cols: ["metric", "value"] },
+  suppliers: { title: "Поставщики", sub: "Данные поставщиков для закупок и приёмки.", endpoint: "suppliers", action: "Добавить поставщика", fields: [["name", "Название"], ["phone", "Телефон"], ["address", "Адрес"]], cols: ["name", "code", "phone", "address", "createdAt"] },
+  warehouses: { title: "Склады", sub: "Склады и контроль запасов на уровне филиалов.", endpoint: "warehouses", action: "Добавить склад", fields: [["branchId", "ID филиала"], ["name", "Название"], ["code", "Код"]], cols: ["name", "code", "branchId", "isActive"] },
+  transfers: { title: "Перемещения", sub: "Перемещение запасов между складами с полной историей операций.", endpoint: "transfers", action: "Новое перемещение", fields: [["fromWarehouseId", "Склад-источник"], ["toWarehouseId", "Склад-получатель"], ["productId", "Товар"], ["quantity", "Количество"], ["notes", "Примечания"]], cols: ["id", "status", "fromWarehouseId", "toWarehouseId", "createdAt"] },
+  stockMovements: { title: "Движения запасов", sub: "Поступления, продажи, перемещения, корректировки и возвраты в едином журнале.", endpoint: "stock-movements", action: "Обновить журнал", fields: [], cols: ["type", "warehouseId", "productId", "quantity", "referenceType", "createdAt"] },
+  auditLogs: { title: "Журнал аудита", sub: "История важных действий в пределах компании.", endpoint: "audit-logs", action: "Обновить", fields: [], cols: ["action", "entityType", "entityId", "createdAt"] },
+  notifications: { title: "Уведомления", sub: "Системные оповещения и персональные сообщения.", endpoint: "notifications", action: "Обновить", fields: [], cols: ["title", "body", "readAt", "createdAt"] },
+  lowStock: { title: "Низкие остатки", sub: "Товары на уровне или ниже установленного порога.", endpoint: "inventory/low-stock?threshold=5", action: "Обновить", fields: [], cols: ["warehouse", "product", "sku", "quantity"] },
 };
 
-function Badge({children}:{children:any}){const s=String(children??"").toLowerCase();const cls=s.includes("completed")||s.includes("paid")||s.includes("active")||s.includes("healthy")||s.includes("confirmed")||s.includes("delivered")?"good":s.includes("low")||s.includes("pending")||s.includes("processing")||s.includes("draft")||s.includes("planned")||s.includes("in_progress")?"warn":"bad";return <span className={"badge "+cls}>{children??"—"}</span>}
-function money(v:any){const n=Number(v);return Number.isFinite(n)?new Intl.NumberFormat("en-US").format(n)+" UZS":String(v??"—")}
-function label(k:string){return ({creditLimit:"Credit limit",costPrice:"Cost",salePrice:"Price",isАктивные:"Статус",orderNumber:"Order",createdAt:"Created",routeDate:"Date",dueAt:"Due",startDate:"Start",endDate:"End",lastSyncAt:"Last sync",customerId:"Customer",warehouse:"Warehouse",product:"Product",quantity:"Quantity"} as any)[k]||k.replace(/[A-Z]/g,m=>" "+m).replace(/^./,m=>m.toUpperCase())}
-
-function App(){
- const [user,setUser]=useState<User|null>(null); const [page,setPage]=useState<Page>("dashboard"); const [sidebar,setSidebar]=useState(true);
- const [api,setApi]=useState<ApiState>({status:"loading"}); const [authOpen,setAuthOpen]=useState(false); const [authMode,setAuthMode]=useState<"signIn"|"signUp">("signIn");
- const [email,setЭлектронная почта]=useState("");const [password,setПароль]=useState("");const [authBusy,setAuthBusy]=useState(false);const [authError,setAuthError]=useState("");const [toast,setToast]=useState("");
- useEffect(()=>subscribeToAuth(setUser),[]);
- useEffect(()=>{getApiСтатус().then(x=>setApi({status:"online",version:x.version})).catch(e=>setApi({status:"offline",message:String(e)}))},[]);
- useEffect(()=>{if(user)void syncТекущиеUser().catch(console.error)},[user]);
- useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(""),2600);return()=>clearTimeout(t)}},[toast]);
- const runAuth=async(fn:()=>Promise<any>)=>{setAuthBusy(true);setAuthError("");try{await fn();await syncТекущиеUser();setAuthOpen(false);setToast("Welcome to МойБизнес.");}catch(e){setAuthError(e instanceof Error?e.message:"Ошибка авторизации")}finally{setAuthBusy(false)}};
- if(!user)return <Welcome api={api} open={()=>setAuthOpen(true)} authOpen={authOpen} mode={authMode} setMode={setAuthMode} email={email} setЭлектронная почта={setЭлектронная почта} password={password} setПароль={setПароль} busy={authBusy} error={authError} setError={setAuthError} runAuth={runAuth}/>;
- const title=page==="dashboard"?"Панель управления":page==="analytics"?"Аналитика и BI":page==="settings"?"Настройки":(cfg[page]?.title||"МойБизнес");
- return <div className="workspace"><aside className={"sidebar "+(sidebar?"":"collapsed")}><div className="side-brand"><span className="logo">M</span>{sidebar&&<><strong>МойБизнес</strong><span className="workspace-label">Рабочее пространство</span></>}</div><div className="company-switch">{sidebar?<><span className="company-dot">{(user.displayName||"M").charAt(0)}</span><span><b>{user.displayName||"My Company"}</b><small>Владелец · UZS</small></span></>:<span className="company-dot">M</span>}</div><nav className="side-nav">{navGroups.map(g=><div className="nav-group" key={g.label}>{sidebar&&<div className="nav-label">{g.label}</div>}{g.items.map((i:any)=><button className={"nav-item "+(page===i[0]?"active":"")} key={i[0]} onClick={()=>setPage(i[0])}><span className="nav-icon">{i[2]}</span>{sidebar&&<span>{i[1]}</span>}</button>)}</div>)}</nav>{sidebar&&<div className="side-bottom"><div className="api-mini"><i></i><span><b>Система {api.status==="online"?"online":"checking"}</b><small>{api.status==="online"?"Сервисы работают":"Статус API"}</small></span></div><button className="profile-mini" onClick={()=>setPage("settings")}><span className="avatar">{(user.displayName||user.email||"U").charAt(0).toUpperCase()}</span><span><b>{user.displayName||"Аккаунт"}</b><small>{user.email||"Выполнен вход"}</small></span></button></div>}</aside>
- <div className="main-area"><header className="appbar"><button className="icon-btn" onClick={()=>setSidebar(v=>!v)}>☰</button><div className="crumb"><span>МойБизнес</span><b>/</b><strong>{title}</strong></div><div className="appbar-actions"><button className="icon-btn" onClick={()=>setToast("Use the module search and filters to find записей.")}>⌕</button><button className="icon-btn" onClick={()=>setToast("Уведомления are available in the API.")}>◔</button><div className="user-menu"><span className="avatar">{(user.displayName||user.email||"U").charAt(0).toUpperCase()}</span><span className="user-name">{user.displayName||user.email}</span><button className="icon-btn" onClick={()=>logout()}>↪</button></div></div></header><main className="content"><PageView page={page} tokenUser={user} toast={setToast} go={setPage}/></main></div>{toast&&<div className="toast">✓ {toast}</div>}</div>
+function Badge({ children }: { children: any }) {
+  const s = String(children ?? "").toLowerCase();
+  const cls =
+    s.includes("completed") || s.includes("paid") || s.includes("active") || s.includes("healthy") || s.includes("confirmed") || s.includes("delivered")
+      ? "good"
+      : s.includes("low") || s.includes("pending") || s.includes("processing") || s.includes("draft") || s.includes("planned") || s.includes("in_progress")
+        ? "warn"
+        : "bad";
+  return <span className={"badge " + cls}>{children ?? "—"}</span>;
+}
+function money(v: any) {
+  const n = Number(v);
+  return Number.isFinite(n) ? new Intl.NumberFormat("ru-RU").format(n) + " UZS" : String(v ?? "—");
+}
+function label(k: string) {
+  return ({
+    creditLimit: "Кредитный лимит", costPrice: "Себестоимость", salePrice: "Цена", isActive: "Статус",
+    orderNumber: "Заказ", createdAt: "Создано", routeDate: "Дата", dueAt: "Срок", startDate: "Начало",
+    endDate: "Окончание", lastSyncAt: "Последняя синхронизация", customerId: "Клиент",
+    warehouse: "Склад", product: "Товар", quantity: "Количество", status: "Статус", total: "Итого",
+    amount: "Сумма", method: "Способ", reference: "Назначение", notes: "Примечания",
+    address: "Адрес", plannedAt: "Плановое время", outcome: "Результат", discount: "Скидка",
+    branchId: "Филиал", fromWarehouseId: "Склад-источник", toWarehouseId: "Склад-получатель",
+    productId: "Товар", type: "Тип", warehouseId: "Склад", referenceType: "Тип операции",
+    action: "Действие", entityType: "Тип объекта", entityId: "ID объекта", title: "Название",
+    body: "Сообщение", readAt: "Прочитано", metric: "Показатель", value: "Значение",
+    sku: "SKU", unit: "Единица", barcode: "Штрихкод", phone: "Телефон", code: "Код",
+    fullName: "Имя", email: "Электронная почта", priority: "Приоритет", description: "Описание",
+    provider: "Провайдер", endpoint: "Адрес подключения", customer: "Клиент",
+  } as any)[k] || k.replace(/[A-Z]/g, m => " " + m).replace(/^./, m => m.toUpperCase());
 }
 
-function Welcome(p:any){return <div className="landing"><header className="landing-nav"><div className="brand"><span className="logo">M</span><b>МойБизнес</b></div><div><button className="button ghost" onClick={p.open}>Войти</button><button className="button dark" onClick={()=>{p.setMode("signUp");p.open()}}>Создать аккаунт</button></div></header><section className="landing-hero"><div><span className="eyebrow">Операционная система дистрибуции</span><h1>Ваш бизнес.<br/><em>В одном пространстве.</em></h1><p>Заказы, customers, products, inventory, finance, field execution and reporting in one connected system.</p><div className="hero-actions"><button className="button primary" onClick={()=>{p.setMode("signUp");p.open()}}>Создать рабочее пространство →</button><button className="button ghost" onClick={p.open}>Войти</button></div><div className="landing-proof"><span>● В реальном времени operations</span><span>● PostgreSQL</span><span>● Доступ по ролям</span></div></div><div className="landing-screen"><div className="screen-top"><b>Обзор бизнеса</b><Badge>В реальном времени</Badge></div><div className="screen-metrics"><div><small>В реальном времени записей</small><b>Подключено</b><span>PostgreSQL</span></div><div><small>Операции</small><b>18 modules</b><span>Ready</span></div><div><small>Безопасность</small><b>В рамках компании</b><span>Авторизация Firebase</span></div><div><small>API</small><b>Работает</b><span>Контролируется</span></div></div><div className="fake-chart"><div className="chart-title"><b>Работает workspace</b><small>В реальном времени data</small></div><div className="bars">{[42,55,48,68,61,75,58,82,72,90,78,96].map((h,i)=><i style={{height:h+"%"}} key={i}></i>)}</div></div></div></section>{p.authOpen&&<AuthModal {...p}/>}</div>}
-function AuthModal(p:any){return <div className="modal-backdrop" onClick={()=>!p.busy&&p.setAuthOpen(false)}><div className="auth-modal" onClick={(e:any)=>e.stopPropagation()}><button className="modal-close" onClick={()=>p.setAuthOpen(false)}>×</button><span className="eyebrow">{p.mode==="signIn"?"С возвращением":"Начало работы"}</span><h2>{p.mode==="signIn"?"Войти to your workspace":"Create your workspace"}</h2><p>Безопасный доступ к рабочему пространству вашей компании.</p><div className="social-auth"><button className="button outline" disabled={p.busy} onClick={()=>p.runAuth(signInWithGoogle)}>G <span>Продолжить с Google</span></button><button className="button outline" disabled={p.busy} onClick={()=>p.runAuth(signInWithApple)}> <span>Продолжить с Apple</span></button></div><div className="or"><span>или продолжить по электронной почте</span></div><form onSubmit={(e:any)=>{e.preventDefault();void p.runAuth(()=>p.mode==="signIn"?signInWithЭлектронная почта(p.email,p.password):signUpWithЭлектронная почта(p.email,p.password))}}><label>Электронная почта<input type="email" value={p.email} onChange={(e:any)=>p.setЭлектронная почта(e.target.value)} required/></label><label>Пароль<input type="password" value={p.password} onChange={(e:any)=>p.setПароль(e.target.value)} minLength={6} required/></label>{p.error&&<div className="auth-error">{p.error}</div>}<button className="button primary full" disabled={p.busy}>{p.busy?"Подождите…":p.mode==="signIn"?"Войти":"Создать аккаунт"}</button></form><button className="switch-auth" onClick={()=>{p.setMode(p.mode==="signIn"?"signUp":"signIn");p.setError("")}}>{p.mode==="signIn"?"Создать новый аккаунт":"У меня уже есть аккаунт"}</button></div></div>}
+function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [page, setPage] = useState<Page>("dashboard");
+  const [sidebar, setSidebar] = useState(true);
+  const [api, setApi] = useState<ApiState>({ status: "loading" });
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"signIn" | "signUp">("signIn");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [toast, setToast] = useState("");
 
-function PageView({page,tokenUser,toast,go}:{page:Page;tokenUser:User;toast:(s:string)=>void;go:(p:Page)=>void}){
- if(page==="dashboard")return <Панель управления user={tokenUser} go={go}/>;
- if(page==="analytics")return <Analytics user={tokenUser}/>;
- if(page==="settings")return <Настройки toast={toast}/>;
- return <В реальном времениModule page={page} user={tokenUser} toast={toast}/>;
+  useEffect(() => subscribeToAuth(setUser), []);
+  useEffect(() => {
+    getApiStatus().then(x => setApi({ status: "online", version: x.version })).catch(e => setApi({ status: "offline", message: String(e) }));
+  }, []);
+  useEffect(() => { if (user) void syncCurrentUser().catch(console.error); }, [user]);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const runAuth = async (fn: () => Promise<any>) => {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      await fn();
+      await syncCurrentUser();
+      setAuthOpen(false);
+      setToast("Добро пожаловать в МойБизнес.");
+    } catch (e) {
+      setAuthError(e instanceof Error ? e.message : "Ошибка авторизации.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  if (!user) {
+    return <Welcome api={api} open={() => setAuthOpen(true)} authOpen={authOpen} mode={authMode}
+      setMode={setAuthMode} email={email} setEmail={setEmail} password={password} setPassword={setPassword}
+      busy={authBusy} error={authError} setError={setAuthError} runAuth={runAuth} />;
+  }
+
+  const title =
+    page === "dashboard" ? "Панель управления" :
+    page === "analytics" ? "Аналитика и BI" :
+    page === "settings" ? "Настройки" : (cfg[page]?.title || "МойБизнес");
+
+  return (
+    <div className="workspace">
+      <aside className={"sidebar " + (sidebar ? "" : "collapsed")}>
+        <div className="side-brand"><span className="logo">M</span>{sidebar && <><strong>МойБизнес</strong><span className="workspace-label">Рабочее пространство</span></>}</div>
+        <div className="company-switch">
+          {sidebar ? <><span className="company-dot">{(user.displayName || "M").charAt(0)}</span><span><b>{user.displayName || "Моя компания"}</b><small>Владелец · UZS</small></span></> : <span className="company-dot">M</span>}
+        </div>
+        <nav className="side-nav">
+          {navGroups.map(g => <div className="nav-group" key={g.label}>{sidebar && <div className="nav-label">{g.label}</div>}
+            {g.items.map((i: any) => <button className={"nav-item " + (page === i[0] ? "active" : "")} key={i[0]} onClick={() => setPage(i[0])}><span className="nav-icon">{i[2]}</span>{sidebar && <span>{i[1]}</span>}</button>)}
+          </div>)}
+        </nav>
+        {sidebar && <div className="side-bottom">
+          <div className="api-mini"><i></i><span><b>Система {api.status === "online" ? "работает" : "проверяется"}</b><small>{api.status === "online" ? "Сервисы работают" : "Статус API"}</small></span></div>
+          <button className="profile-mini" onClick={() => setPage("settings")}><span className="avatar">{(user.displayName || user.email || "П").charAt(0).toUpperCase()}</span><span><b>{user.displayName || "Аккаунт"}</b><small>{user.email || "Выполнен вход"}</small></span></button>
+        </div>}
+      </aside>
+
+      <div className="main-area">
+        <header className="appbar">
+          <button className="icon-btn" onClick={() => setSidebar(v => !v)}>☰</button>
+          <div className="crumb"><span>МойБизнес</span><b>/</b><strong>{title}</strong></div>
+          <div className="appbar-actions">
+            <button className="icon-btn" onClick={() => setToast("Используйте поиск и фильтры раздела, чтобы найти записи.")}>⌕</button>
+            <button className="icon-btn" onClick={() => setToast("Уведомления доступны в разделе «Уведомления».")}>◔</button>
+            <div className="user-menu"><span className="avatar">{(user.displayName || user.email || "П").charAt(0).toUpperCase()}</span><span className="user-name">{user.displayName || user.email}</span><button className="icon-btn" onClick={() => logout()}>↪</button></div>
+          </div>
+        </header>
+        <main className="content"><PageView page={page} tokenUser={user} toast={setToast} go={setPage} /></main>
+      </div>
+      {toast && <div className="toast">✓ {toast}</div>}
+    </div>
+  );
 }
 
-function useApiData(endpoint:string,user:User){const [rows,setRows]=useState<Row[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState("");const load=async()=>{setLoading(true);setError("");try{const t=await user.getIdToken();const d=await apiFetchAuth<any>("/api/v1/data/"+endpoint,t);if(Array.isArray(d))setRows(d);else if(d&&typeof d==="object")setRows([{...d}]);else setRows([])}catch(e){setError(e instanceof Error?e.message:"Request failed")}finally{setLoading(false)}};useEffect(()=>{void load()},[endpoint,user.uid]);return {rows,setRows,loading,error,reload:load}}
+function Welcome(p: any) {
+  return <div className="landing">
+    <header className="landing-nav"><div className="brand"><span className="logo">M</span><b>МойБизнес</b></div><div><button className="button ghost" onClick={p.open}>Войти</button><button className="button dark" onClick={() => { p.setMode("signUp"); p.open(); }}>Создать аккаунт</button></div></header>
+    <section className="landing-hero">
+      <div>
+        <span className="eyebrow">Операционная система дистрибуции</span>
+        <h1>Ваш бизнес.<br /><em>В одном пространстве.</em></h1>
+        <p>Заказы, клиенты, товары, остатки, финансы, работа на маршрутах и отчётность в единой системе.</p>
+        <div className="hero-actions"><button className="button primary" onClick={() => { p.setMode("signUp"); p.open(); }}>Создать рабочее пространство →</button><button className="button ghost" onClick={p.open}>Войти</button></div>
+        <div className="landing-proof"><span>● Операции в реальном времени</span><span>● PostgreSQL</span><span>● Доступ по ролям</span></div>
+      </div>
+      <div className="landing-screen">
+        <div className="screen-top"><b>Обзор бизнеса</b><Badge>В реальном времени</Badge></div>
+        <div className="screen-metrics">
+          <div><small>Данные</small><b>Подключено</b><span>PostgreSQL</span></div>
+          <div><small>Операции</small><b>18 модулей</b><span>Готово</span></div>
+          <div><small>Безопасность</small><b>В рамках компании</b><span>Авторизация Firebase</span></div>
+          <div><small>API</small><b>Работает</b><span>Контролируется</span></div>
+        </div>
+        <div className="fake-chart"><div className="chart-title"><b>Рабочее пространство</b><small>Данные в реальном времени</small></div><div className="bars">{[42,55,48,68,61,75,58,82,72,90,78,96].map((h,i) => <i style={{ height: h + "%" }} key={i}></i>)}</div></div>
+      </div>
+    </section>
+    {p.authOpen && <AuthModal {...p} />}
+  </div>;
+}
 
-function В реальном времениModule({page,user,toast}:any){const c=cfg[page];const {rows,setRows,loading,error,reload}=useApiData(c.endpoint,user);const [search,setSearch]=useState("");const [open,setOpen]=useState(false);const filtered=useMemo(()=>rows.filter(r=>JSON.stringify(r).toLowerCase().includes(search.toLowerCase())),[rows,search]);
- const create=async(data:any)=>{try{const t=await user.getIdToken();if(page==="purchases"){toast("Purchase creation requires supplier, warehouse and line items; use the purchasing workflow/API.");setOpen(false);return;}const d=await apiFetchAuth<any>("/api/v1/data/"+c.endpoint,t,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});setRows(x=>[d,...x]);setOpen(false);toast(c.action+" saved.");}catch(e){toast(e instanceof Error?e.message:"Could not save.");}};
- const stat=page==="reports"||page==="stockMovements"||page==="auditLogs"||page==="notifications"?[]:[["Записи",rows.length],["Активные",rows.filter(r=>String(r.status||r.isАктивные).toLowerCase().includes("active")||r.isАктивные===true).length],["Внимание",rows.filter(r=>["low","pending","overdue","failed"].includes(String(r.status).toLowerCase())).length],["Обновлено","В реальном времени"]];
- return <div><PageHeader title={c.title} subtitle={c.sub} actions={<button className="button primary" onClick={()=>page==="reports"?void reload():setOpen(true)}>+ {c.action}</button>}/>{stat.length>0&&<div className="module-stat-grid">{stat.map((x:any,i:number)=><div className="module-stat" key={x[0]}><span className="module-stat-icon">{["◒","✓","!","↗"][i]}</span><small>{x[0]}</small><b>{x[1]}</b><span className={i===2?"warn":"good"}>{i===3?"В реальном времени data":"Текущие"}</span></div>)}</div>}<div className="toolbar"><div className="searchbox">⌕<input value={search} onChange={e=>setSearch(e.target.value)} placeholder={"Поиск "+c.title.toLowerCase()+"..."}/></div><button className="filter-btn" onClick={()=>setSearch("")}>Очистить</button><span className="toolbar-count">{filtered.length} записей</span></div><section className="panel table-panel">{loading?<div className="empty-work"><h3>Загрузка данных…</h3></div>:error?<div className="empty-work"><h3>Не удалось загрузить данные</h3><p>{error}</p><button className="button outline" onClick={()=>void reload()}>Повторить</button></div>:filtered.length===0?<div className="empty-work"><h3>No записей yet</h3><p>{page==="stockMovements"||page==="auditLogs"||page==="notifications"?"There are no записей to display yet.":"Создайте первую запись, чтобы начать работу с разделом."}</p></div>:<><Table rows={filtered} columns={c.cols}/><WorkflowBar page={page} rows={filtered} user={user} reload={reload} toast={toast}/></>}</section>{open&&<CreateModal config={c} close={()=>setOpen(false)} save={create}/>}</div>}
+function AuthModal(p: any) {
+  return <div className="modal-backdrop" onClick={() => !p.busy && p.setAuthOpen(false)}>
+    <div className="auth-modal" onClick={(e: any) => e.stopPropagation()}>
+      <button className="modal-close" onClick={() => p.setAuthOpen(false)}>×</button>
+      <span className="eyebrow">{p.mode === "signIn" ? "С возвращением" : "Начало работы"}</span>
+      <h2>{p.mode === "signIn" ? "Войти в рабочее пространство" : "Создать рабочее пространство"}</h2>
+      <p>Безопасный доступ к рабочему пространству вашей компании.</p>
+      <div className="social-auth">
+        <button className="button outline" disabled={p.busy} onClick={() => p.runAuth(signInWithGoogle)}>G <span>Продолжить с Google</span></button>
+        <button className="button outline" disabled={p.busy} onClick={() => p.runAuth(signInWithApple)}> <span>Продолжить с Apple</span></button>
+      </div>
+      <div className="or"><span>или продолжить по электронной почте</span></div>
+      <form onSubmit={(e: any) => { e.preventDefault(); void p.runAuth(() => p.mode === "signIn" ? signInWithEmail(p.email, p.password) : signUpWithEmail(p.email, p.password)); }}>
+        <label>Электронная почта<input type="email" value={p.email} onChange={(e: any) => p.setEmail(e.target.value)} required /></label>
+        <label>Пароль<input type="password" value={p.password} onChange={(e: any) => p.setPassword(e.target.value)} minLength={6} required /></label>
+        {p.error && <div className="auth-error">{p.error}</div>}
+        <button className="button primary full" disabled={p.busy}>{p.busy ? "Подождите…" : p.mode === "signIn" ? "Войти" : "Создать аккаунт"}</button>
+      </form>
+      <button className="switch-auth" onClick={() => { p.setMode(p.mode === "signIn" ? "signUp" : "signIn"); p.setError(""); }}>{p.mode === "signIn" ? "Создать новый аккаунт" : "У меня уже есть аккаунт"}</button>
+    </div>
+  </div>;
+}
 
-function WorkflowBar({page,rows,user,reload,toast}:{page:Page;rows:Row[];user:User;reload:()=>Promise<void>;toast:(s:string)=>void}){const [busy,setBusy]=useState("");const act=async(path:string,body?:any)=>{setBusy(path);try{const t=await user.getIdToken();await apiFetchAuth<any>("/api/v1/data/"+path,t,body?{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}:{method:"PATCH"});toast("Операция выполнена.");await reload();}catch(e){toast(e instanceof Error?e.message:"Action failed.")}finally{setBusy("")}};const first=rows[0];if(!first)return null;return <div className="workflow-bar"><b>Быстрое действие</b>{page==="orders"&&<><button className="button outline" disabled={!!busy} onClick={()=>void act("orders/"+first.id+"/status",{status:first.status==="draft"?"confirmed":"completed"})}>{busy?"Working…":first.status==="draft"?"Подтвердить первый заказ":"Завершить первый заказ"}</button><span>Действие применяется к первому отображаемому заказу.</span></>}{page==="purchases"&&<><button className="button outline" disabled={!!busy} onClick={()=>void act("purchases/"+first.id+"/receive")}>{busy?"Receiving…":"Принять первую закупку"}</button><span>Receiving updates inventory and stock movements.</span></>}{page==="notifications"&&<><button className="button outline" disabled={!!busy||!!first.readAt} onClick={()=>void act("notifications/"+first.id+"/read")}>{first.readAt?"Уже прочитано":"Отметить первую как прочитанную"}</button><span>User-scoped notification control.</span></>}{page!=="orders"&&page!=="purchases"&&page!=="notifications"&&<span>Use filters and module actions above to operate on live company data.</span>}</div>}
+function PageView({ page, tokenUser, toast, go }: { page: Page; tokenUser: User; toast: (s: string) => void; go: (p: Page) => void }) {
+  if (page === "dashboard") return <Dashboard user={tokenUser} go={go} />;
+  if (page === "analytics") return <Analytics user={tokenUser} />;
+  if (page === "settings") return <Settings toast={toast} />;
+  return <ModuleView page={page} user={tokenUser} toast={toast} />;
+}
 
-function CreateModal({config,close,save}:{config:any;close:()=>void;save:(d:any)=>void}){const [data,setData]=useState<any>({});return <div className="modal-backdrop"><div className="quick-modal"><button className="modal-close" onClick={close}>×</button><span className="eyebrow">Создание записи</span><h2>{config.action}</h2>{config.fields.length===0?<p>This action needs a linked record or workflow. You can use the API-backed module directly.</p>:config.fields.map((f:any)=><label key={f[0]}>{f[1]}<input value={data[f[0]]??""} onChange={e=>setData({...data,[f[0]]:e.target.value})} placeholder={f[1]}/></label>)}<div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" onClick={()=>save(data)}>Сохранить</button></div></div></div>}
-function Панель управления({user,go}:{user:User;go:(p:Page)=>void}){const {rows,loading}=useApiData("dashboard",user);const d=rows[0]||{};return <div><PageHeader title="Панель управления бизнесом" subtitle="Оперативные данные вашей компании в реальном времени." actions={<><button className="button outline" onClick={()=>go("reports")}>Отчёты</button><button className="button primary" onClick={()=>go("orders")}>+ Новый заказ</button></>}/><div className="dashboard-grid">{[["Завершённые продажи",money(d.sales||0),"В реальном времени"],["Заказы",d.orders??0,"В реальном времени"],["Клиенты",d.customers??0,"В реальном времени"],["Статус",loading?"Loading":"Работает",loading?"":"API"]].map(x=><div className="kpi" key={x[0]}><div><small>{x[0]}</small><b>{x[1]}</b><span className="good">{x[2]}</span></div><i>↗</i></div>)}</div><div className="dashboard-columns"><section className="panel"><PanelHead title="Последние заказы" action="Открыть заказы" onClick={()=>go("orders")}/><Table rows={d.recent||[]} columns={["orderNumber","customer","total","status","createdAt"]}/></section><section className="panel"><PanelHead title="Работает controls"/><div className="alert-list">{[["Маршруты","routes"],["Визиты","visits"],["Задачи","tasks"],["Остатки","inventory"]].map(x=><div key={x[0]}><span className="stock-symbol warn">→</span><span><b>{x[0]}</b><small>Открыть раздел</small></span><button className="button ghost" onClick={()=>go(x[1] as Page)}>Open</button></div>)}</div></section></div></div>}
-function Analytics({user}:{user:User}){const f=useApiData("finance/summary",user);const r=useApiData("reports/summary",user);return <div><PageHeader title="Аналитика и BI" subtitle="Показатели, рассчитанные по текущим данным продаж, финансов, запасов, задач и визитов." actions={<button className="button outline" onClick={()=>{void f.reload();void r.reload()}}>Обновить</button>}/><div className="analytics-grid">{[["Продажи",f.rows[0]?.sales],["Получено",f.rows[0]?.collected],["Кредитные лимиты",f.rows[0]?.creditLimit],["Открытые задачи",r.rows.find(x=>x.metric==="openЗадачи")?.value]].map(x=><div className="kpi" key={x[0]}><div><small>{x[0]}</small><b>{typeof x[1]==="number"?money(x[1]):x[1]??"—"}</b><span className="good">В реальном времени</span></div><i>↗</i></div>)}</div><section className="panel report-builder"><PanelHead title="Работает summary"/><Table rows={r.rows} columns={["metric","value"]}/></section></div>}
-function Настройки({toast}:{toast:(s:string)=>void}){return <div><PageHeader title="Настройки" subtitle="Company preferences and operational controls."/><div className="module-stat-grid">{["Профиль компании","Безопасность","Уведомления","Данные и аудит"].map((x,i)=><div className="module-stat" key={x}><span className="module-stat-icon">{["◈","✓","◔","▤"][i]}</span><small>{x}</small><b>Настроено</b><span className="good">Доступно</span></div>)}</div><section className="panel module-workspace"><div className="empty-work"><div className="empty-icon">⚙</div><h3>Рабочее пространство controls</h3><p>Авторизация, изоляция данных компании, журнал аудита, доступ к API и операционные разделы подключены.</p><div className="quick-actions"><button className="button outline" onClick={()=>toast("Журнал аудита API is enabled.")}>Журнал аудитаs</button><button className="button outline" onClick={()=>toast("API integration controls are enabled.")}>Доступ к API</button><button className="button primary" onClick={()=>toast("Настройки are saved through protected API routes.")}>Сохранить settings</button></div></div></section></div>}
-function PageHeader({title,subtitle,actions}:{title:string;subtitle:string;actions?:React.ReactNode}){return <div className="page-header"><div><h1>{title}</h1><p>{subtitle}</p></div><div className="header-actions">{actions}</div></div>}
-function PanelHead({title,action,onClick}:{title:string;action?:string;onClick?:()=>void}){return <div className="panel-head"><h2>{title}</h2>{action&&<button onClick={onClick}>{action} →</button>}</div>}
-function Table({rows,columns}:{rows:Row[];columns:string[]}){return <div className="table-scroll"><table><thead><tr>{columns.map(c=><th key={c}>{label(c)}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={r.id||i}>{columns.map(c=><td key={c}>{c==="status"||c==="isАктивные"?<Badge>{c==="isАктивные"?(r[c]?"Активные":"Inactive"):r[c]}</Badge>:["total","amount","creditLimit","costPrice","salePrice","sales","collected"].includes(c)?<b>{money(r[c])}</b>:String(r[c]??"—")}</td>)}</tr>)}</tbody></table></div>}
-createRoot(document.getElementById("root")!).render(<React.StrictMode><App/></React.StrictMode>);
+function useApiData(endpoint: string, user: User) {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const load = async () => {
+    setLoading(true); setError("");
+    try {
+      const t = await user.getIdToken();
+      const d = await apiFetchAuth<any>("/api/v1/data/" + endpoint, t);
+      if (Array.isArray(d)) setRows(d);
+      else if (d && typeof d === "object") setRows([{ ...d }]);
+      else setRows([]);
+    } catch (e) { setError(e instanceof Error ? e.message : "Не удалось выполнить запрос."); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { void load(); }, [endpoint, user.uid]);
+  return { rows, setRows, loading, error, reload: load };
+}
+
+function ModuleView({ page, user, toast }: any) {
+  const c = cfg[page];
+  const { rows, setRows, loading, error, reload } = useApiData(c.endpoint, user);
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const filtered = useMemo(() => rows.filter(r => JSON.stringify(r).toLowerCase().includes(search.toLowerCase())), [rows, search]);
+
+  const create = async (data: any) => {
+    try {
+      const t = await user.getIdToken();
+      if (page === "purchases") {
+        toast("Для создания закупки укажите поставщика, склад и позиции через рабочий процесс закупки.");
+        setOpen(false);
+        return;
+      }
+      const d = await apiFetchAuth<any>("/api/v1/data/" + c.endpoint, t, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      setRows(x => [d, ...x]); setOpen(false); toast("Запись сохранена.");
+    } catch (e) { toast(e instanceof Error ? e.message : "Не удалось сохранить запись."); }
+  };
+
+  const stat = page === "reports" || page === "stockMovements" || page === "auditLogs" || page === "notifications" ? [] :
+    [["Записи", rows.length], ["Активные", rows.filter(r => String(r.status || r.isActive).toLowerCase().includes("active") || r.isActive === true).length], ["Внимание", rows.filter(r => ["low", "pending", "overdue", "failed"].includes(String(r.status).toLowerCase())).length], ["Обновлено", "В реальном времени"]];
+
+  return <div>
+    <PageHeader title={c.title} subtitle={c.sub} actions={<button className="button primary" onClick={() => page === "reports" ? void reload() : setOpen(true)}>+ {c.action}</button>} />
+    {stat.length > 0 && <div className="module-stat-grid">{stat.map((x: any, i: number) => <div className="module-stat" key={x[0]}><span className="module-stat-icon">{["◒", "✓", "!", "↗"][i]}</span><small>{x[0]}</small><b>{x[1]}</b><span className={i === 2 ? "warn" : "good"}>{i === 3 ? "В реальном времени" : "Текущие данные"}</span></div>)}</div>}
+    <div className="toolbar"><div className="searchbox">⌕<input value={search} onChange={e => setSearch(e.target.value)} placeholder={"Поиск: " + c.title.toLowerCase() + "..."} /></div><button className="filter-btn" onClick={() => setSearch("")}>Очистить</button><span className="toolbar-count">{filtered.length} записей</span></div>
+    <section className="panel table-panel">
+      {loading ? <div className="empty-work"><h3>Загрузка данных…</h3></div> :
+       error ? <div className="empty-work"><h3>Не удалось загрузить данные</h3><p>{error}</p><button className="button outline" onClick={() => void reload()}>Повторить</button></div> :
+       filtered.length === 0 ? <div className="empty-work"><h3>Записей пока нет</h3><p>{page === "stockMovements" || page === "auditLogs" || page === "notifications" ? "Пока нет записей для отображения." : "Создайте первую запись, чтобы начать работу с разделом."}</p></div> :
+       <><Table rows={filtered} columns={c.cols} /><WorkflowBar page={page} rows={filtered} user={user} reload={reload} toast={toast} /></>}
+    </section>
+    {open && <CreateModal config={c} close={() => setOpen(false)} save={create} />}
+  </div>;
+}
+
+function WorkflowBar({ page, rows, user, reload, toast }: { page: Page; rows: Row[]; user: User; reload: () => Promise<void>; toast: (s: string) => void }) {
+  const [busy, setBusy] = useState("");
+  const act = async (path: string, body?: any) => {
+    setBusy(path);
+    try {
+      const t = await user.getIdToken();
+      await apiFetchAuth<any>("/api/v1/data/" + path, t, body ? { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : { method: "PATCH" });
+      toast("Операция выполнена."); await reload();
+    } catch (e) { toast(e instanceof Error ? e.message : "Не удалось выполнить операцию."); }
+    finally { setBusy(""); }
+  };
+  const first = rows[0];
+  if (!first) return null;
+  return <div className="workflow-bar"><b>Быстрое действие</b>
+    {page === "orders" && <><button className="button outline" disabled={!!busy} onClick={() => void act("orders/" + first.id + "/status", { status: first.status === "draft" ? "confirmed" : "completed" })}>{busy ? "Выполняется…" : first.status === "draft" ? "Подтвердить первый заказ" : "Завершить первый заказ"}</button><span>Действие применяется к первому отображаемому заказу.</span></>}
+    {page === "purchases" && <><button className="button outline" disabled={!!busy} onClick={() => void act("purchases/" + first.id + "/receive")}>{busy ? "Приёмка…" : "Принять первую закупку"}</button><span>Приёмка обновляет остатки и журнал движений запасов.</span></>}
+    {page === "notifications" && <><button className="button outline" disabled={!!busy || !!first.readAt} onClick={() => void act("notifications/" + first.id + "/read")}>{first.readAt ? "Уже прочитано" : "Отметить первое как прочитанное"}</button><span>Управление уведомлениями пользователя.</span></>}
+    {page !== "orders" && page !== "purchases" && page !== "notifications" && <span>Используйте фильтры и действия раздела для работы с актуальными данными компании.</span>}
+  </div>;
+}
+
+function CreateModal({ config, close, save }: { config: any; close: () => void; save: (d: any) => void }) {
+  const [data, setData] = useState<any>({});
+  return <div className="modal-backdrop"><div className="quick-modal"><button className="modal-close" onClick={close}>×</button><span className="eyebrow">Создание записи</span><h2>{config.action}</h2>
+    {config.fields.length === 0 ? <p>Для этого действия требуется связанная запись или отдельный рабочий процесс. Данные раздела доступны через защищённый API.</p> :
+      config.fields.map((f: any) => <label key={f[0]}>{f[1]}<input value={data[f[0]] ?? ""} onChange={e => setData({ ...data, [f[0]]: e.target.value })} placeholder={f[1]} /></label>)}
+    <div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" onClick={() => save(data)}>Сохранить</button></div>
+  </div></div>;
+}
+
+function Dashboard({ user, go }: { user: User; go: (p: Page) => void }) {
+  const { rows, loading } = useApiData("dashboard", user);
+  const d = rows[0] || {};
+  return <div><PageHeader title="Панель управления бизнесом" subtitle="Оперативные данные вашей компании в реальном времени." actions={<><button className="button outline" onClick={() => go("reports")}>Отчёты</button><button className="button primary" onClick={() => go("orders")}>+ Новый заказ</button></>} />
+    <div className="dashboard-grid">{[["Завершённые продажи", money(d.sales || 0), "В реальном времени"], ["Заказы", d.orders ?? 0, "В реальном времени"], ["Клиенты", d.customers ?? 0, "В реальном времени"], ["Статус", loading ? "Загрузка…" : "Работает", loading ? "" : "API"]].map(x => <div className="kpi" key={x[0] as string}><div><small>{x[0]}</small><b>{x[1]}</b><span className="good">{x[2]}</span></div><i>↗</i></div>)}</div>
+    <div className="dashboard-columns"><section className="panel"><PanelHead title="Последние заказы" action="Открыть заказы" onClick={() => go("orders")} /><Table rows={d.recent || []} columns={["orderNumber", "customer", "total", "status", "createdAt"]} /></section>
+      <section className="panel"><PanelHead title="Рабочие разделы" /><div className="alert-list">{[["Маршруты", "routes"], ["Визиты", "visits"], ["Задачи", "tasks"], ["Остатки", "inventory"]].map(x => <div key={x[0]}><span className="stock-symbol warn">→</span><span><b>{x[0]}</b><small>Открыть раздел</small></span><button className="button ghost" onClick={() => go(x[1] as Page)}>Открыть</button></div>)}</div></section>
+    </div>
+  </div>;
+}
+
+function Analytics({ user }: { user: User }) {
+  const f = useApiData("finance/summary", user);
+  const r = useApiData("reports/summary", user);
+  return <div><PageHeader title="Аналитика и BI" subtitle="Показатели по текущим данным продаж, финансов, запасов, задач и визитов." actions={<button className="button outline" onClick={() => { void f.reload(); void r.reload(); }}>Обновить</button>} />
+    <div className="analytics-grid">{[["Продажи", f.rows[0]?.sales], ["Получено", f.rows[0]?.collected], ["Кредитные лимиты", f.rows[0]?.creditLimit], ["Открытые задачи", r.rows[0]?.openTasks]].map(x => <div className="kpi" key={x[0] as string}><div><small>{x[0]}</small><b>{typeof x[1] === "number" ? money(x[1]) : x[1] ?? "—"}</b><span className="good">В реальном времени</span></div><i>↗</i></div>)}</div>
+    <section className="panel report-builder"><PanelHead title="Сводный отчёт" /><Table rows={r.rows} columns={["metric", "value"]} /></section>
+  </div>;
+}
+
+function Settings({ toast }: { toast: (s: string) => void }) {
+  return <div><PageHeader title="Настройки" subtitle="Параметры компании и операционные настройки." />
+    <div className="module-stat-grid">{["Профиль компании", "Безопасность", "Уведомления", "Данные и аудит"].map((x, i) => <div className="module-stat" key={x}><span className="module-stat-icon">{["◈", "✓", "◔", "▤"][i]}</span><small>{x}</small><b>Настроено</b><span className="good">Доступно</span></div>)}</div>
+    <section className="panel module-workspace"><div className="empty-work"><div className="empty-icon">⚙</div><h3>Настройки рабочего пространства</h3><p>Авторизация, изоляция данных компании, журнал аудита, доступ к API и операционные разделы подключены.</p>
+      <div className="quick-actions"><button className="button outline" onClick={() => toast("Журнал аудита API включён.")}>Журнал аудита</button><button className="button outline" onClick={() => toast("Настройки интеграций API включены.")}>Доступ к API</button><button className="button primary" onClick={() => toast("Настройки сохраняются через защищённые API-маршруты.")}>Сохранить настройки</button></div>
+    </div></section>
+  </div>;
+}
+
+function PageHeader({ title, subtitle, actions }: { title: string; subtitle: string; actions?: React.ReactNode }) {
+  return <div className="page-header"><div><h1>{title}</h1><p>{subtitle}</p></div><div className="header-actions">{actions}</div></div>;
+}
+function PanelHead({ title, action, onClick }: { title: string; action?: string; onClick?: () => void }) {
+  return <div className="panel-head"><h2>{title}</h2>{action && <button onClick={onClick}>{action} →</button>}</div>;
+}
+function Table({ rows, columns }: { rows: Row[]; columns: string[] }) {
+  return <div className="table-scroll"><table><thead><tr>{columns.map(c => <th key={c}>{label(c)}</th>)}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i}>{columns.map(c => <td key={c}>
+    {c === "status" || c === "isActive" ? <Badge>{c === "isActive" ? (r[c] ? "Активен" : "Неактивен") : r[c]}</Badge> :
+     ["total", "amount", "creditLimit", "costPrice", "salePrice", "sales", "collected"].includes(c) ? <b>{money(r[c])}</b> : String(r[c] ?? "—")}
+  </td>)}</tr>)}</tbody></table></div>;
+}
+
+createRoot(document.getElementById("root")!).render(<React.StrictMode><App /></React.StrictMode>);
