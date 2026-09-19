@@ -36,9 +36,9 @@ lookupRouter.get("/:type", async (req, res) => {
     const type = String(req.params.type);
 
     if (type === "customers") {
-      return res.json(await db.select({ id: customers.id, code: customers.code, name: customers.name })
+      return res.json(await db.select({ id: customers.id, code: customers.code, name: customers.name, phone: customers.phone, address: customers.address })
         .from(customers)
-        .where(and(eq(customers.companyId, u.companyId), or(idMatches(customers.id, like), ilike(customers.code, like), ilike(customers.name, like))))
+        .where(and(eq(customers.companyId, u.companyId), or(idMatches(customers.id, like), ilike(customers.code, like), ilike(customers.name, like), ilike(customers.address, like), ilike(customers.phone, like))))
         .orderBy(customers.name).limit(20));
     }
 
