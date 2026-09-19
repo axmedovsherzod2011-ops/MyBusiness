@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { env, corsOrigins } from "./config.js";
 import { checkDatabase } from "./db/health.js";
 import { authRouter } from "./auth/routes.js";
+import { dataRouter } from "./data/routes.js";
 
 type Bucket = { count: number; resetAt: number };
 const buckets = new Map<string, Bucket>();
@@ -82,6 +83,7 @@ app.get("/api/v1", (_req: Request, res: Response) => {
 });
 
 app.use("/api/v1/auth", rateLimit(env.AUTH_RATE_LIMIT_MAX), authRouter);
+app.use("/api/v1/data", dataRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "NOT_FOUND", message: "The requested resource was not found." });
