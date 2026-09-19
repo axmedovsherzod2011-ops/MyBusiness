@@ -5,14 +5,14 @@ import { logout, signInWithApple, signInWithEmail, signInWithGoogle, signUpWithE
 import type { User } from "firebase/auth";
 import "./styles.css";
 
-type Page = "dashboard"|"orders"|"customers"|"products"|"inventory"|"purchases"|"payments"|"delivery"|"reports"|"analytics"|"routes"|"visits"|"promotions"|"tasks"|"team"|"branches"|"warehouses"|"suppliers"|"transfers"|"stockMovements"|"auditLogs"|"notifications"|"integrations"|"settings";
+type Page = "dashboard"|"orders"|"customers"|"products"|"inventory"|"purchases"|"payments"|"delivery"|"reports"|"analytics"|"routes"|"visits"|"promotions"|"tasks"|"team"|"branches"|"warehouses"|"suppliers"|"transfers"|"stockMovements"|"auditLogs"|"notifications"|"lowStock"|"integrations"|"settings";
 type Row = Record<string, any>;
 type ApiState = {status:"loading"}|{status:"online";version:string}|{status:"offline";message:string};
 
 const navGroups:any[]=[
  {label:"Overview",items:[["dashboard","Dashboard","⌂"],["analytics","Analytics & BI","◒"]]},
  {label:"Sales",items:[["orders","Orders","↗"],["customers","Customers","◎"],["routes","Routes","⌁"],["visits","Visits","✓"],["promotions","Promotions","%"]]},
- {label:"Catalog & stock",items:[["products","Products","▦"],["inventory","Inventory","▤"],["purchases","Purchases","↓"],["suppliers","Suppliers","♢"],["warehouses","Warehouses","⌂"],["transfers","Transfers","⇄"],["stockMovements","Stock movements","↕"],["delivery","Delivery","⇢"]]},
+ {label:"Catalog & stock",items:[["products","Products","▦"],["inventory","Inventory","▤"],["lowStock","Low stock","!"],["purchases","Purchases","↓"],["suppliers","Suppliers","♢"],["warehouses","Warehouses","⌂"],["transfers","Transfers","⇄"],["stockMovements","Stock movements","↕"],["delivery","Delivery","⇢"]]},
  {label:"Finance",items:[["payments","Payments & debts","₮"],["reports","Reports","▥"]]},
  {label:"Management",items:[["tasks","Tasks","☑"],["team","Team","♙"],["branches","Branches","⌂"],["auditLogs","Audit log","▤"],["notifications","Notifications","◔"],["integrations","Integrations","↔"]]},
  {label:"System",items:[["settings","Settings","⚙"]]},
@@ -40,6 +40,7 @@ const cfg:any={
  stockMovements:{title:"Stock movements",sub:"Receipts, sales, transfers, adjustments and returns in one ledger.",endpoint:"stock-movements",action:"Refresh ledger",fields:[],cols:["type","warehouseId","productId","quantity","referenceType","createdAt"]},
  auditLogs:{title:"Audit log",sub:"Traceable company-scoped record of important system actions.",endpoint:"audit-logs",action:"Refresh",fields:[],cols:["action","entityType","entityId","createdAt"]},
  notifications:{title:"Notifications",sub:"Operational alerts and user-specific messages.",endpoint:"notifications",action:"Refresh",fields:[],cols:["title","body","readAt","createdAt"]},
+ lowStock:{title:"Low stock",sub:"Products at or below the operational stock threshold.",endpoint:"inventory/low-stock?threshold=5",action:"Refresh",fields:[],cols:["warehouse","product","sku","quantity"]},
 };
 
 function Badge({children}:{children:any}){const s=String(children??"").toLowerCase();const cls=s.includes("completed")||s.includes("paid")||s.includes("active")||s.includes("healthy")||s.includes("confirmed")||s.includes("delivered")?"good":s.includes("low")||s.includes("pending")||s.includes("processing")||s.includes("draft")||s.includes("planned")||s.includes("in_progress")?"warn":"bad";return <span className={"badge "+cls}>{children??"—"}</span>}
