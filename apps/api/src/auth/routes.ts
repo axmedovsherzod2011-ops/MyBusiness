@@ -35,18 +35,18 @@ authRouter.get("/me", requireFirebaseAuth, async (req: AuthenticatedRequest, res
   const fullName =
     firebaseUser.name?.trim() ||
     firebaseUser.email?.split("@")[0] ||
-    "New user";
+    "Новый пользователь";
   const email = firebaseUser.email ?? null;
 
   try {
     const created = await db.transaction(async (tx) => {
       const [company] = await tx.insert(companies).values({
-        name: fullName + "'s Business",
+        name: fullName + " — компания",
         slug: "user-" + firebaseUser.uid,
         email,
       }).returning({ id: companies.id });
 
-      if (!company) throw new Error("Failed to create company");
+      if (!company) throw new Error("Не удалось создать компанию");
 
       const [user] = await tx.insert(users).values({
         companyId: company.id,
@@ -61,15 +61,15 @@ authRouter.get("/me", requireFirebaseAuth, async (req: AuthenticatedRequest, res
         status: users.status,
       });
 
-      if (!user) throw new Error("Failed to create user");
+      if (!user) throw new Error("Не удалось создать пользователя");
 
       const [ownerRole] = await tx.insert(roles).values({
         companyId: company.id,
-        name: "Owner",
-        description: "Initial company owner",
+        name: "Владелец",
+        description: "Владелец компании",
       }).returning({ id: roles.id });
 
-      if (!ownerRole) throw new Error("Failed to create owner role");
+      if (!ownerRole) throw new Error("Не удалось создать роль владельца");
 
       await tx.insert(userRoles).values({ userId: user.id, roleId: ownerRole.id });
       return user;
