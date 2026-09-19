@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import type { DecodedIdToken } from "firebase-admin/auth";
-import { firebaseAdminAuth } from "./firebase.js";
+import { getFirebaseAdminAuth } from "./firebase.js";
 
 export interface AuthenticatedRequest extends Request {
   firebaseUser?: DecodedIdToken;
@@ -30,7 +30,7 @@ export async function requireFirebaseAuth(
   }
 
   try {
-    req.firebaseUser = await firebaseAdminAuth.verifyIdToken(token);
+    req.firebaseUser = await getFirebaseAdminAuth().verifyIdToken(token);
     return next();
   } catch (error) {
     console.warn("Firebase token verification failed", error);
