@@ -388,22 +388,135 @@ function CustomerPicker({ user, value, onChange }: { user: User; value: string; 
   </div>;
 }
 
+function ReferencePicker({ user, type, value, onChange, placeholder }: { user: User; type: string; value: string; onChange: (id: string) => void; placeholder: string }) {
+  const [query, setQuery] = useState("");
+  const [items, setItems] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setItems([]);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      try {
+        const token = await user.getIdToken();
+        const rows = await apiFetchAuth<any[]>(
+          `/api/v1/lookups/${type}?q=${encodeURIComponent(query.trim())}`,
+          token,
+        );
+        if (active) setItems(Array.isArray(rows) ? rows : []);
+      } catch {
+        if (active) setItems([]);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }, 160);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [query, type, user.uid]);
+
+  const choose = (item: any) => {
+    setSelected(item);
+    setQuery("");
+    setItems([]);
+    onChange(String(item.id));
+  };
+
+  const itemLabel = (item: any) => {
+    if (type === "orders") return item.orderNumber ? "Заказ №" + item.orderNumber : item.id;
+    if (type === "products") return [item.name, item.sku, item.barcode].filter(Boolean).join(" · ");
+    if (type === "customers") return [item.name, item.address, item.phone].filter(Boolean).join(" · ");
+    if (type === "warehouses") return [item.name, item.code].filter(Boolean).join(" · ");
+    if (type === "branches") return [item.name, item.code, item.address].filter(Boolean).join(" · ");
+    return [item.name, item.code].filter(Boolean).join(" · ") || item.id;
+  };
+
+  useEffect(() => {
+    if (!value) setSelected(null);
+  }, [value]);
+
+  return <div className="customer-picker">
+    <input
+      data-customer-picker="true"
+      value={selected ? itemLabel(selected) : query}
+      onChange={e => {
+        if (selected) {
+          setSelected(null);
+          onChange("");
+        }
+        setQuery(e.target.value);
+      }}
+      placeholder={placeholder}
+      autoComplete="off"
+      required
+    />
+    {loading && <small className="lookup-hint">Поиск…</small>}
+    {!loading && query.trim() && items.length === 0 && <small className="lookup-hint">Ничего не найдено.</small>}
+    {items.length > 0 && <div className="customer-picker-list">
+      {items.map(item => <button
+        type="button"
+        className="customer-picker-option"
+        key={item.id}
+        onMouseDown={e => e.preventDefault()}
+        onClick={() => choose(item)}
+      >
+        <strong>{itemLabel(item)}</strong>
+      </button>)}
+    </div>}
+  </div>;
+}
+
+const referenceFieldTypes: Record<string, string> = {
+  customerId: "customers",
+  orderId: "orders",
+  branchId: "branches",
+  fromWarehouseId: "warehouses",
+  toWarehouseId: "warehouses",
+  warehouseId: "warehouses",
+  productId: "products",
+  routeId: "routes",
+};
+
 function CreateModal({ config, close, save, user }: { config: any; close: () => void; save: (d: any) => void; user: User }) {
   const [data, setData] = useState<any>({});
-  const [customerError, setCustomerError] = useState("");
+  const [referenceErrors, setReferenceErrors] = useState<Record<string, string>>({});
 
   const submit = () => {
-    if (config.endpoint === "orders" && !data.customerId) {
-      setCustomerError("Выберите существующего клиента.");
+    const requiredReferences = config.fields
+      .map((f: any) => f[0])
+      .filter((key: string) => referenceFieldTypes[key]);
+    const missing = requiredReferences.find((key: string) => !data[key]);
+    if (missing) {
+      setReferenceErrors({ [missing]: "Выберите существующую запись из списка." });
       return;
     }
     save(data);
   };
 
+  const setReference = (key: string, id: string) => {
+    setReferenceErrors(prev => ({ ...prev, [key]: "" }));
+    setData((prev: any) => ({ ...prev, [key]: id }));
+  };
+
   return <div className="modal-backdrop"><div className="quick-modal"><button className="modal-close" onClick={close}>×</button><span className="eyebrow">Создание записи</span><h2>{config.action}</h2>
     {config.fields.length === 0 ? <p>Для этого действия требуется связанная запись или отдельный рабочий процесс. Данные раздела доступны через защищённый API.</p> :
-      config.fields.map((f: any) => f[0] === "customerId" && config.endpoint === "orders" ?
-        <label key={f[0]}>{f[1]}<CustomerPicker user={user} value={data.customerId ?? ""} onChange={(id) => { setCustomerError(""); setData({ ...data, customerId: id }); }} />{customerError && <small className="auth-error">{customerError}</small>}</label> :
+      config.fields.map((f: any) => referenceFieldTypes[f[0]] ?
+        <label key={f[0]}>{f[1]}
+          <ReferencePicker
+            user={user}
+            type={referenceFieldTypes[f[0]]}
+            value={data[f[0]] ?? ""}
+            onChange={(id) => setReference(f[0], id)}
+            placeholder={"Введите " + f[1].toLowerCase()}
+          />
+          {referenceErrors[f[0]] && <small className="auth-error">{referenceErrors[f[0]]}</small>}
+        </label> :
         <label key={f[0]}>{f[1]}<input value={data[f[0]] ?? ""} onChange={e => setData({ ...data, [f[0]]: e.target.value })} placeholder={f[1]} /></label>)}
     <div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" onClick={submit}>Сохранить</button></div>
   </div></div>;
