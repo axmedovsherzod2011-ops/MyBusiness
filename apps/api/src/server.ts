@@ -6,15 +6,25 @@ const server = app.listen(env.PORT, "0.0.0.0", () => {
   console.log(`MyBusiness API listening on port ${env.PORT}`);
 });
 
-const shutdown = async (signal: string) => {
+const shutdown = (signal: string) => {
   console.log(`Received ${signal}; shutting down gracefully...`);
-  server.close(async () => {
-    if (pool) {
-      await pool.end();
+
+  server.close(async (error) => {
+    if (error) {
+      console.error("HTTP server shutdown failed", error);
+      process.exitCode = 1;
     }
-    process.exit(0);
+
+    try {
+      await pool.end();
+    } catch (poolError) {
+      console.error("Database pool shutdown failed", poolError);
+      process.exitCode = 1;
+    } finally {
+      process.exit();
+    }
   });
 };
 
-process.on("SIGTERM", () => void shutdown("SIGTERM"));
-process.on("SIGINT", () => void shutdown("SIGINT"));
+process.once("SIGTERM", () => shutdown("SIGTERM"));
+process.once("SIGINT", () => shutdown("SIGINT"));
