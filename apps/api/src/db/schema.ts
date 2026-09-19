@@ -113,7 +113,8 @@ export const notifications = pgTable("notifications", {
   userId:uuid("user_id").references(()=>users.id,{onDelete:"cascade"}).notNull(), title:text("title").notNull(),
   body:text("body"), readAt:timestamp("read_at",{withTimezone:true}), createdAt:createdAt()
 }, t=>[index("notifications_user_idx").on(t.userId,t.createdAt)]);
-\nexport const companies = pgTable("companies", {
+
+export const companies = pgTable("companies", {
   id: id(),
   name: text("name").notNull(),
   slug: text("slug").notNull(),
