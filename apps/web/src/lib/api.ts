@@ -80,6 +80,7 @@ async function searchReference(input: HTMLInputElement, type: string, query: str
 }
 
 function attachReferenceInput(input: HTMLInputElement, labelText: string) {
+  if (input.dataset.customerPicker === "true") return;
   const type = lookupTypes[labelText];
   if (!type || input.dataset.lookupBound === "true") return;
 
