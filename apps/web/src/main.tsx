@@ -388,46 +388,30 @@ function CustomerPicker({ user, value, onChange }: { user: User; value: string; 
   </div>;
 }
 
-function ReferencePicker({ user, type, value, onChange, placeholder, onSelect }: { user: User; type: string; value: string; onChange: (id: string) => void; placeholder: string; onSelect?: (item: any) => void }) {
+function ReferencePicker({ user, type, value, onChange, placeholder, onSelect, allowFreeText, onFreeText }: { user: User; type: string; value: string; onChange: (id: string) => void; placeholder: string; onSelect?: (item: any) => void; allowFreeText?: boolean; onFreeText?: (text: string) => void }) {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!query.trim()) {
-      setItems([]);
-      return;
-    }
+    if (!query.trim()) { setItems([]); return; }
     let active = true;
     const timer = window.setTimeout(async () => {
       setLoading(true);
       try {
         const token = await user.getIdToken();
-        const rows = await apiFetchAuth<any[]>(
-          `/api/v1/lookups/${type}?q=${encodeURIComponent(query.trim())}`,
-          token,
-        );
+        const rows = await apiFetchAuth<any[]>(`/api/v1/lookups/${type}?q=${encodeURIComponent(query.trim())}`, token);
         if (active) setItems(Array.isArray(rows) ? rows : []);
-      } catch {
-        if (active) setItems([]);
-      } finally {
-        if (active) setLoading(false);
-      }
+      } catch { if (active) setItems([]); }
+      finally { if (active) setLoading(false); }
     }, 160);
-    return () => {
-      active = false;
-      window.clearTimeout(timer);
-    };
+    return () => { active = false; window.clearTimeout(timer); };
   }, [query, type, user.uid]);
 
   const choose = (item: any) => {
-    setSelected(item);
-    setQuery("");
-    setItems([]);
-    onChange(String(item.id));
+    setSelected(item); setQuery(""); setItems([]); onChange(String(item.id)); onSelect?.(item);
   };
-
   const itemLabel = (item: any) => {
     if (type === "orders") return item.orderNumber ? "Заказ №" + item.orderNumber : item.id;
     if (type === "products") return [item.name, item.sku, item.barcode].filter(Boolean).join(" · ");
@@ -437,35 +421,23 @@ function ReferencePicker({ user, type, value, onChange, placeholder, onSelect }:
     return [item.name, item.code].filter(Boolean).join(" · ") || item.id;
   };
 
-  useEffect(() => {
-    if (!value) setSelected(null);
-  }, [value]);
+  useEffect(() => { if (!value) setSelected(null); }, [value]);
 
   return <div className="customer-picker">
-    <input
-      data-customer-picker="true"
-      value={selected ? itemLabel(selected) : query}
+    <input data-customer-picker="true" value={selected ? itemLabel(selected) : query}
       onChange={e => {
-        if (selected) {
-          setSelected(null);
-          onChange("");
-        }
-        setQuery(e.target.value);
+        const next = e.target.value;
+        if (selected) { setSelected(null); onChange(""); }
+        setQuery(next);
+        if (allowFreeText) onFreeText?.(next);
       }}
-      placeholder={placeholder}
-      autoComplete="off"
-      required
+      placeholder={placeholder} autoComplete="off" required={!allowFreeText}
     />
     {loading && <small className="lookup-hint">Поиск…</small>}
-    {!loading && query.trim() && items.length === 0 && <small className="lookup-hint">Ничего не найдено.</small>}
+    {!loading && query.trim() && items.length === 0 && <small className="lookup-hint">{allowFreeText ? "Можно использовать введённые данные как нового клиента." : "Ничего не найдено."}</small>}
     {items.length > 0 && <div className="customer-picker-list">
-      {items.map(item => <button
-        type="button"
-        className="customer-picker-option"
-        key={item.id}
-        onMouseDown={e => e.preventDefault()}
-        onClick={() => choose(item)}
-      >
+      {items.map(item => <button type="button" className="customer-picker-option" key={item.id} onMouseDown={e => e.preventDefault()} onClick={() => choose(item)}>
+        {type === "products" && <span className="product-thumb">▧</span>}
         <strong>{itemLabel(item)}</strong>
       </button>)}
     </div>}
@@ -485,36 +457,49 @@ const referenceFieldTypes: Record<string, string> = {
 
 function OrderCreateModal({ close, save, user }: { close: () => void; save: (d: any) => void; user: User }) {
   const [customerId, setCustomerId] = useState("");
+  const [customerInput, setCustomerInput] = useState("");
   const [notes, setNotes] = useState("");
-  const [discount, setDiscount] = useState("");
-  const [items, setItems] = useState<any[]>([{ productId: "", quantity: "1", unitPrice: "", discount: "0", product: null }]);
+  const [discountModal, setDiscountModal] = useState<number | null>(null);
+  const [items, setItems] = useState<any[]>([]);
+  const [productQuery, setProductQuery] = useState("");
+  const [productOptions, setProductOptions] = useState<any[]>([]);
   const [error, setError] = useState("");
 
-  const updateItem = (index: number, patch: any) => {
-    setItems(prev => prev.map((item, i) => i === index ? { ...item, ...patch } : item));
-  };
+  useEffect(() => {
+    if (!productQuery.trim()) { setProductOptions([]); return; }
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      try {
+        const token = await user.getIdToken();
+        const rows = await apiFetchAuth<any[]>(`/api/v1/lookups/products?q=${encodeURIComponent(productQuery.trim())}`, token);
+        if (active) setProductOptions(Array.isArray(rows) ? rows : []);
+      } catch { if (active) setProductOptions([]); }
+    }, 150);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [productQuery, user.uid]);
 
-  const addItem = () => setItems(prev => [...prev, { productId: "", quantity: "1", unitPrice: "", discount: "0", product: null }]);
-  const removeItem = (index: number) => setItems(prev => prev.length === 1 ? prev : prev.filter((_, i) => i !== index));
+  const addProduct = (product: any) => {
+    setProductOptions([]); setProductQuery("");
+    setItems(prev => {
+      const existing = prev.findIndex(x => x.productId === product.id);
+      if (existing >= 0) return prev.map((x,i) => i === existing ? { ...x, quantity: String(Number(x.quantity || 0) + 1) } : x);
+      return [...prev, { productId: String(product.id), product, quantity: 1, discount: 0 }];
+    });
+  };
+  const changeQty = (index: number, delta: number) => setItems(prev => prev.map((x,i) => i === index ? { ...x, quantity: Math.max(1, Number(x.quantity || 1) + delta) } : x));
+  const removeProduct = (index: number) => setItems(prev => prev.filter((_,i) => i !== index));
+  const lineTotal = (x: any) => Math.max(0, Number(x.product?.salePrice || 0) * Number(x.quantity || 0) - Number(x.discount || 0));
+  const grandTotal = items.reduce((s,x) => s + lineTotal(x), 0);
 
   const submit = () => {
     setError("");
-    if (!customerId) return setError("Выберите клиента.");
-    if (!items.length) return setError("Добавьте хотя бы одну позицию.");
-    if (items.some(item => !item.productId)) return setError("Выберите товар для каждой позиции.");
-    if (items.some(item => Number(item.quantity) <= 0)) return setError("Количество должно быть больше нуля.");
-    if (items.some(item => Number(item.unitPrice) < 0 || item.unitPrice === "")) return setError("Укажите цену для каждой позиции.");
-    if (items.some(item => Number(item.discount) < 0)) return setError("Скидка позиции не может быть отрицательной.");
+    if (!customerId && !customerInput.trim()) return setError("Укажите имя или номер клиента.");
+    if (!items.length) return setError("Выберите хотя бы один товар.");
     save({
-      customerId,
-      notes,
-      discount: Number(discount || 0),
-      items: items.map(({ product, ...item }) => ({
-        productId: item.productId,
-        quantity: Number(item.quantity),
-        unitPrice: Number(item.unitPrice),
-        discount: Number(item.discount || 0),
-      })),
+      customerId: customerId || undefined,
+      customerInput: customerInput.trim() || undefined,
+      items: items.map(x => ({ productId: x.productId, quantity: Number(x.quantity), unitPrice: Number(x.product?.salePrice || 0), discount: Number(x.discount || 0) })),
+      discount: 0, notes,
     });
   };
 
@@ -522,33 +507,41 @@ function OrderCreateModal({ close, save, user }: { close: () => void; save: (d: 
     <button className="modal-close" onClick={close}>×</button>
     <span className="eyebrow">Создание записи</span><h2>Новый заказ</h2>
     <label>Клиент
-      <ReferencePicker user={user} type="customers" value={customerId} onChange={setCustomerId} placeholder="Введите имя, адрес или телефон клиента" />
+      <ReferencePicker user={user} type="customers" value={customerId} onChange={setCustomerId} onFreeText={setCustomerInput} allowFreeText placeholder="Имя или номер телефона" />
     </label>
-    <div className="order-items-head"><strong>Позиции заказа</strong><button type="button" className="button outline" onClick={addItem}>+ Добавить позицию</button></div>
-    <div className="order-items">
-      {items.map((item, index) => <div className="order-item" key={index}>
-        <div className="order-item-product">
-          <label>Товар
-            <ReferencePicker
-              user={user}
-              type="products"
-              value={item.productId}
-              onChange={id => updateItem(index, { productId: id })}
-              onSelect={product => updateItem(index, { productId: String(product.id), product, unitPrice: item.unitPrice || product.salePrice || "0" })}
-              placeholder="Введите название, артикул или штрихкод"
-            />
-          </label>
-        </div>
-        <label>Количество<input type="number" min="0.001" step="0.001" value={item.quantity} onChange={e => updateItem(index, { quantity: e.target.value })} /></label>
-        <label>Цена<input type="number" min="0" step="0.01" value={item.unitPrice} onChange={e => updateItem(index, { unitPrice: e.target.value })} placeholder="Цена" /></label>
-        <label>Скидка<input type="number" min="0" step="0.01" value={item.discount} onChange={e => updateItem(index, { discount: e.target.value })} /></label>
-        <button type="button" className="modal-close order-item-remove" onClick={() => removeItem(index)} disabled={items.length === 1}>×</button>
+
+    <label className="order-product-search">Товар
+      <input value={productQuery} onChange={e => setProductQuery(e.target.value)} placeholder="Поиск товара…" autoComplete="off" />
+      {productOptions.length > 0 && <div className="customer-picker-list">
+        {productOptions.map(product => <button type="button" className="customer-picker-option product-option" key={product.id} onMouseDown={e => e.preventDefault()} onClick={() => addProduct(product)}>
+          <span className="product-thumb">▧</span><strong>{product.name}</strong><small>{product.sku}{product.barcode ? " · " + product.barcode : ""}</small>
+        </button>)}
+      </div>}
+    </label>
+
+    <div className="order-cart">
+      {items.map((item,index) => <div className="order-cart-item" key={item.productId}>
+        <span className="product-thumb">▧</span>
+        <div className="order-cart-main"><strong>{item.product.name}</strong><small>{Number(item.product.salePrice || 0).toLocaleString("ru-RU")} ₽ × {item.quantity} = {lineTotal(item).toLocaleString("ru-RU")} ₽</small></div>
+        <div className="order-cart-controls"><button type="button" onClick={() => changeQty(index,-1)}>-</button><b>{item.quantity}</b><button type="button" onClick={() => changeQty(index,1)}>+</button></div>
+        <button type="button" className="order-discount-btn" onClick={() => setDiscountModal(index)}>Скидка</button>
+        <button type="button" className="order-remove" onClick={() => removeProduct(index)}>×</button>
       </div>)}
     </div>
-    <label>Скидка заказа<input type="number" min="0" step="0.01" value={discount} onChange={e => setDiscount(e.target.value)} placeholder="0" /></label>
+
+    {discountModal !== null && items[discountModal] && <div className="order-discount-backdrop" onMouseDown={() => setDiscountModal(null)}>
+      <div className="order-discount-modal" onMouseDown={e => e.stopPropagation()}>
+        <button className="modal-close" onClick={() => setDiscountModal(null)}>×</button>
+        <h3>Скидка</h3><p>Цена: <b>{Number(items[discountModal].product.salePrice || 0).toLocaleString("ru-RU")} ₽</b></p>
+        <label>Скидка<input autoFocus type="number" min="0" value={items[discountModal].discount} onChange={e => setItems(prev => prev.map((x,i)=>i===discountModal?{...x,discount:Number(e.target.value||0)}:x))} /></label>
+        <button className="button primary full" onClick={() => setDiscountModal(null)}>Готово</button>
+      </div>
+    </div>}
+
+    <div className="order-total"><span>Общая сумма</span><strong>{grandTotal.toLocaleString("ru-RU")} ₽</strong></div>
     <label>Примечания<textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Примечания" /></label>
     {error && <small className="auth-error">{error}</small>}
-    <div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" onClick={submit}>Сохранить заказ</button></div>
+    <div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" onClick={submit}>Оформить заказ</button></div>
   </div></div>;
 }
 
