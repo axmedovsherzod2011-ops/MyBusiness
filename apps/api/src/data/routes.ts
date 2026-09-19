@@ -73,7 +73,8 @@ dataRouter.get("/dashboard",async(req,res)=>{try{
 
 
 async function companyUser(req: AuthenticatedRequest) { return context(req); }
-function isUuid(v: unknown): v is string { return typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v); }\nfunction bodyString(v: unknown, fallback = "") { return typeof v === "string" && v.trim() ? v.trim() : fallback; }
+function isUuid(v: unknown): v is string { return typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v); }
+function bodyString(v: unknown, fallback = "") { return typeof v === "string" && v.trim() ? v.trim() : fallback; }
 function bodyNumber(v: unknown, fallback = 0) { const n = Number(v); return Number.isFinite(n) ? n : fallback; }
 
 dataRouter.get("/suppliers", async(req,res)=>{try{const u=await companyUser(req);return res.json(await db.select().from(suppliers).where(eq(suppliers.companyId,u.companyId)).orderBy(desc(suppliers.createdAt)));}catch(e){return fail(res,e)}});
