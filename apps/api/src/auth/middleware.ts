@@ -16,7 +16,7 @@ export async function requireFirebaseAuth(
   if (!header?.startsWith("Bearer ")) {
     return res.status(401).json({
       error: "UNAUTHENTICATED",
-      message: "A Firebase ID token is required.",
+      message: "Требуется токен Firebase ID.",
     });
   }
 
@@ -25,7 +25,7 @@ export async function requireFirebaseAuth(
   if (!token) {
     return res.status(401).json({
       error: "UNAUTHENTICATED",
-      message: "A Firebase ID token is required.",
+      message: "Требуется токен Firebase ID.",
     });
   }
 
@@ -36,7 +36,7 @@ export async function requireFirebaseAuth(
     console.warn("Firebase token verification failed", error);
     return res.status(401).json({
       error: "UNAUTHENTICATED",
-      message: "The Firebase ID token is invalid or expired.",
+      message: "Токен Firebase недействителен или истёк.",
     });
   }
 }
