@@ -39,6 +39,7 @@ function lookupLabel(item: LookupItem) {
 async function searchReference(input: HTMLInputElement, type: string, query: string) {
   if (!referenceToken || query.trim().length < 1) {
     referenceMatches.set(input, []);
+    input.setCustomValidity("");
     return;
   }
 
@@ -49,18 +50,23 @@ async function searchReference(input: HTMLInputElement, type: string, query: str
     });
     if (!response.ok) {
       referenceMatches.set(input, []);
+      input.setCustomValidity("Запись не найдена. Выберите существующую запись.");
       return;
     }
 
     const items = await response.json() as LookupItem[];
-    referenceMatches.set(input, Array.isArray(items) ? items : []);
+    const matches = Array.isArray(items) ? items : [];
+    referenceMatches.set(input, matches);
+
+    const exact = matches.some(item => lookupValue(item) === input.value.trim());
+    input.setCustomValidity(exact ? "" : "Выберите существующую запись из списка.");
 
     const listId = input.dataset.lookupList;
     if (!listId) return;
     const list = document.getElementById(listId);
     if (!list) return;
 
-    list.replaceChildren(...(Array.isArray(items) ? items.slice(0, 20) : []).map((item) => {
+    list.replaceChildren(...matches.slice(0, 20).map((item) => {
       const option = document.createElement("option");
       option.value = lookupValue(item);
       const label = lookupLabel(item);
@@ -69,6 +75,7 @@ async function searchReference(input: HTMLInputElement, type: string, query: str
     }));
   } catch {
     referenceMatches.set(input, []);
+    input.setCustomValidity("Не удалось проверить запись. Повторите попытку.");
   }
 }
 
@@ -91,12 +98,13 @@ function attachReferenceInput(input: HTMLInputElement, labelText: string) {
 
   input.addEventListener("input", () => {
     const value = input.value.trim();
-    void searchReference(input, type, value);
     if (!value) {
       input.setCustomValidity("");
+      referenceMatches.set(input, []);
       return;
     }
-    input.setCustomValidity("Выберите существующую запись из списка.");
+    input.setCustomValidity("Проверяем запись…");
+    void searchReference(input, type, value);
   });
 
   input.addEventListener("change", () => {
