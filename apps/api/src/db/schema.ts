@@ -22,7 +22,98 @@ const id = () => uuid("id").defaultRandom().primaryKey();
 const createdAt = () => timestamp("created_at", { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp("updated_at", { withTimezone: true }).defaultNow().notNull();
 
-export const companies = pgTable("companies", {
+
+export const taskStatus = pgEnum("task_status", ["open", "in_progress", "review", "completed", "cancelled"]);
+export const priorityLevel = pgEnum("priority_level", ["low", "normal", "high", "urgent"]);
+export const visitStatus = pgEnum("visit_status", ["planned", "started", "completed", "cancelled"]);
+export const deliveryStatus = pgEnum("delivery_status", ["planned", "prepared", "in_transit", "delivered", "failed", "cancelled"]);
+export const purchaseStatus = pgEnum("purchase_status", ["draft", "ordered", "received", "cancelled"]);
+export const promotionStatus = pgEnum("promotion_status", ["draft", "planned", "active", "completed", "cancelled"]);
+
+export const suppliers = pgTable("suppliers", {
+  id: id(), companyId: uuid("company_id").references(() => companies.id, { onDelete: "cascade" }).notNull(),
+  code: text("code").notNull(), name: text("name").notNull(), phone: text("phone"), address: text("address"),
+  createdAt: createdAt(), updatedAt: updatedAt(),
+}, t => [uniqueIndex("suppliers_company_code_uq").on(t.companyId,t.code), index("suppliers_company_name_idx").on(t.companyId,t.name)]);
+
+export const purchases = pgTable("purchases", {
+  id: id(), companyId: uuid("company_id").references(() => companies.id,{onDelete:"cascade"}).notNull(),
+  supplierId: uuid("supplier_id").references(() => suppliers.id,{onDelete:"restrict"}).notNull(),
+  warehouseId: uuid("warehouse_id").references(() => warehouses.id,{onDelete:"restrict"}).notNull(),
+  purchaseNumber: integer("purchase_number").notNull(), status: purchaseStatus("status").notNull().default("draft"),
+  total: numeric("total",{precision:18,scale:2}).notNull().default("0"), notes:text("notes"),
+  createdBy: uuid("created_by").references(()=>users.id,{onDelete:"restrict"}).notNull(), createdAt:createdAt(), updatedAt:updatedAt()
+}, t => [uniqueIndex("purchases_company_number_uq").on(t.companyId,t.purchaseNumber),index("purchases_company_created_idx").on(t.companyId,t.createdAt)]);
+
+export const purchaseItems = pgTable("purchase_items", {
+  id:id(), purchaseId:uuid("purchase_id").references(()=>purchases.id,{onDelete:"cascade"}).notNull(),
+  productId:uuid("product_id").references(()=>products.id,{onDelete:"restrict"}).notNull(),
+  quantity:numeric("quantity",{precision:18,scale:3}).notNull(), unitCost:numeric("unit_cost",{precision:18,scale:2}).notNull(),
+  total:numeric("total",{precision:18,scale:2}).notNull()
+}, t=>[index("purchase_items_purchase_idx").on(t.purchaseId)]);
+
+export const routes = pgTable("routes", {
+  id:id(), companyId:uuid("company_id").references(()=>companies.id,{onDelete:"cascade"}).notNull(),
+  name:text("name").notNull(), routeDate:timestamp("route_date",{withTimezone:true}).notNull(),
+  ownerId:uuid("owner_id").references(()=>users.id,{onDelete:"restrict"}), status:text("status").notNull().default("planned"),
+  notes:text("notes"), createdAt:createdAt(), updatedAt:updatedAt()
+}, t=>[index("routes_company_date_idx").on(t.companyId,t.routeDate)]);
+
+export const routeStops = pgTable("route_stops", {
+  routeId:uuid("route_id").references(()=>routes.id,{onDelete:"cascade"}).notNull(),
+  customerId:uuid("customer_id").references(()=>customers.id,{onDelete:"restrict"}).notNull(),
+  position:integer("position").notNull(), plannedAt:timestamp("planned_at",{withTimezone:true}), status:visitStatus("status").notNull().default("planned")
+}, t=>[primaryKey({columns:[t.routeId,t.customerId]}),index("route_stops_customer_idx").on(t.customerId)]);
+
+export const visits = pgTable("visits", {
+  id:id(), companyId:uuid("company_id").references(()=>companies.id,{onDelete:"cascade"}).notNull(),
+  customerId:uuid("customer_id").references(()=>customers.id,{onDelete:"restrict"}).notNull(),
+  userId:uuid("user_id").references(()=>users.id,{onDelete:"restrict"}).notNull(),
+  routeId:uuid("route_id").references(()=>routes.id,{onDelete:"set null"}), status:visitStatus("status").notNull().default("planned"),
+  outcome:text("outcome"), notes:text("notes"), startedAt:timestamp("started_at",{withTimezone:true}), completedAt:timestamp("completed_at",{withTimezone:true}),
+  createdAt:createdAt(), updatedAt:updatedAt()
+}, t=>[index("visits_company_created_idx").on(t.companyId,t.createdAt)]);
+
+export const promotions = pgTable("promotions", {
+  id:id(), companyId:uuid("company_id").references(()=>companies.id,{onDelete:"cascade"}).notNull(),
+  name:text("name").notNull(), status:promotionStatus("status").notNull().default("draft"),
+  startDate:timestamp("start_date",{withTimezone:true}), endDate:timestamp("end_date",{withTimezone:true}),
+  discount:numeric("discount",{precision:18,scale:2}).default("0"), notes:text("notes"), createdAt:createdAt(),updatedAt:updatedAt()
+}, t=>[index("promotions_company_status_idx").on(t.companyId,t.status)]);
+
+export const promotionCustomers = pgTable("promotion_customers", {
+  promotionId:uuid("promotion_id").references(()=>promotions.id,{onDelete:"cascade"}).notNull(),
+  customerId:uuid("customer_id").references(()=>customers.id,{onDelete:"cascade"}).notNull()
+}, t=>[primaryKey({columns:[t.promotionId,t.customerId]})]);
+
+export const tasks = pgTable("tasks", {
+  id:id(), companyId:uuid("company_id").references(()=>companies.id,{onDelete:"cascade"}).notNull(),
+  title:text("title").notNull(), description:text("description"), status:taskStatus("status").notNull().default("open"),
+  priority:priorityLevel("priority").notNull().default("normal"), ownerId:uuid("owner_id").references(()=>users.id,{onDelete:"set null"}),
+  reviewerId:uuid("reviewer_id").references(()=>users.id,{onDelete:"set null"}), dueAt:timestamp("due_at",{withTimezone:true}),
+  entityType:text("entity_type"), entityId:uuid("entity_id"), createdAt:createdAt(),updatedAt:updatedAt()
+}, t=>[index("tasks_company_status_idx").on(t.companyId,t.status),index("tasks_company_due_idx").on(t.companyId,t.dueAt)]);
+
+export const deliveries = pgTable("deliveries", {
+  id:id(), companyId:uuid("company_id").references(()=>companies.id,{onDelete:"cascade"}).notNull(),
+  orderId:uuid("order_id").references(()=>orders.id,{onDelete:"restrict"}).notNull(),
+  driverId:uuid("driver_id").references(()=>users.id,{onDelete:"set null"}), status:deliveryStatus("status").notNull().default("planned"),
+  plannedAt:timestamp("planned_at",{withTimezone:true}), deliveredAt:timestamp("delivered_at",{withTimezone:true}),
+  address:text("address"), notes:text("notes"), createdAt:createdAt(),updatedAt:updatedAt()
+}, t=>[index("deliveries_company_status_idx").on(t.companyId,t.status)]);
+
+export const integrations = pgTable("integrations", {
+  id:id(), companyId:uuid("company_id").references(()=>companies.id,{onDelete:"cascade"}).notNull(),
+  name:text("name").notNull(), provider:text("provider").notNull(), status:text("status").notNull().default("disconnected"),
+  endpoint:text("endpoint"), lastSyncAt:timestamp("last_sync_at",{withTimezone:true}), createdAt:createdAt(),updatedAt:updatedAt()
+}, t=>[index("integrations_company_idx").on(t.companyId)]);
+
+export const notifications = pgTable("notifications", {
+  id:id(), companyId:uuid("company_id").references(()=>companies.id,{onDelete:"cascade"}).notNull(),
+  userId:uuid("user_id").references(()=>users.id,{onDelete:"cascade"}).notNull(), title:text("title").notNull(),
+  body:text("body"), readAt:timestamp("read_at",{withTimezone:true}), createdAt:createdAt()
+}, t=>[index("notifications_user_idx").on(t.userId,t.createdAt)]);
+\nexport const companies = pgTable("companies", {
   id: id(),
   name: text("name").notNull(),
   slug: text("slug").notNull(),
