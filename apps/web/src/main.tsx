@@ -38,7 +38,7 @@ const navGroups: any[] = [
 const cfg: any = {
   customers: { title: "Клиенты", sub: "Контакты, кредитные лимиты и история клиентов.", endpoint: "customers", action: "Добавить клиента", fields: [["name", "Имя"], ["phone", "Телефон"], ["address", "Адрес"], ["creditLimit", "Кредитный лимит"]], cols: ["name", "code", "phone", "creditLimit", "isActive"] },
   products: { title: "Товары", sub: "Каталог, SKU, штрихкоды, себестоимость и цены продажи.", endpoint: "products", action: "Добавить товар", fields: [["name", "Название"], ["sku", "SKU"], ["unit", "Единица"], ["barcode", "Штрихкод"], ["costPrice", "Себестоимость"], ["salePrice", "Цена продажи"]], cols: ["name", "sku", "unit", "costPrice", "salePrice", "isActive"] },
-  orders: { title: "Заказы", sub: "Жизненный цикл заказа: от черновика до подтверждения и завершения.", endpoint: "orders", action: "Новый заказ", fields: [["customerId", "ID клиента"], ["notes", "Примечания"]], cols: ["orderNumber", "customer", "status", "total", "createdAt"] },
+  orders: { title: "Заказы", sub: "Жизненный цикл заказа: от черновика до подтверждения и завершения.", endpoint: "orders", action: "Новый заказ", fields: [["customerId", "Клиент"], ["notes", "Примечания"]], cols: ["orderNumber", "customer", "status", "total", "createdAt"] },
   inventory: { title: "Остатки", sub: "Остатки по складам и SKU в реальном времени.", endpoint: "inventory", action: "Перемещение запасов", fields: [], cols: ["warehouse", "product", "sku", "quantity"] },
   purchases: { title: "Закупки", sub: "Закупки у поставщиков и приёмка поступивших запасов.", endpoint: "purchases", action: "Новая закупка", fields: [["name", "Поставщик"], ["phone", "Телефон"]], cols: ["name", "code", "phone"] },
   payments: { title: "Платежи и задолженность", sub: "Платежи, ссылки на операции и контроль дебиторской задолженности.", endpoint: "payments", action: "Записать платёж", fields: [["orderId", "ID заказа"], ["customerId", "ID клиента"], ["amount", "Сумма"], ["method", "Способ"], ["reference", "Назначение"]], cols: ["customerId", "amount", "method", "status", "reference", "createdAt"] },
@@ -296,7 +296,7 @@ function ModuleView({ page, user, toast }: any) {
        filtered.length === 0 ? <div className="empty-work"><h3>Записей пока нет</h3><p>{page === "stockMovements" || page === "auditLogs" || page === "notifications" ? "Пока нет записей для отображения." : "Создайте первую запись, чтобы начать работу с разделом."}</p></div> :
        <><Table rows={filtered} columns={c.cols} /><WorkflowBar page={page} rows={filtered} user={user} reload={reload} toast={toast} /></>}
     </section>
-    {open && <CreateModal config={c} close={() => setOpen(false)} save={create} />}
+    {open && <CreateModal config={c} close={() => setOpen(false)} save={create} user={user} />}
   </div>;
 }
 
@@ -321,12 +321,91 @@ function WorkflowBar({ page, rows, user, reload, toast }: { page: Page; rows: Ro
   </div>;
 }
 
-function CreateModal({ config, close, save }: { config: any; close: () => void; save: (d: any) => void }) {
+function CustomerPicker({ user, value, onChange }: { user: User; value: string; onChange: (id: string) => void }) {
+  const [query, setQuery] = useState("");
+  const [items, setItems] = useState<any[]>([]);
+  const [selected, setSelected] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setItems([]);
+      return;
+    }
+    let active = true;
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      try {
+        const token = await user.getIdToken();
+        const rows = await apiFetchAuth<any[]>(`/api/v1/lookups/customers?q=${encodeURIComponent(query.trim())}`, token);
+        if (active) setItems(Array.isArray(rows) ? rows : []);
+      } catch {
+        if (active) setItems([]);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }, 180);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [query, user.uid]);
+
+  useEffect(() => {
+    if (!value) setSelected(null);
+  }, [value]);
+
+  const choose = (item: any) => {
+    setSelected(item);
+    setQuery("");
+    setItems([]);
+    onChange(item.id);
+  };
+
+  return <div className="customer-picker">
+    <input
+      data-customer-picker="true"
+      value={selected ? [selected.name, selected.address].filter(Boolean).join(" · ") : query}
+      onChange={e => {
+        if (selected) {
+          setSelected(null);
+          onChange("");
+        }
+        setQuery(e.target.value);
+      }}
+      placeholder="Введите имя или адрес клиента"
+      autoComplete="off"
+      required
+    />
+    {loading && <small className="lookup-hint">Поиск клиентов…</small>}
+    {!loading && query.trim() && items.length === 0 && <small className="lookup-hint">Клиент не найден.</small>}
+    {items.length > 0 && <div className="customer-picker-list">
+      {items.map((item) => <button type="button" className="customer-picker-option" key={item.id} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(item)}>
+        <strong>{item.name}</strong>
+        <span>{[item.address, item.phone].filter(Boolean).join(" · ") || "Без адреса"}</span>
+      </button>)}
+    </div>}
+  </div>;
+}
+
+function CreateModal({ config, close, save, user }: { config: any; close: () => void; save: (d: any) => void; user: User }) {
   const [data, setData] = useState<any>({});
+  const [customerError, setCustomerError] = useState("");
+
+  const submit = () => {
+    if (config.endpoint === "orders" && !data.customerId) {
+      setCustomerError("Выберите существующего клиента.");
+      return;
+    }
+    save(data);
+  };
+
   return <div className="modal-backdrop"><div className="quick-modal"><button className="modal-close" onClick={close}>×</button><span className="eyebrow">Создание записи</span><h2>{config.action}</h2>
     {config.fields.length === 0 ? <p>Для этого действия требуется связанная запись или отдельный рабочий процесс. Данные раздела доступны через защищённый API.</p> :
-      config.fields.map((f: any) => <label key={f[0]}>{f[1]}<input value={data[f[0]] ?? ""} onChange={e => setData({ ...data, [f[0]]: e.target.value })} placeholder={f[1]} /></label>)}
-    <div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" onClick={() => save(data)}>Сохранить</button></div>
+      config.fields.map((f: any) => f[0] === "customerId" && config.endpoint === "orders" ?
+        <label key={f[0]}>{f[1]}<CustomerPicker user={user} value={data.customerId ?? ""} onChange={(id) => { setCustomerError(""); setData({ ...data, customerId: id }); }} />{customerError && <small className="auth-error">{customerError}</small>}</label> :
+        <label key={f[0]}>{f[1]}<input value={data[f[0]] ?? ""} onChange={e => setData({ ...data, [f[0]]: e.target.value })} placeholder={f[1]} /></label>)}
+    <div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" onClick={submit}>Сохранить</button></div>
   </div></div>;
 }
 
