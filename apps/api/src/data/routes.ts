@@ -1,10 +1,10 @@
-import { Router, type Response } from "express";
+import { Router, type Response, type Router as ExpressRouter } from "express";
 import { and, desc, eq, ilike, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { branches, customers, inventory, orders, orderItems, payments, products, users, warehouses, suppliers, purchases, purchaseItems, routes, visits, promotions, tasks, deliveries, integrations, notifications, stockMovements, warehouseTransfers, warehouseTransferItems } from "../db/schema.js";
 import { requireFirebaseAuth, type AuthenticatedRequest } from "../auth/middleware.js";
 
-export const dataRouter: ReturnType<typeof Router> = Router();
+export const dataRouter: ExpressRouter = Router();
 dataRouter.use(requireFirebaseAuth);
 
 async function context(req: AuthenticatedRequest) {
