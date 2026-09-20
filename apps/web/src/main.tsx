@@ -637,13 +637,41 @@ function CreateModal({ config, close, save, user }: { config: any; close: () => 
 }
 
 function Dashboard({ user, go }: { user: User; go: (p: Page) => void }) {
-  const { rows, loading } = useApiData("dashboard", user);
+  const { rows, loading, error, reload } = useApiData("dashboard", user);
   const d = rows[0] || {};
-  return <div><PageHeader title="Панель управления бизнесом" subtitle="Оперативные данные вашей компании в реальном времени." actions={<><button className="button outline" onClick={() => go("reports")}>Отчёты</button><button className="button primary" onClick={() => go("orders")}>+ Новый заказ</button></>} />
-    <div className="dashboard-grid">{[["Завершённые продажи", money(d.sales || 0), "В реальном времени"], ["Заказы", d.orders ?? 0, "В реальном времени"], ["Клиенты", d.customers ?? 0, "В реальном времени"], ["Статус", loading ? "Загрузка…" : "Работает", loading ? "" : "API"]].map(x => <div className="kpi" key={x[0] as string}><div><small>{x[0]}</small><b>{x[1]}</b><span className="good">{x[2]}</span></div><i>↗</i></div>)}</div>
-    <div className="dashboard-columns"><section className="panel"><PanelHead title="Последние заказы" action="Открыть заказы" onClick={() => go("orders")} /><Table rows={d.recent || []} columns={["orderNumber", "customer", "total", "status", "createdAt"]} /></section>
-      <section className="panel"><PanelHead title="Рабочие разделы" /><div className="alert-list">{[["Маршруты", "routes"], ["Визиты", "visits"], ["Задачи", "tasks"], ["Остатки", "inventory"]].map(x => <div key={x[0]}><span className="stock-symbol warn">→</span><span><b>{x[0]}</b><small>Открыть раздел</small></span><button className="button ghost" onClick={() => go(x[1] as Page)}>Открыть</button></div>)}</div></section>
+  const attention = [
+    ["Новые заказы", Number(d.pendingOrders || 0), "orders"],
+    ["Низкие остатки", Number(d.lowStock || 0), "lowStock"],
+    ["Доставки в работе", Number(d.pendingDeliveries || 0), "delivery"],
+    ["Открытые задачи", Number(d.openTasks || 0), "tasks"],
+  ];
+  return <div>
+    <PageHeader title="Панель управления бизнесом" subtitle="Главное за сегодня: продажи, заказы и то, что требует внимания."
+      actions={<><button className="button outline" onClick={() => void reload()}>Обновить</button><button className="button outline" onClick={() => go("reports")}>Отчёты</button><button className="button primary" onClick={() => go("orders")}>+ Новый заказ</button></>} />
+    {error && <section className="panel dashboard-error"><div className="empty-work"><div className="empty-icon">!</div><h3>Не удалось загрузить данные</h3><p>{error}</p><button className="button primary" onClick={() => void reload()}>Повторить</button></div></section>}
+    {!error && <><div className="dashboard-grid">
+      {[
+        ["Продажи всего", money(d.sales || 0), "Завершённые заказы"],
+        ["Продажи сегодня", money(d.todaySales || 0), "За сегодня"],
+        ["Заказы", d.orders ?? 0, "Всего заказов"],
+        ["Клиенты", d.customers ?? 0, "Всего клиентов"],
+      ].map(x => <div className="kpi" key={x[0] as string}><div><small>{x[0]}</small><b>{loading ? "…" : x[1]}</b><span className="good">{x[2]}</span></div><i>↗</i></div>)}
     </div>
+    <div className="dashboard-columns">
+      <section className="panel">
+        <PanelHead title="Требует внимания" />
+        <div className="alert-list">{attention.map(x => <div key={x[0]}><span className={"stock-symbol " + (Number(x[1]) > 0 ? "warn" : "good")}>{Number(x[1]) > 0 ? "!" : "✓"}</span><span><b>{x[0]}</b><small>{Number(x[1]) > 0 ? "Есть записи для обработки" : "Всё под контролем"}</small></span><strong>{loading ? "…" : x[1]}</strong>{Number(x[1]) > 0 && <button className="button ghost" onClick={() => go(x[2] as Page)}>Открыть</button>}</div>)}</div>
+      </section>
+      <section className="panel">
+        <PanelHead title="Быстрый доступ" />
+        <div className="alert-list">{[["Заказы", "orders"], ["Товары", "products"], ["Остатки", "inventory"], ["Клиенты", "customers"]].map(x => <div key={x[0]}><span className="stock-symbol warn">→</span><span><b>{x[0]}</b><small>Открыть раздел</small></span><button className="button ghost" onClick={() => go(x[1] as Page)}>Открыть</button></div>)}</div>
+      </section>
+    </div>
+    <section className="panel" style={{ marginTop: 14 }}>
+      <PanelHead title="Последние заказы" action="Открыть все заказы" onClick={() => go("orders")} />
+      {loading ? <div className="empty-work"><p>Загрузка последних заказов…</p></div> : d.recent?.length ? <Table rows={d.recent} columns={["orderNumber", "customer", "total", "status", "createdAt"]} /> : <div className="empty-work"><div className="empty-icon">□</div><h3>Заказов пока нет</h3><p>Создайте первый заказ — он сразу появится здесь.</p><button className="button primary" onClick={() => go("orders")}>Создать заказ</button></div>}
+    </section>
+    </>}
   </div>;
 }
 
