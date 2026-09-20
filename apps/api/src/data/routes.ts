@@ -25,6 +25,15 @@ function fail(res: Response, error: unknown) {
     ORDER_CREATE_FAILED: "Не удалось создать заказ.",
     ORDER_FINALIZED: "Завершённый или отменённый заказ нельзя изменить.",
     INSUFFICIENT_STOCK: "Недостаточно товара на складе.",
+    USER_NOT_FOUND: "Пользователь не найден.",
+    WAREHOUSE_NOT_FOUND: "Склад не найден.",
+    PURCHASE_NOT_FOUND: "Закупка не найдена.",
+    PURCHASE_ALREADY_RECEIVED: "Закупка уже принята.",
+    INVALID_TRANSFER_ITEM: "Проверьте товар и количество в перемещении.",
+    TRANSFER_CREATE_FAILED: "Не удалось создать перемещение.",
+    ORDER_NOT_FOUND: "Заказ не найден.",
+    ORDER_UPDATE_FAILED: "Не удалось обновить заказ.",
+    PRODUCT_NOT_FOUND: "Товар не найден.",
   };
   const message = messages[code];
   return res.status(message ? 400 : 500).json({ error: message ? code : "INTERNAL_ERROR", message: message || "Не удалось выполнить запрос." });
