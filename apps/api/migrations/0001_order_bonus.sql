@@ -1,0 +1,1 @@
+ALTER TABLE order_items ADD COLUMN IF NOT EXISTS is_bonus boolean NOT NULL DEFAULT false;
