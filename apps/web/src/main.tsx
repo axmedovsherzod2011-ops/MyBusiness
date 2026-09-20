@@ -105,6 +105,7 @@ function App() {
   const [authError, setAuthError] = useState("");
   const [toast, setToast] = useState("");
   const [accountReady, setAccountReady] = useState(false);
+  const [loadingDots, setLoadingDots] = useState(".");
 
   useEffect(() => subscribeToAuth(setUser), []);
   useEffect(() => {
@@ -117,6 +118,13 @@ function App() {
     void syncCurrentUser().then(() => { if (active) setAccountReady(true); }).catch((e) => { console.error(e); if (active) setAccountReady(false); });
     return () => { active = false; };
   }, [user]);
+  useEffect(() => {
+    if (accountReady) return;
+    const timer = window.setInterval(() => {
+      setLoadingDots(current => current === "..." ? "." : current + ".");
+    }, 450);
+    return () => window.clearInterval(timer);
+  }, [accountReady]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(""), 2600);
@@ -145,7 +153,7 @@ function App() {
   }
 
   if (!accountReady) {
-    return <div className="landing"><div className="empty-work"><h2>Подготовка рабочего пространства…</h2><p>Проверяем доступ к данным компании.</p></div></div>;
+    return <div className="landing"><div className="empty-work"><h2>Подготовка рабочего пространства{loadingDots}</h2><p>Проверяем доступ к данным компании.</p></div></div>;
   }
 
   const title =
