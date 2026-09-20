@@ -53,3 +53,12 @@
 .product-edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .table-edit-btn{padding:7px 10px;font-size:12px;white-space:nowrap}
 @media(max-width:600px){.product-edit-grid{grid-template-columns:1fr}.product-edit-modal{max-height:94vh}}
+
+
+/* Production table actions: keep actions attached to the row they modify. */
+.table-actions{display:flex;gap:8px;align-items:center;white-space:nowrap}
+.table-edit-btn:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:800px){
+  .table-actions{min-width:120px}
+  .table-actions .button{min-height:36px}
+}
