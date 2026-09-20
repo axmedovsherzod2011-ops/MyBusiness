@@ -640,7 +640,7 @@ function ReceiptModal({order,close}:{order:Row;close:()=>void}) {
             {bonuses.length>0&&<div className="receipt-bonuses">
               <h3>Бонусы</h3>
               <table><thead><tr><th>№</th><th>Товар</th><th>Количество</th><th>Цена</th></tr></thead>
-                <tbody>{bonuses.map((x:any,i)=><tr key={x.id}><td>{i+1}</td><td>{x.product}</td><td>{x.quantity}</td><td>БЕСПЛАТНО</td></tr>)}</tbody>
+                <tbody>{bonuses.map((x:any,i:number)=><tr key={x.id}><td>{i+1}</td><td>{x.product}</td><td>{x.quantity}</td><td>БЕСПЛАТНО</td></tr>)}</tbody>
               </table>
             </div>}
           </>}
