@@ -530,8 +530,125 @@ function OrderCreateModal({ close, save, user }: { close: () => void; save: (d: 
 }
 
 
-function ReceiptModal({order,close}:{order:Row;close:()=>void}){const items=(order.items||[]).filter((x:any)=>!x.isBonus),bonuses=(order.items||[]).filter((x:any)=>x.isBonus);const perPage=18;const pages:any[][]=[];for(let i=0;i<items.length;i+=perPage)pages.push(items.slice(i,i+perPage));if(!pages.length)pages.push([]);const moneyText=(v:any)=>new Intl.NumberFormat("ru-RU").format(Number(v)||0)+" UZS";const drawPage=(c:CanvasRenderingContext2D,pageItems:any[],pageIndex:number,totalPages:number)=>{const W=794,H=1123;c.fillStyle="#fff";c.fillRect(0,0,W,H);c.fillStyle="#17202a";c.font="bold 22px Arial";c.fillText("ЧЕК · Заказ №"+order.orderNumber,36,44);c.font="12px Arial";c.fillText("Продавец: "+(order.creator||"—")+" · "+(order.creatorPhone||"—"),36,72);c.fillText("Клиент: "+(order.customer||"—")+" · "+(order.customerPhone||"—"),36,94);c.fillText("Адрес: "+(order.customerAddress||"—"),36,116);c.fillText("Дата: "+displayValue(order.createdAt)+" · Страница "+(pageIndex+1)+"/"+totalPages,36,138);let y=180;c.font="bold 11px Arial";c.fillText("Товар",36,y);c.fillText("Цена/шт.",420,y);c.fillText("Кол-во",560,y);c.fillText("Сумма",650,y);y+=22;c.font="11px Arial";pageItems.forEach((x:any)=>{c.fillText(String(x.product).slice(0,48),36,y);c.fillText(moneyText(x.unitPrice),420,y);c.fillText(String(x.quantity),560,y);c.fillText(moneyText(x.total),650,y);y+=34;});if(pageIndex===totalPages-1){c.font="bold 16px Arial";c.fillText("Итого: "+moneyText(order.total),36,y+12);if(bonuses.length){y+=55;c.font="bold 13px Arial";c.fillText("Бонусы",36,y);y+=24;c.font="11px Arial";bonuses.forEach((x:any)=>{c.fillText(String(x.product).slice(0,48),36,y);c.fillText(String(x.quantity)+" шт.",560,y);c.fillText("БЕСПЛАТНО",650,y);y+=34;});}}};const download=()=>{const W=794,H=1123,canvas=document.createElement("canvas");canvas.width=W;canvas.height=H*pages.length;const c=canvas.getContext("2d")!;pages.forEach((p,i)=>drawPage(c,p,i,pages.length));const a=document.createElement("a");a.download="chek-"+order.orderNumber+".png";a.href=canvas.toDataURL("image/png");a.click();};return <div className="modal-backdrop receipt-backdrop"><div className="receipt-modal"><button className="modal-close" onClick={close}>×</button><div className="receipt-actions"><button className="button outline" onClick={download}>Скачать PNG</button><button className="button primary" onClick={close}>Закрыть</button></div><div className="receipt-pages">{pages.map((pageItems,pi)=><div className="receipt-page" key={pi}><div className="receipt-head"><b>ЧЕК · Заказ №{order.orderNumber}</b><span>Дата: {displayValue(order.createdAt)} · Страница {pi+1}/{pages.length}</span><span>Менеджер: {order.creator||"—"} · {order.creatorPhone||"—"}</span><span>Клиент: {order.customer||"—"} · {order.customerPhone||"—"}</span><span>Адрес: {order.customerAddress||"—"}</span></div><table className="receipt-table"><thead><tr><th>Товар</th><th>Цена за 1 шт.</th><th>Количество</th><th>Сумма</th></tr></thead><tbody>{pageItems.map((x:any)=><tr key={x.id}><td>{x.product}</td><td>{moneyText(x.unitPrice)}</td><td>{x.quantity}</td><td>{moneyText(x.total)}</td></tr>)}</tbody></table>{pi===pages.length-1&&<><div className="receipt-grand-total">Итого: {moneyText(order.total)}</div>{bonuses.length>0&&<div className="receipt-bonuses"><h3>Бонусы</h3><table><thead><tr><th>Товар</th><th>Количество</th><th>Цена</th></tr></thead><tbody>{bonuses.map((x:any)=><tr key={x.id}><td>{x.product}</td><td>{x.quantity}</td><td>БЕСПЛАТНО</td></tr>)}</tbody></table></div>}</>}</div>)}</div></div></div>;}
+function ReceiptModal({order,close}:{order:Row;close:()=>void}) {
+  const items=(order.items||[]).filter((x:any)=>!x.isBonus);
+  const bonuses=(order.items||[]).filter((x:any)=>x.isBonus);
+  const perPage=18;
+  const pages:any[][]=[];
+  for(let i=0;i<items.length;i+=perPage) pages.push(items.slice(i,i+perPage));
+  if(!pages.length) pages.push([]);
 
+  const moneyText=(v:any)=>new Intl.NumberFormat("ru-RU").format(Number(v)||0)+" сум";
+  const dateText=(v:any)=>{
+    const d=new Date(v);
+    return Number.isNaN(d.getTime()) ? String(v??"—") : new Intl.DateTimeFormat("ru-RU",{dateStyle:"short",timeStyle:"short"}).format(d);
+  };
+
+  const drawCell=(c:CanvasRenderingContext2D,text:string,x:number,y:number,w:number,h:number,align:"left"|"right"="left",bold=false)=>{
+    c.strokeStyle="#9aa3ad";
+    c.lineWidth=1;
+    c.strokeRect(x,y,w,h);
+    c.fillStyle="#17202a";
+    c.font=(bold?"bold ":"")+"11px Arial";
+    c.textAlign=align;
+    c.fillText(text.slice(0,align==="left"?46:20),align==="right"?x+w-7:x+7,y+18);
+    c.textAlign="left";
+  };
+
+  const drawPage=(c:CanvasRenderingContext2D,pageItems:any[],pageIndex:number,totalPages:number)=>{
+    const W=794,H=1123;
+    c.fillStyle="#fff";
+    c.fillRect(0,0,W,H);
+    c.fillStyle="#17202a";
+    c.font="bold 22px Arial";
+    c.fillText("ЧЕК · Заказ №"+order.orderNumber,36,44);
+    c.font="12px Arial";
+    c.fillText("Менеджер: "+(order.creator||"—")+" · "+(order.creatorPhone||"—"),36,72);
+    c.fillText("Клиент: "+(order.customer||"—")+" · "+(order.customerPhone||"—"),36,94);
+    c.fillText("Адрес клиента: "+(order.customerAddress||"—"),36,116);
+    c.fillText("Дата: "+dateText(order.createdAt)+" · Страница "+(pageIndex+1)+" из "+totalPages,36,138);
+
+    let y=165;
+    const cols=[{x:36,w:38},{x:74,w:300},{x:374,w:130},{x:504,w:72},{x:576,w:182}];
+    const headers=["№","Товар","Цена за 1 шт.","Количество","Сумма"];
+    headers.forEach((h,i)=>drawCell(c,h,cols[i].x,y,cols[i].w,28,"left",true));
+    y+=28;
+
+    pageItems.forEach((x:any,index:number)=>{
+      const globalIndex=pageIndex*perPage+index+1;
+      const vals=[String(globalIndex),String(x.product||"—"),moneyText(x.unitPrice),String(x.quantity),moneyText(x.total)];
+      vals.forEach((v,i)=>drawCell(c,v,cols[i].x,y,cols[i].w,28,i===2||i===4?"right":"left",false));
+      y+=28;
+    });
+
+    if(pageIndex===totalPages-1){
+      y+=18;
+      c.fillStyle="#17202a";
+      c.font="bold 16px Arial";
+      c.fillText("Итого: "+moneyText(order.total),36,y+12);
+      if(bonuses.length){
+        y+=42;
+        c.font="bold 13px Arial";
+        c.fillText("Бонусы",36,y);
+        y+=12;
+        const bcols=[{x:36,w:38},{x:74,w:430},{x:504,w:72},{x:576,w:182}];
+        ["№","Товар","Количество","Цена"].forEach((h,i)=>drawCell(c,h,bcols[i].x,y,bcols[i].w,28,"left",true));
+        y+=28;
+        bonuses.forEach((x:any,index:number)=>{
+          [String(index+1),String(x.product||"—"),String(x.quantity), "БЕСПЛАТНО"].forEach((v,i)=>drawCell(c,v,bcols[i].x,y,bcols[i].w,28,i===3?"right":"left",false));
+          y+=28;
+        });
+      }
+    }
+  };
+
+  const download=()=>{
+    const W=794,H=1123;
+    const canvas=document.createElement("canvas");
+    canvas.width=W;
+    canvas.height=H*pages.length;
+    const c=canvas.getContext("2d")!;
+    pages.forEach((p,i)=>drawPage(c,p,i,pages.length));
+    const a=document.createElement("a");
+    a.download="чек-"+order.orderNumber+".png";
+    a.href=canvas.toDataURL("image/png");
+    a.click();
+  };
+
+  return <div className="modal-backdrop receipt-backdrop">
+    <div className="receipt-modal">
+      <button className="modal-close" onClick={close}>×</button>
+      <div className="receipt-actions">
+        <button className="button outline" onClick={download}>Скачать PNG</button>
+        <button className="button primary" onClick={close}>Закрыть</button>
+      </div>
+      <div className="receipt-pages">
+        {pages.map((pageItems,pi)=><div className="receipt-page" key={pi}>
+          <div className="receipt-head">
+            <b>ЧЕК · Заказ №{order.orderNumber}</b>
+            <span>Дата: {dateText(order.createdAt)} · Страница {pi+1} из {pages.length}</span>
+            <span>Менеджер: {order.creator||"—"} · {order.creatorPhone||"—"}</span>
+            <span>Клиент: {order.customer||"—"} · {order.customerPhone||"—"}</span>
+            <span>Адрес клиента: {order.customerAddress||"—"}</span>
+          </div>
+          <table className="receipt-table">
+            <thead><tr><th>№</th><th>Товар</th><th>Цена за 1 шт.</th><th>Количество</th><th>Сумма</th></tr></thead>
+            <tbody>{pageItems.map((x:any,ri)=><tr key={x.id}><td>{pi*perPage+ri+1}</td><td>{x.product}</td><td>{moneyText(x.unitPrice)}</td><td>{x.quantity}</td><td>{moneyText(x.total)}</td></tr>)}</tbody>
+          </table>
+          {pi===pages.length-1&&<>
+            <div className="receipt-grand-total">Итого: {moneyText(order.total)}</div>
+            {bonuses.length>0&&<div className="receipt-bonuses">
+              <h3>Бонусы</h3>
+              <table><thead><tr><th>№</th><th>Товар</th><th>Количество</th><th>Цена</th></tr></thead>
+                <tbody>{bonuses.map((x:any,i)=><tr key={x.id}><td>{i+1}</td><td>{x.product}</td><td>{x.quantity}</td><td>БЕСПЛАТНО</td></tr>)}</tbody>
+              </table>
+            </div>}
+          </>}
+        </div>)}
+      </div>
+    </div>
+  </div>;
+}
 function PurchaseCreateModal({ close, save, user }: { close:()=>void; save:(d:any)=>void; user:User }) {
   const [supplierId,setSupplierId]=useState(""),[warehouseId,setWarehouseId]=useState(""),[notes,setNotes]=useState(""),[items,setItems]=useState<any[]>([]),[productQuery,setProductQuery]=useState(""),[products,setProducts]=useState<any[]>([]);
   useEffect(()=>{if(!productQuery.trim()){setProducts([]);return;}let active=true;const timer=window.setTimeout(async()=>{try{const t=await user.getIdToken();const r=await apiFetchAuth<any[]>("/api/v1/lookups/products?q="+encodeURIComponent(productQuery.trim()),t);if(active)setProducts(Array.isArray(r)?r:[]);}catch{if(active)setProducts([]);}},160);return()=>{active=false;window.clearTimeout(timer)};},[productQuery,user.uid]);
