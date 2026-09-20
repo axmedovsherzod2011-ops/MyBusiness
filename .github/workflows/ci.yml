@@ -31,6 +31,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -51,3 +52,14 @@ jobs:
           VITE_FIREBASE_STORAGE_BUCKET: mybusiness-d48d1.firebasestorage.app
           VITE_FIREBASE_MESSAGING_SENDER_ID: "414376220106"
           VITE_FIREBASE_APP_ID: "1:414376220106:web:2530bc27aedc9009e02b33"
+
+      - name: Smoke test production API
+        run: |
+          set -e
+          curl --fail --silent --show-error --max-time 30 https://mybusiness-api-e6dk.onrender.com/health
+          curl --fail --silent --show-error --max-time 30 https://mybusiness-api-e6dk.onrender.com/api/v1
+
+      - name: Smoke test production web
+        run: |
+          set -e
+          curl --fail --silent --show-error --max-time 30 https://mybusiness.axmedovsherzod2011.workers.dev/ > /dev/null
