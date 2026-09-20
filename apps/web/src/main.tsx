@@ -31,7 +31,7 @@ const navGroups: any[] = [
   { label: "Продажи", items: [["orders", "Заказы", "↗"], ["customers", "Клиенты", "◎"], ["routes", "Маршруты", "⌁"], ["visits", "Визиты", "✓"], ["promotions", "Акции", "%"]] },
   { label: "Каталог и запасы", items: [["products", "Товары", "▦"], ["inventory", "Остатки", "▤"], ["lowStock", "Низкие остатки", "!"], ["purchases", "Закупки", "↓"], ["suppliers", "Поставщики", "♢"], ["warehouses", "Склады", "⌂"], ["transfers", "Перемещения", "⇄"], ["stockMovements", "Движения запасов", "↕"], ["delivery", "Доставка", "⇢"]] },
   { label: "Финансы", items: [["payments", "Платежи и задолженность", "₮"], ["reports", "Отчёты", "▥"]] },
-  { label: "Управление", items: [["tasks", "Задачи", "☑"], ["team", "Команда", "♙"], ["branches", "Филиалы", "⌂"], ["auditLogs", "Журнал аудита", "▤"], ["notifications", "Уведомления", "◔"], ["integrations", "Интеграции", "↔"]] },
+  { label: "Управление", items: [["tasks", "Задачи", "☑"], ["team", "Команда", "♙"], ["branches", "Филиалы", "⌂"], ["auditLogs", "Журнал аудита", "▤"], ["notifications", "Уведомления", "◔"]] },
   { label: "Система", items: [["settings", "Настройки", "⚙"]] },
 ];
 
@@ -47,10 +47,9 @@ const cfg: any = {
   visits: { title: "Визиты", sub: "Цифровые визиты к клиентам, результаты, заметки и история выполнения.", endpoint: "visits", action: "Начать визит", fields: [["customerId", "Клиент"], ["routeId", "Маршрут"], ["notes", "Примечания"]], cols: ["customer", "status", "outcome", "notes", "createdAt"] },
   promotions: { title: "Акции", sub: "Планирование акций, целевые клиенты и контроль выполнения.", endpoint: "promotions", action: "Новая акция", fields: [["name", "Название"], ["discount", "Скидка"], ["startDate", "Начало"], ["endDate", "Окончание"], ["notes", "Примечания"]], cols: ["name", "status", "discount", "startDate", "endDate"] },
   tasks: { title: "Задачи", sub: "Рабочие сигналы превращаются в ответственные действия с контролем сроков.", endpoint: "tasks", action: "Создать задачу", fields: [["title", "Название"], ["description", "Описание"], ["priority", "Приоритет"], ["dueAt", "Срок"]], cols: ["title", "status", "priority", "dueAt"] },
-  team: { title: "Команда", sub: "Пользователи, обязанности и доступ внутри компании.", endpoint: "team", action: "Пригласить сотрудника", fields: [], cols: ["fullName", "email", "phone", "status", "createdAt"] },
+  team: { title: "Команда", sub: "Пользователи и доступ внутри компании.", endpoint: "team", action: "", fields: [], cols: ["fullName", "email", "phone", "status", "createdAt"] },
   branches: { title: "Филиалы", sub: "Рабочие точки, склады и управление на уровне филиалов.", endpoint: "branches", action: "Добавить филиал", fields: [["name", "Название"], ["code", "Код"], ["address", "Адрес"], ["phone", "Телефон"]], cols: ["name", "code", "address", "phone", "isActive"] },
-  integrations: { title: "Интеграции", sub: "ERP, платежные, фискальные и внешние подключения.", endpoint: "integrations", action: "Добавить интеграцию", fields: [["name", "Название"], ["provider", "Провайдер"], ["endpoint", "Адрес подключения"]], cols: ["name", "provider", "status", "lastSyncAt"] },
-  reports: { title: "Отчёты", sub: "Сводные показатели на основе реальных данных рабочего пространства.", endpoint: "reports/summary", action: "Обновить", fields: [], cols: ["metric", "value"] },
+    reports: { title: "Отчёты", sub: "Сводные показатели на основе реальных данных рабочего пространства.", endpoint: "reports/summary", action: "Обновить", fields: [], cols: ["metric", "value"] },
   suppliers: { title: "Поставщики", sub: "Данные поставщиков для закупок и приёмки.", endpoint: "suppliers", action: "Добавить поставщика", fields: [["name", "Название"], ["phone", "Телефон"], ["address", "Адрес"]], cols: ["name", "code", "phone", "address", "createdAt"] },
   warehouses: { title: "Склады", sub: "Склады и контроль запасов на уровне филиалов.", endpoint: "warehouses", action: "Добавить склад", fields: [["branchId", "Филиал"], ["name", "Название"], ["code", "Код"]], cols: ["name", "code", "branchId", "isActive"] },
   transfers: { title: "Перемещения", sub: "Перемещение запасов между складами с полной историей операций.", endpoint: "transfers", action: "Новое перемещение", fields: [["fromWarehouseId", "Склад-источник"], ["toWarehouseId", "Склад-получатель"], ["productId", "Товар"], ["quantity", "Количество"], ["notes", "Примечания"]], cols: ["id", "status", "fromWarehouseId", "toWarehouseId", "createdAt"] },
@@ -189,7 +188,7 @@ function App() {
             <div className="user-menu"><span className="avatar">{(user.displayName || user.email || "П").charAt(0).toUpperCase()}</span><span className="user-name">{user.displayName || user.email}</span><button className="icon-btn" onClick={() => logout()}>↪</button></div>
           </div>
         </header>
-        <main className="content"><PageView page={page} tokenUser={user} toast={setToast} go={setPage} /></main>
+        <main className="content"><PageView page={page} tokenUser={user} toast={setToast} go={setPage} api={api} /></main>
       </div>
       {toast && <div className="toast">✓ {toast}</div>}
     </div>
@@ -245,10 +244,10 @@ function AuthModal(p: any) {
   </div>;
 }
 
-function PageView({ page, tokenUser, toast, go }: { page: Page; tokenUser: User; toast: (s: string) => void; go: (p: Page) => void }) {
+function PageView({ page, tokenUser, toast, go, api }: { page: Page; tokenUser: User; toast: (s: string) => void; go: (p: Page) => void; api: ApiState }) {
   if (page === "dashboard") return <Dashboard user={tokenUser} go={go} />;
   if (page === "analytics") return <Analytics user={tokenUser} />;
-  if (page === "settings") return <Settings toast={toast} />;
+  if (page === "settings") return <Settings user={tokenUser} api={api} />;
   return <ModuleView page={page} user={tokenUser} toast={toast} />;
 }
 
@@ -282,11 +281,6 @@ function ModuleView({ page, user, toast }: any) {
   const create = async (data: any) => {
     try {
       const t = await user.getIdToken();
-      if (page === "purchases") {
-        toast("Для создания закупки укажите поставщика, склад и позиции через рабочий процесс закупки.");
-        setOpen(false);
-        return;
-      }
       const d = await apiFetchAuth<any>("/api/v1/data/" + c.endpoint, t, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       setRows(x => [d, ...x]); setOpen(false); toast("Запись сохранена.");
     } catch (e) { toast(e instanceof Error ? e.message : "Не удалось сохранить запись."); }
@@ -306,39 +300,49 @@ function ModuleView({ page, user, toast }: any) {
   const stat = page === "reports" || page === "stockMovements" || page === "auditLogs" || page === "notifications" ? [] :
     [["Записи", rows.length], ["Активные", rows.filter(r => String(r.status || r.isActive).toLowerCase().includes("active") || r.isActive === true).length], ["Внимание", rows.filter(r => ["low", "pending", "overdue", "failed"].includes(String(r.status).toLowerCase())).length], ["Обновлено", "В реальном времени"]];
 
+  const rowAction = async (row: Row) => {
+    let path = "", body: any = undefined;
+    if (page === "orders") {
+      if (row.status === "draft") { path = "orders/" + row.id + "/status"; body = { status: "confirmed" }; }
+      else if (row.status === "confirmed") { path = "orders/" + row.id + "/status"; body = { status: "completed" }; }
+      else return;
+    } else if (page === "purchases") {
+      if (row.status === "received") return; path = "purchases/" + row.id + "/receive";
+    } else if (page === "tasks") {
+      const next: Record<string,string> = { open: "in_progress", in_progress: "completed", review: "completed" };
+      if (!next[row.status]) return; path = "tasks/" + row.id + "/status"; body = { status: next[row.status] };
+    } else if (page === "visits") {
+      const next: Record<string,string> = { planned: "started", started: "completed" };
+      if (!next[row.status]) return; path = "visits/" + row.id + "/status"; body = { status: next[row.status] };
+    } else if (page === "deliveries") {
+      const next: Record<string,string> = { planned: "prepared", prepared: "in_transit", in_transit: "delivered" };
+      if (!next[row.status]) return; path = "deliveries/" + row.id + "/status"; body = { status: next[row.status] };
+    } else if (page === "promotions") {
+      const next: Record<string,string> = { draft: "planned", planned: "active", active: "completed" };
+      if (!next[row.status]) return; path = "promotions/" + row.id + "/status"; body = { status: next[row.status] };
+    } else if (page === "notifications") {
+      if (row.readAt) return; path = "notifications/" + row.id + "/read";
+    } else return;
+    try {
+      const t = await user.getIdToken();
+      await apiFetchAuth<any>("/api/v1/data/" + path, t, body ? { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : { method: "PATCH" });
+      toast("Операция выполнена.");
+      await reload();
+    } catch (e) { toast(e instanceof Error ? e.message : "Не удалось выполнить операцию."); }
+  };
+
   return <div>
-    <PageHeader title={c.title} subtitle={c.sub} actions={<button className="button primary" onClick={() => page === "reports" ? void reload() : setOpen(true)}>+ {c.action}</button>} />
+    <PageHeader title={c.title} subtitle={c.sub} actions={c.action ? <button className="button primary" onClick={() => page === "reports" ? void reload() : setOpen(true)}>+ {c.action}</button> : undefined} />
     {stat.length > 0 && <div className="module-stat-grid">{stat.map((x: any, i: number) => <div className="module-stat" key={x[0]}><span className="module-stat-icon">{["◒", "✓", "!", "↗"][i]}</span><small>{x[0]}</small><b>{x[1]}</b><span className={i === 2 ? "warn" : "good"}>{i === 3 ? "В реальном времени" : "Текущие данные"}</span></div>)}</div>}
     <div className="toolbar"><div className="searchbox">⌕<input value={search} onChange={e => setSearch(e.target.value)} placeholder={"Поиск: " + c.title.toLowerCase() + "..."} /></div><button className="filter-btn" onClick={() => setSearch("")}>Очистить</button><span className="toolbar-count">{filtered.length} записей</span></div>
     <section className="panel table-panel">
       {loading ? <div className="empty-work"><h3>Загрузка данных…</h3></div> :
        error ? <div className="empty-work"><h3>Не удалось загрузить данные</h3><p>{error}</p><button className="button outline" onClick={() => void reload()}>Повторить</button></div> :
        filtered.length === 0 ? <div className="empty-work"><h3>Записей пока нет</h3><p>{page === "stockMovements" || page === "auditLogs" || page === "notifications" ? "Пока нет записей для отображения." : "Создайте первую запись, чтобы начать работу с разделом."}</p></div> :
-       <><Table rows={filtered} columns={c.cols} onEdit={page === "products" ? setEditingProduct : undefined} /><WorkflowBar page={page} rows={filtered} user={user} reload={reload} toast={toast} /></>}
+       <><Table rows={filtered} columns={c.cols} onEdit={page === "products" ? setEditingProduct : undefined} rowAction={rowAction} /></>}
     </section>
-    {open && (page === "orders" ? <OrderCreateModal close={() => setOpen(false)} save={create} user={user} /> : <CreateModal config={c} close={() => setOpen(false)} save={create} user={user} />)}
+    {open && (page === "orders" ? <OrderCreateModal close={() => setOpen(false)} save={create} user={user} /> : page === "purchases" ? <PurchaseCreateModal close={() => setOpen(false)} save={create} user={user} /> : page === "transfers" ? <TransferCreateModal close={() => setOpen(false)} save={create} user={user} /> : <CreateModal config={c} close={() => setOpen(false)} save={create} user={user} />)}
     {editingProduct && <ProductEditModal product={editingProduct} close={() => setEditingProduct(null)} save={editProduct} />}
-  </div>;
-}
-
-function WorkflowBar({ page, rows, user, reload, toast }: { page: Page; rows: Row[]; user: User; reload: () => Promise<void>; toast: (s: string) => void }) {
-  const [busy, setBusy] = useState("");
-  const act = async (path: string, body?: any) => {
-    setBusy(path);
-    try {
-      const t = await user.getIdToken();
-      await apiFetchAuth<any>("/api/v1/data/" + path, t, body ? { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : { method: "PATCH" });
-      toast("Операция выполнена."); await reload();
-    } catch (e) { toast(e instanceof Error ? e.message : "Не удалось выполнить операцию."); }
-    finally { setBusy(""); }
-  };
-  const first = rows[0];
-  if (!first) return null;
-  return <div className="workflow-bar"><b>Быстрое действие</b>
-    {page === "orders" && <><button className="button outline" disabled={!!busy} onClick={() => void act("orders/" + first.id + "/status", { status: first.status === "draft" ? "confirmed" : "completed" })}>{busy ? "Выполняется…" : first.status === "draft" ? "Подтвердить первый заказ" : "Завершить первый заказ"}</button><span>Действие применяется к первому отображаемому заказу.</span></>}
-    {page === "purchases" && <><button className="button outline" disabled={!!busy} onClick={() => void act("purchases/" + first.id + "/receive")}>{busy ? "Приёмка…" : "Принять первую закупку"}</button><span>Приёмка обновляет остатки и журнал движений запасов.</span></>}
-    {page === "notifications" && <><button className="button outline" disabled={!!busy || !!first.readAt} onClick={() => void act("notifications/" + first.id + "/read")}>{first.readAt ? "Уже прочитано" : "Отметить первое как прочитанное"}</button><span>Управление уведомлениями пользователя.</span></>}
-    {page !== "orders" && page !== "purchases" && page !== "notifications" && <span>Используйте фильтры и действия раздела для работы с актуальными данными компании.</span>}
   </div>;
 }
 
@@ -566,6 +570,33 @@ function OrderCreateModal({ close, save, user }: { close: () => void; save: (d: 
   </div></div>;
 }
 
+function PurchaseCreateModal({ close, save, user }: { close:()=>void; save:(d:any)=>void; user:User }) {
+  const [supplierId,setSupplierId]=useState(""),[warehouseId,setWarehouseId]=useState(""),[notes,setNotes]=useState(""),[items,setItems]=useState<any[]>([]),[productQuery,setProductQuery]=useState(""),[products,setProducts]=useState<any[]>([]);
+  useEffect(()=>{if(!productQuery.trim()){setProducts([]);return;}let active=true;const timer=window.setTimeout(async()=>{try{const t=await user.getIdToken();const r=await apiFetchAuth<any[]>("/api/v1/lookups/products?q="+encodeURIComponent(productQuery.trim()),t);if(active)setProducts(Array.isArray(r)?r:[]);}catch{if(active)setProducts([]);}},160);return()=>{active=false;window.clearTimeout(timer)};},[productQuery,user.uid]);
+  const add=(p:any)=>{setProducts([]);setProductQuery("");setItems(v=>{const i=v.findIndex(x=>x.productId===p.id);return i>=0?v.map((x,j)=>j===i?{...x,quantity:Number(x.quantity)+1}:x):[...v,{productId:p.id,quantity:1,unitCost:Number(p.costPrice||0),name:p.name}]})};
+  const submit=()=>{if(!supplierId||!warehouseId||!items.length)return;save({supplierId,warehouseId,notes,items:items.map(x=>({productId:x.productId,quantity:Number(x.quantity),unitCost:Number(x.unitCost)}))});};
+  return <div className="modal-backdrop"><div className="quick-modal order-modal"><button className="modal-close" onClick={close}>×</button><span className="eyebrow">Приёмка</span><h2>Новая закупка</h2>
+    <label>Поставщик<ReferencePicker user={user} type="suppliers" value={supplierId} onChange={setSupplierId} placeholder="Поиск поставщика" /></label>
+    <label>Склад<ReferencePicker user={user} type="warehouses" value={warehouseId} onChange={setWarehouseId} placeholder="Поиск склада" /></label>
+    <label className="order-product-search">Товар<input value={productQuery} onChange={e=>setProductQuery(e.target.value)} placeholder="Поиск товара"/>{products.length>0&&<div className="customer-picker-list">{products.map(p=><button type="button" className="customer-picker-option product-option" key={p.id} onMouseDown={e=>e.preventDefault()} onClick={()=>add(p)}><span className="product-thumb">▧</span><strong>{p.name}</strong><small>{p.sku} · Себестоимость: {Number(p.costPrice||0).toLocaleString("ru-RU")} сум</small></button>)}</div>}</label>
+    <div className="order-cart">{items.map((x,i)=><div className="order-cart-item" key={x.productId}><span className="product-thumb">▧</span><div className="order-cart-main"><strong>{x.name}</strong><small>{Number(x.unitCost).toLocaleString("ru-RU")} сум × {x.quantity}</small></div><div className="order-cart-controls"><button type="button" onClick={()=>setItems(v=>v.map((q,j)=>j===i?{...q,quantity:Math.max(1,Number(q.quantity)-1)}:q))}>-</button><b>{x.quantity}</b><button type="button" onClick={()=>setItems(v=>v.map((q,j)=>j===i?{...q,quantity:Number(q.quantity)+1}:q))}>+</button></div></div>)}</div>
+    <label>Примечания<textarea value={notes} onChange={e=>setNotes(e.target.value)} /></label><div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" disabled={!supplierId||!warehouseId||!items.length} onClick={submit}>Создать закупку</button></div>
+  </div></div>;
+}
+
+function TransferCreateModal({ close, save, user }: { close:()=>void; save:(d:any)=>void; user:User }) {
+  const [from,setFrom]=useState(""),[to,setTo]=useState(""),[items,setItems]=useState<any[]>([]),[query,setQuery]=useState(""),[products,setProducts]=useState<any[]>([]);
+  useEffect(()=>{if(!query.trim()){setProducts([]);return;}let active=true;const timer=window.setTimeout(async()=>{try{const t=await user.getIdToken();const r=await apiFetchAuth<any[]>("/api/v1/lookups/products?q="+encodeURIComponent(query.trim()),t);if(active)setProducts(Array.isArray(r)?r:[]);}catch{if(active)setProducts([]);}},160);return()=>{active=false;window.clearTimeout(timer)};},[query,user.uid]);
+  const add=(p:any)=>{setProducts([]);setQuery("");setItems(v=>{const i=v.findIndex(x=>x.productId===p.id);return i>=0?v.map((x,j)=>j===i?{...x,quantity:Number(x.quantity)+1}:x):[...v,{productId:p.id,quantity:1,name:p.name}]})};
+  const submit=()=>{if(!from||!to||from===to||!items.length)return;save({fromWarehouseId:from,toWarehouseId:to,items:items.map(x=>({productId:x.productId,quantity:Number(x.quantity)}))});};
+  return <div className="modal-backdrop"><div className="quick-modal order-modal"><button className="modal-close" onClick={close}>×</button><span className="eyebrow">Склад</span><h2>Новое перемещение</h2>
+    <label>Склад-источник<ReferencePicker user={user} type="warehouses" value={from} onChange={setFrom} placeholder="Поиск склада" /></label><label>Склад-получатель<ReferencePicker user={user} type="warehouses" value={to} onChange={setTo} placeholder="Поиск склада" /></label>
+    <label className="order-product-search">Товар<input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Поиск товара"/>{products.length>0&&<div className="customer-picker-list">{products.map(p=><button type="button" className="customer-picker-option product-option" key={p.id} onMouseDown={e=>e.preventDefault()} onClick={()=>add(p)}><span className="product-thumb">▧</span><strong>{p.name}</strong><small>{p.sku}</small></button>)}</div>}</label>
+    <div className="order-cart">{items.map((x,i)=><div className="order-cart-item" key={x.productId}><span className="product-thumb">▧</span><div className="order-cart-main"><strong>{x.name}</strong><small>Количество: {x.quantity}</small></div><div className="order-cart-controls"><button type="button" onClick={()=>setItems(v=>v.map((q,j)=>j===i?{...q,quantity:Math.max(1,Number(q.quantity)-1)}:q))}>-</button><b>{x.quantity}</b><button type="button" onClick={()=>setItems(v=>v.map((q,j)=>j===i?{...q,quantity:Number(q.quantity)+1}:q))}>+</button></div></div>)}</div>
+    <div className="modal-actions"><button className="button outline" onClick={close}>Отмена</button><button className="button primary" disabled={!from||!to||from===to||!items.length} onClick={submit}>Переместить</button></div>
+  </div></div>;
+}
+
 function CreateModal({ config, close, save, user }: { config: any; close: () => void; save: (d: any) => void; user: User }) {
   const [data, setData] = useState<any>({});
   const [referenceErrors, setReferenceErrors] = useState<Record<string, string>>({});
@@ -625,11 +656,16 @@ function Analytics({ user }: { user: User }) {
   </div>;
 }
 
-function Settings({ toast }: { toast: (s: string) => void }) {
-  return <div><PageHeader title="Настройки" subtitle="Параметры компании и операционные настройки." />
-    <div className="module-stat-grid">{["Профиль компании", "Безопасность", "Уведомления", "Данные и аудит"].map((x, i) => <div className="module-stat" key={x}><span className="module-stat-icon">{["◈", "✓", "◔", "▤"][i]}</span><small>{x}</small><b>Настроено</b><span className="good">Доступно</span></div>)}</div>
-    <section className="panel module-workspace"><div className="empty-work"><div className="empty-icon">⚙</div><h3>Настройки рабочего пространства</h3><p>Авторизация, изоляция данных компании, журнал аудита, доступ к API и операционные разделы подключены.</p>
-      <div className="quick-actions"><button className="button outline" onClick={() => toast("Журнал аудита API включён.")}>Журнал аудита</button><button className="button outline" onClick={() => toast("Настройки интеграций API включены.")}>Доступ к API</button><button className="button primary" onClick={() => toast("Настройки сохраняются через защищённые API-маршруты.")}>Сохранить настройки</button></div>
+function Settings({ user, api }: { user: User; api: ApiState }) {
+  return <div><PageHeader title="Настройки" subtitle="Параметры аккаунта и состояние подключения." />
+    <div className="module-stat-grid">
+      <div className="module-stat"><span className="module-stat-icon">◈</span><small>Аккаунт</small><b>{user.displayName || "Пользователь"}</b><span className="good">Авторизован</span></div>
+      <div className="module-stat"><span className="module-stat-icon">✓</span><small>Электронная почта</small><b>{user.email || "—"}</b><span className="good">Firebase</span></div>
+      <div className="module-stat"><span className="module-stat-icon">◔</span><small>API</small><b>{api.status === "online" ? "Работает" : api.status === "offline" ? "Недоступен" : "Проверка"}</b><span className={api.status === "online" ? "good" : "warn"}>{api.status === "online" ? "Подключено" : "Требует проверки"}</span></div>
+      <div className="module-stat"><span className="module-stat-icon">▤</span><small>Версия API</small><b>{api.status === "online" ? api.version : "—"}</b><span>Текущая</span></div>
+    </div>
+    <section className="panel module-workspace"><div className="empty-work"><div className="empty-icon">⚙</div><h3>Аккаунт и безопасность</h3><p>Управление профилем выполняется через Firebase. Операционные действия и история доступны в соответствующих разделах.</p>
+      <div className="quick-actions"><button className="button outline" onClick={() => window.location.reload()}>Обновить состояние</button><button className="button primary" onClick={() => { void logout(); }}>Выйти из аккаунта</button></div>
     </div></section>
   </div>;
 }
@@ -675,11 +711,17 @@ function ProductEditModal({ product, close, save }: { product: Row; close: () =>
   </div></div>;
 }
 
-function Table({ rows, columns, onEdit }: { rows: Row[]; columns: string[]; onEdit?: (row: Row) => void }) {
-  return <div className="table-scroll"><table><thead><tr>{columns.map(c => <th key={c}>{label(c)}</th>)}{onEdit && <th>Действия</th>}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i}>{columns.map(c => <td key={c}>
+function RowAction({ row, onAction }: { row: Row; onAction: (row: Row) => void }) {
+  const text = row.status === "draft" ? "Подтвердить" : row.status === "confirmed" ? "Завершить" : row.status === "received" ? "Принято" : row.status === "open" ? "В работу" : row.status === "in_progress" ? "Завершить" : row.status === "planned" ? "Начать" : row.status === "started" ? "Завершить" : row.status === "prepared" ? "Отправить" : row.status === "in_transit" ? "Доставить" : row.status === "active" ? "Завершить" : row.readAt ? "Прочитано" : "Прочитать";
+  const disabled = ["completed", "cancelled", "received"].includes(String(row.status)) || !!row.readAt;
+  return <button className="button outline table-edit-btn" disabled={disabled} onClick={() => void onAction(row)}>{text}</button>;
+}
+
+function Table({ rows, columns, onEdit, rowAction }: { rows: Row[]; columns: string[]; onEdit?: (row: Row) => void; rowAction?: (row: Row) => void }) {
+  return <div className="table-scroll"><table><thead><tr>{columns.map(c => <th key={c}>{label(c)}</th>)}{(onEdit || rowAction) && <th>Действия</th>}</tr></thead><tbody>{rows.map((r, i) => <tr key={r.id || i}>{columns.map(c => <td key={c}>
     {c === "status" || c === "isActive" ? <Badge>{c === "isActive" ? (r[c] ? "Активен" : "Неактивен") : displayValue(r[c])}</Badge> :
      ["total", "amount", "creditLimit", "costPrice", "salePrice", "sales", "collected"].includes(c) ? <b>{money(r[c])}</b> : displayValue(r[c])}
-  </td>)}{onEdit && <td><button className="button outline table-edit-btn" onClick={() => onEdit(r)}>Изменить</button></td>}</tr>)}</tbody></table></div>;
+  </td>)}{(onEdit || rowAction) && <td className="table-actions">{onEdit && <button className="button outline table-edit-btn" onClick={() => onEdit(r)}>Изменить</button>}{rowAction && <RowAction row={r} onAction={rowAction} />}</td>}</tr>)}</tbody></table></div>;
 }
 
 createRoot(document.getElementById("root")!).render(<React.StrictMode><App /></React.StrictMode>);
