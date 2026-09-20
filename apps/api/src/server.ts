@@ -7,6 +7,9 @@ import { pool } from "./db/index.js";
 const execFileAsync = promisify(execFile);
 
 async function prepareDatabase() {
+  await pool.query(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS is_bonus boolean NOT NULL DEFAULT false`);
+  console.log("Order bonus schema migration checked.");
+
   if (!env.DB_AUTO_PUSH) return;
 
   console.log("DB_AUTO_PUSH=true; synchronizing Drizzle schema before startup...");
