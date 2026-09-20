@@ -248,6 +248,7 @@ function PageView({ page, tokenUser, toast, go, api }: { page: Page; tokenUser: 
   if (page === "dashboard") return <Dashboard user={tokenUser} go={go} />;
   if (page === "analytics") return <Analytics user={tokenUser} />;
   if (page === "settings") return <Settings user={tokenUser} api={api} />;
+  if (page === "orders") return <OrdersPage user={tokenUser} toast={toast} />;
   return <ModuleView page={page} user={tokenUser} toast={toast} />;
 }
 
@@ -269,6 +270,23 @@ function useApiData(endpoint: string, user: User) {
   useEffect(() => { void load(); }, [endpoint, user.uid]);
   return { rows, setRows, loading, error, reload: load };
 }
+
+function OrdersPage({ user, toast }: { user: User; toast: (s:string)=>void }) {
+  const [rows,setRows]=useState<Row[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(""),[q,setQ]=useState(""),[status,setStatus]=useState(""),[from,setFrom]=useState(""),[to,setTo]=useState(""),[page,setPage]=useState(1),[meta,setMeta]=useState({page:1,limit:25,total:0,pages:1}),[open,setOpen]=useState(false),[detail,setDetail]=useState<Row|null>(null),[busy,setBusy]=useState("");
+  const load=async(nextPage=page)=>{setLoading(true);setError("");try{const t=await user.getIdToken();const p=new URLSearchParams({page:String(nextPage),limit:"25"});if(q.trim())p.set("q",q.trim());if(status)p.set("status",status);if(from)p.set("from",from);if(to)p.set("to",to);const d=await apiFetchAuth<any>("/api/v1/data/orders?"+p,t);setRows(Array.isArray(d?.rows)?d.rows:[]);setMeta(d?.pages?d:{page:nextPage,limit:25,total:d?.rows?.length||0,pages:1});setPage(nextPage);}catch(e){setError(e instanceof Error?e.message:"Не удалось загрузить заказы.");}finally{setLoading(false);}};
+  useEffect(()=>{void load(1);},[user.uid]);
+  const change=async(id:string,next:string)=>{setBusy(id+next);try{const t=await user.getIdToken();await apiFetchAuth("/api/v1/data/orders/"+id+"/status",t,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:next})});toast("Статус заказа обновлён.");await load(page);}catch(e){toast(e instanceof Error?e.message:"Не удалось изменить статус.");}finally{setBusy("");}};
+  const openDetail=async(id:string)=>{try{const t=await user.getIdToken();setDetail(await apiFetchAuth<Row>("/api/v1/data/orders/"+id,t));}catch(e){toast(e instanceof Error?e.message:"Не удалось открыть заказ.");}};
+  return <div><PageHeader title="Заказы" subtitle="Все заказы компании: поиск, фильтры, состав, оплаты и статус выполнения." actions={<button className="button primary" onClick={()=>setOpen(true)}>+ Новый заказ</button>}/>
+    <div className="module-stat-grid"><div className="module-stat"><span className="module-stat-icon">№</span><small>Всего заказов</small><b>{meta.total}</b><span>Все страницы</span></div><div className="module-stat"><span className="module-stat-icon">◷</span><small>На странице</small><b>{rows.length}</b><span>25 записей</span></div><div className="module-stat"><span className="module-stat-icon">!</span><small>Черновики</small><b>{rows.filter(x=>x.status==="draft").length}</b><span>На текущей странице</span></div><div className="module-stat"><span className="module-stat-icon">✓</span><small>Завершённые</small><b>{rows.filter(x=>x.status==="completed").length}</b><span>На текущей странице</span></div></div>
+    <section className="panel"><div className="toolbar"><div className="searchbox">⌕<input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void load(1)}} placeholder="Поиск по номеру, клиенту или телефону..."/></div><select value={status} onChange={e=>{setStatus(e.target.value);setTimeout(()=>void load(1),0)}}><option value="">Все статусы</option><option value="draft">Черновики</option><option value="confirmed">Подтверждённые</option><option value="completed">Завершённые</option><option value="cancelled">Отменённые</option></select><input type="date" value={from} onChange={e=>setFrom(e.target.value)} aria-label="Дата от"/><input type="date" value={to} onChange={e=>setTo(e.target.value)} aria-label="Дата до"/><button className="filter-btn" onClick={()=>void load(1)}>Применить</button><button className="filter-btn" onClick={()=>{setQ("");setStatus("");setFrom("");setTo("");setTimeout(()=>void load(1),0)}}>Сбросить</button></div></section>
+    <section className="panel table-panel">{loading?<div className="empty-work"><h3>Загрузка заказов…</h3></div>:error?<div className="empty-work"><h3>Не удалось загрузить заказы</h3><p>{error}</p><button className="button outline" onClick={()=>void load(page)}>Повторить</button></div>:rows.length===0?<div className="empty-work"><h3>Заказов не найдено</h3><p>Измените поиск или фильтры, либо создайте новый заказ.</p><button className="button primary" onClick={()=>setOpen(true)}>Создать заказ</button></div>:<div className="table-scroll"><table><thead><tr><th>Заказ</th><th>Клиент</th><th>Сумма</th><th>Статус</th><th>Создан</th><th>Действия</th></tr></thead><tbody>{rows.map(r=><tr key={r.id}><td><button className="table-link" onClick={()=>void openDetail(r.id)}>№ {r.orderNumber}</button></td><td><b>{r.customer}</b><small className="table-sub">{r.customerPhone||"Телефон не указан"}</small></td><td><b>{money(r.total)}</b></td><td><Badge>{displayValue(r.status)}</Badge></td><td>{displayValue(r.createdAt)}</td><td className="table-actions"><button className="button outline table-edit-btn" onClick={()=>void openDetail(r.id)}>Открыть</button>{r.status==="draft"&&<button className="button primary table-edit-btn" disabled={busy===r.id+"confirmed"} onClick={()=>void change(r.id,"confirmed")}>Подтвердить</button>}{r.status==="confirmed"&&<button className="button primary table-edit-btn" disabled={busy===r.id+"completed"} onClick={()=>void change(r.id,"completed")}>Завершить</button>}{!["completed","cancelled"].includes(r.status)&&<button className="button outline table-edit-btn" disabled={busy===r.id+"cancelled"} onClick={()=>void change(r.id,"cancelled")}>Отменить</button>}</td></tr>)}</tbody></table></div>}{!loading&&!error&&meta.pages>1&&<div className="pagination"><button className="button outline" disabled={page<=1} onClick={()=>void load(page-1)}>← Назад</button><span>Страница {page} из {meta.pages} · {meta.total} заказов</span><button className="button outline" disabled={page>=meta.pages} onClick={()=>void load(page+1)}>Вперёд →</button></div>}</section>
+    {open&&<OrderCreateModal close={()=>setOpen(false)} save={async data=>{try{const t=await user.getIdToken();await apiFetchAuth("/api/v1/data/orders",t,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)});setOpen(false);toast("Заказ создан.");await load(1);}catch(e){toast(e instanceof Error?e.message:"Не удалось создать заказ.");}}} user={user}/>}
+    {detail&&<OrderDetailModal order={detail} close={()=>setDetail(null)} user={user} toast={toast} reload={()=>load(page)}/>}
+  </div>;
+}
+
+function OrderDetailModal({order,close,user,toast,reload}:{order:Row;close:()=>void;user:User;toast:(s:string)=>void;reload:()=>void}){const [busy,setBusy]=useState(false);const change=async(next:string)=>{setBusy(true);try{const t=await user.getIdToken();await apiFetchAuth<Row>("/api/v1/data/orders/"+order.id+"/status",t,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:next})});toast("Статус заказа обновлён.");reload();close();}catch(e){toast(e instanceof Error?e.message:"Не удалось изменить статус.");}finally{setBusy(false);}};return <div className="modal-backdrop"><div className="quick-modal order-modal order-detail-modal"><button className="modal-close" onClick={close}>×</button><span className="eyebrow">Заказ №{order.orderNumber}</span><h2>{order.customer}</h2><div className="order-detail-meta"><Badge>{displayValue(order.status)}</Badge><span>{displayValue(order.createdAt)}</span><span>{order.branch}</span><span>{order.warehouse}</span></div><div className="order-detail-grid"><div><small>Телефон</small><b>{order.customerPhone||"—"}</b></div><div><small>Адрес</small><b>{order.customerAddress||"—"}</b></div><div><small>Оплачено</small><b>{money(order.paid||0)}</b></div><div><small>Осталось</small><b>{money(order.balance||0)}</b></div></div><div className="order-cart">{(order.items||[]).map((x:any)=><div className="order-cart-item" key={x.id}><span className="product-thumb">▧</span><div className="order-cart-main"><strong>{x.product}</strong><small>{x.sku} · {Number(x.unitPrice).toLocaleString("ru-RU")} сум × {x.quantity}</small></div><b>{money(x.total)}</b></div>)}</div><div className="order-total"><span>Итого</span><strong>{money(order.total)}</strong></div>{order.notes&&<div className="note-box">{order.notes}</div>}<div className="modal-actions"><button className="button outline" onClick={close}>Закрыть</button>{order.status==="draft"&&<button className="button primary" disabled={busy} onClick={()=>void change("confirmed")}>Подтвердить</button>}{order.status==="confirmed"&&<button className="button primary" disabled={busy} onClick={()=>void change("completed")}>Завершить</button>}{!["completed","cancelled"].includes(order.status)&&<button className="button outline" disabled={busy} onClick={()=>void change("cancelled")}>Отменить</button>}</div></div></div>;}
 
 function ModuleView({ page, user, toast }: any) {
   const c = cfg[page];
@@ -483,6 +501,8 @@ const referenceFieldTypes: Record<string, string> = {
 function OrderCreateModal({ close, save, user }: { close: () => void; save: (d: any) => void; user: User }) {
   const [customerId, setCustomerId] = useState("");
   const [customerInput, setCustomerInput] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [warehouseId, setWarehouseId] = useState("");
   const [notes, setNotes] = useState("");
   const [discountModal, setDiscountModal] = useState<number | null>(null);
   const [items, setItems] = useState<any[]>([]);
@@ -520,17 +540,15 @@ function OrderCreateModal({ close, save, user }: { close: () => void; save: (d: 
     setError("");
     if (!customerId && !customerInput.trim()) return setError("Укажите имя или номер клиента.");
     if (!items.length) return setError("Выберите хотя бы один товар.");
-    save({
-      customerId: customerId || undefined,
-      customerInput: customerInput.trim() || undefined,
-      items: items.map(x => ({ productId: x.productId, quantity: Number(x.quantity), unitPrice: Number(x.product?.salePrice || 0), discount: Number(x.discount || 0) })),
-      discount: 0, notes,
-    });
+    if (!branchId || !warehouseId) return setError("Выберите филиал и склад.");
+    if (items.some(x => Number(x.discount || 0) > Number(x.product?.salePrice || 0) * Number(x.quantity || 0))) return setError("Скидка не может быть больше суммы позиции.");
+    save({ branchId, warehouseId, customerId: customerId || undefined, customerInput: customerInput.trim() || undefined, items: items.map(x => ({ productId: x.productId, quantity: Number(x.quantity), discount: Number(x.discount || 0) })), discount: 0, notes });
   };
 
   return <div className="modal-backdrop"><div className="quick-modal order-modal">
     <button className="modal-close" onClick={close}>×</button>
     <span className="eyebrow">Создание записи</span><h2>Новый заказ</h2>
+    <div className="product-edit-grid"><label>Филиал<ReferencePicker user={user} type="branches" value={branchId} onChange={setBranchId} placeholder="Выберите филиал" /></label><label>Склад<ReferencePicker user={user} type="warehouses" value={warehouseId} onChange={setWarehouseId} placeholder="Выберите склад" /></label></div>
     <label>Клиент
       <ReferencePicker user={user} type="customers" value={customerId} onChange={setCustomerId} onFreeText={setCustomerInput} allowFreeText placeholder="Имя или номер телефона" />
     </label>
