@@ -33,7 +33,6 @@ function fail(res: Response, error: unknown) {
     TRANSFER_CREATE_FAILED: "Не удалось создать перемещение.",
     ORDER_NOT_FOUND: "Заказ не найден.",
     ORDER_UPDATE_FAILED: "Не удалось обновить заказ.",
-    PRODUCT_NOT_FOUND: "Товар не найден.",
   };
   const message = messages[code];
   return res.status(message ? 400 : 500).json({ error: message ? code : "INTERNAL_ERROR", message: message || "Не удалось выполнить запрос." });
@@ -72,13 +71,32 @@ dataRouter.get("/warehouses",async(req,res)=>{try{const u=await context(req);ret
 
 dataRouter.get("/dashboard",async(req,res)=>{try{
   const u=await context(req);
-  const [allOrders,allCustomers,recent]=await Promise.all([
-    db.select().from(orders).where(eq(orders.companyId,u.companyId)),
-    db.select().from(customers).where(eq(customers.companyId,u.companyId)),
+  const todayStart = new Date();
+  todayStart.setHours(0,0,0,0);
+  const [salesResult,ordersResult,customersResult,pendingOrdersResult,lowStockResult,pendingDeliveriesResult,openTasksResult,recent]=await Promise.all([
+    db.select({value:sql<string>`coalesce(sum(${orders.total}),0)`}).from(orders).where(and(eq(orders.companyId,u.companyId),eq(orders.status,"completed"))),
+    db.select({value:sql<number>`count(*)`}).from(orders).where(eq(orders.companyId,u.companyId)),
+    db.select({value:sql<number>`count(*)`}).from(customers).where(eq(customers.companyId,u.companyId)),
+    db.select({value:sql<number>`count(*)`}).from(orders).where(and(eq(orders.companyId,u.companyId),eq(orders.status,"draft"))),
+    db.select({value:sql<number>`count(*)`}).from(inventory).innerJoin(warehouses,eq(inventory.warehouseId,warehouses.id)).where(and(eq(warehouses.companyId,u.companyId),sql`cast(${inventory.quantity} as numeric) <= 5`)),
+    db.select({value:sql<number>`count(*)`}).from(deliveries).where(and(eq(deliveries.companyId,u.companyId),sql`${deliveries.status} in ('planned','prepared','in_transit')`)),
+    db.select({value:sql<number>`count(*)`}).from(tasks).where(and(eq(tasks.companyId,u.companyId),sql`${tasks.status} in ('open','in_progress','review')`)),
     db.select({id:orders.id,orderNumber:orders.orderNumber,total:orders.total,status:orders.status,customer:customers.name,createdAt:orders.createdAt}).from(orders).innerJoin(customers,eq(orders.customerId,customers.id)).where(eq(orders.companyId,u.companyId)).orderBy(desc(orders.createdAt)).limit(8)
   ]);
-  const sales=allOrders.filter(x=>x.status==="completed").reduce((n,x)=>n+Number(x.total),0);
-  return res.json({sales,orders:allOrders.length,customers:allCustomers.length,recent});
+  const sales = Number(salesResult[0]?.value ?? 0);
+  const todaySalesResult = await db.select({value:sql<string>`coalesce(sum(${orders.total}),0)`}).from(orders).where(and(eq(orders.companyId,u.companyId),eq(orders.status,"completed"),sql`${orders.createdAt} >= ${todayStart.toISOString()}`));
+  const todaySales = Number(todaySalesResult[0]?.value ?? 0);
+  return res.json({
+    sales,
+    todaySales,
+    orders:Number(ordersResult[0]?.value ?? 0),
+    customers:Number(customersResult[0]?.value ?? 0),
+    pendingOrders:Number(pendingOrdersResult[0]?.value ?? 0),
+    lowStock:Number(lowStockResult[0]?.value ?? 0),
+    pendingDeliveries:Number(pendingDeliveriesResult[0]?.value ?? 0),
+    openTasks:Number(openTasksResult[0]?.value ?? 0),
+    recent
+  });
 }catch(e){return fail(res,e)}});
 
 
