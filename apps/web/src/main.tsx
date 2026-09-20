@@ -576,7 +576,7 @@ function ReceiptModal({order,close}:{order:Row;close:()=>void}) {
 
     pageItems.forEach((x:any,index:number)=>{
       const globalIndex=pageIndex*perPage+index+1;
-      const vals=[String(globalIndex),String(x.product||"—"),moneyText(x.unitPrice),String(x.quantity),moneyText(x.total)];
+      const vals=[String(globalIndex),String(x.product||"—"),moneyText(x.unitPrice),String(Number(x.quantity) || 0),moneyText(x.total)];
       vals.forEach((v,i)=>drawCell(c,v,cols[i].x,y,cols[i].w,28,i===2||i===4?"right":"left",false));
       y+=28;
     });
@@ -595,7 +595,7 @@ function ReceiptModal({order,close}:{order:Row;close:()=>void}) {
         ["№","Товар","Количество","Цена"].forEach((h,i)=>drawCell(c,h,bcols[i].x,y,bcols[i].w,28,"left",true));
         y+=28;
         bonuses.forEach((x:any,index:number)=>{
-          [String(index+1),String(x.product||"—"),String(x.quantity), "БЕСПЛАТНО"].forEach((v,i)=>drawCell(c,v,bcols[i].x,y,bcols[i].w,28,i===3?"right":"left",false));
+          [String(index+1),String(x.product||"—"),String(Number(x.quantity) || 0), "БЕСПЛАТНО"].forEach((v,i)=>drawCell(c,v,bcols[i].x,y,bcols[i].w,28,i===3?"right":"left",false));
           y+=28;
         });
       }
