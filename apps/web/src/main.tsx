@@ -632,14 +632,14 @@ function ReceiptModal({order,close}:{order:Row;close:()=>void}) {
           </div>
           <table className="receipt-table">
             <thead><tr><th>№</th><th>Товар</th><th>Цена за 1 шт.</th><th>Количество</th><th>Сумма</th></tr></thead>
-            <tbody>{pageItems.map((x:any,ri)=><tr key={x.id}><td>{pi*perPage+ri+1}</td><td>{x.product}</td><td>{moneyText(x.unitPrice)}</td><td>{x.quantity}</td><td>{moneyText(x.total)}</td></tr>)}</tbody>
+            <tbody>{pageItems.map((x:any,ri)=><tr key={x.id}><td>{pi*perPage+ri+1}</td><td>{x.product}</td><td>{moneyText(x.unitPrice)}</td><td>{Number(x.quantity) || 0}</td><td>{moneyText(x.total)}</td></tr>)}</tbody>
           </table>
           {pi===pages.length-1&&<>
             <div className="receipt-grand-total">Итого: {moneyText(order.total)}</div>
             {bonuses.length>0&&<div className="receipt-bonuses">
               <h3>Бонусы</h3>
               <table><thead><tr><th>№</th><th>Товар</th><th>Количество</th><th>Цена</th></tr></thead>
-                <tbody>{bonuses.map((x:any,i:number)=><tr key={x.id}><td>{i+1}</td><td>{x.product}</td><td>{x.quantity}</td><td>БЕСПЛАТНО</td></tr>)}</tbody>
+                <tbody>{bonuses.map((x:any,i:number)=><tr key={x.id}><td>{i+1}</td><td>{x.product}</td><td>{Number(x.quantity) || 0}</td><td>БЕСПЛАТНО</td></tr>)}</tbody>
               </table>
             </div>}
           </>}
