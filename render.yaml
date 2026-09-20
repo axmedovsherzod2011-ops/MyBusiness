@@ -5,7 +5,7 @@ services:
     plan: free
     rootDir: ""
     buildCommand: corepack enable && pnpm install --no-frozen-lockfile && pnpm --filter @mybusiness/api build
-    startCommand: node apps/api/dist/server.js
+    startCommand: node apps/api/dist/db/migrate.js && node apps/api/dist/server.js
     healthCheckPath: /ready
     maxShutdownDelaySeconds: 30
     autoDeploy: true
