@@ -267,6 +267,7 @@ export const orderItems = pgTable("order_items", {
   quantity: numeric("quantity", { precision: 18, scale: 3 }).notNull(),
   unitPrice: numeric("unit_price", { precision: 18, scale: 2 }).notNull(),
   discount: numeric("discount", { precision: 18, scale: 2 }).notNull().default("0"),
+  isBonus: boolean("is_bonus").notNull().default(false),
   total: numeric("total", { precision: 18, scale: 2 }).notNull(),
 }, (table) => [index("order_items_order_idx").on(table.orderId)]);
 
