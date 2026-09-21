@@ -43,16 +43,13 @@ jobs:
         run: pnpm typecheck
 
       - name: Build API
-        run: pnpm --filter @mybusiness/api build
+        run: pnpm --filter @marketplace/api build
 
       - name: Build web
-        run: pnpm --filter @mybusiness/web build
-        env:
-          VITE_API_BASE_URL: https://mybusiness-api-e6dk.onrender.com
+        run: pnpm --filter @marketplace/web build
 
-      - name: Smoke test API build
+      - name: Verify build artifacts
         run: |
           set -e
-          node -e "const fs=require('fs'); if (!fs.existsSync('apps/api/dist/server.js')) process.exit(1);"
-          node -e "const fs=require('fs'); if (!fs.existsSync('apps/web/dist/index.html')) process.exit(1);"
-
+          test -f apps/api/dist/server.js
+          test -f apps/web/dist/index.html
