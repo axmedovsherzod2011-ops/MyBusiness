@@ -25,15 +25,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.15.0
-
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+          pnpm --version
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -52,5 +53,5 @@ jobs:
       - name: Smoke test API build
         run: |
           set -e
-          node -e "const fs=require('fs'); if (!fs.existsSync('apps/api/dist/server.js')) process.exit(1);"
-          node -e "const fs=require('fs'); if (!fs.existsSync('apps/web/dist/index.html')) process.exit(1);"
+          test -f apps/api/dist/server.js
+          test -f apps/web/dist/index.html
