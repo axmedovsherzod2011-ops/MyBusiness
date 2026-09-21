@@ -1,25 +1,21 @@
 # Development Rules
 
-## Branches
-
-- `main`: stable integration branch.
-- `feature/*`: isolated feature work.
-- `fix/*`: bug fixes.
-
-Production changes should be promoted from reviewed commits rather than edited directly on the server.
-
 ## Environments
 
-- local: developer machine
-- staging: safe shared testing environment
-- production: real company data
+- local: development
+- staging: validation
+- production: real M Cosmetics marketplace
 
 Never point local development at the production database.
 
 ## Database
 
-Use Drizzle migrations for schema changes. Do not manually modify production tables. Prefer additive migrations and explicit data backfills for risky changes.
+Do not create marketplace tables until the product requirements are agreed. After the model is defined, use reviewed Drizzle migrations.
 
 ## API
 
-All public API routes belong under `/api/v1`. Health and readiness endpoints remain outside that namespace.
+Public API routes belong under /api/v1. Health and readiness endpoints remain outside that namespace.
+
+## Product development
+
+Build from the agreed M Cosmetics product ideas rather than carrying forward assumptions from the old MyBusiness application.
