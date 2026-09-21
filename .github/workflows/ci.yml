@@ -14,9 +14,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/mybusiness
-      FIREBASE_PROJECT_ID: mybusiness-d48d1
-      FIREBASE_CLIENT_EMAIL: ci@example.invalid
-      FIREBASE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\nCI\n-----END PRIVATE KEY-----\n"
       CORS_ORIGIN: http://localhost:5173
     steps:
       - name: Checkout
@@ -45,12 +42,6 @@ jobs:
         run: pnpm --filter @mybusiness/web build
         env:
           VITE_API_BASE_URL: https://mybusiness-api-e6dk.onrender.com
-          VITE_FIREBASE_API_KEY: ci-placeholder
-          VITE_FIREBASE_AUTH_DOMAIN: mybusiness-d48d1.firebaseapp.com
-          VITE_FIREBASE_PROJECT_ID: mybusiness-d48d1
-          VITE_FIREBASE_STORAGE_BUCKET: mybusiness-d48d1.firebasestorage.app
-          VITE_FIREBASE_MESSAGING_SENDER_ID: "414376220106"
-          VITE_FIREBASE_APP_ID: "1:414376220106:web:2530bc27aedc9009e02b33"
 
       - name: Smoke test production API
         run: |
