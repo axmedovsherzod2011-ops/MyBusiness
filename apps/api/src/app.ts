@@ -1,8 +1,10 @@
 import cors from "cors";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
+import { initializeDatabase } from "./db.js";
+import { productsRouter } from "./products.js";
 
 const appVersion = process.env.APP_VERSION ?? "0.1.0";
-const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:5173,http://localhost:5174")
+const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:5173,http://localhost:5174,https://mybusiness-9h9.pages.dev")
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -33,9 +35,11 @@ app.get("/api/v1", (_req: Request, res: Response) => {
     name: "Marketplace API",
     version: "v1",
     release: appVersion,
-    status: "foundation-ready",
+    status: "marketplace-ready",
   });
 });
+
+app.use("/api/v1/products", productsRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "NOT_FOUND", message: "Resource not found." });
@@ -44,4 +48,8 @@ app.use((_req: Request, res: Response) => {
 app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error("Unhandled application error", error);
   res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "Internal server error." });
+});
+
+void initializeDatabase().catch((error) => {
+  console.error("Database initialization failed", error);
 });
