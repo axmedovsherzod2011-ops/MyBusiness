@@ -1,31 +1,27 @@
-import { useEffect, useState } from "react";
-import { getApiStatus } from "./lib/api";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import "./styles.css";
 
-export default function App() {
-  const [api, setApi] = useState<"checking" | "ready" | "offline">("checking");
-
-  useEffect(() => {
-    getApiStatus()
-      .then(() => setApi("ready"))
-      .catch(() => setApi("offline"));
-  }, []);
-
+function App() {
   return (
-    <main className="clean-start">
-      <div className="start-card">
-        <div className="brand-mark">M</div>
-        <p className="eyebrow">Новая платформа</p>
-        <h1>Готово к созданию M Cosmetics</h1>
-        <p className="description">
-          Старый интерфейс и бизнес-логика MyBusiness удалены. Теперь это чистая основа
-          для нового online marketplace одной компании.
-        </p>
-        <div className={"api-status " + api}>
-          <span />
-          {api === "checking" ? "Проверка сервера…" : api === "ready" ? "Сервер готов" : "Сервер недоступен"}
-        </div>
-      </div>
+    <main className="shell">
+      <header>
+        <span className="logo">MARKETPLACE</span>
+        <nav><a href="/">Home</a><a href="/stores">Stores</a><a href="/cart">Cart</a></nav>
+      </header>
+      <section className="hero">
+        <p className="eyebrow">A fresh marketplace foundation</p>
+        <h1>Discover products from independent stores.</h1>
+        <p className="subtitle">The old business-management application is gone. This codebase is now reserved for the marketplace product.</p>
+      </section>
+      <section className="placeholder">
+        <h2>Marketplace core is ready to build</h2>
+        <p>Catalog, stores, search, product pages, cart, checkout, seller tools and admin features will be added from the product requirements.</p>
+      </section>
     </main>
   );
 }
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode><App /></StrictMode>
+);
