@@ -1,42 +1,20 @@
-import { app } from "./app.js";
-import { env } from "./config.js";
-import { pool } from "./db/index.js";
+import cors from "cors";
+import express from "express";
 
-async function start() {
-  try {
-    const server = app.listen(env.PORT, "0.0.0.0", () => {
-      console.log("M Cosmetics Marketplace API listening on 0.0.0.0:" + env.PORT + " (" + env.NODE_ENV + ")");
-    });
+const app = express();
+const port = Number(process.env.PORT ?? 10000);
 
-    let shuttingDown = false;
-    const shutdown = (signal: string) => {
-      if (shuttingDown) return;
-      shuttingDown = true;
-      console.log("Received " + signal + "; shutting down gracefully...");
-      server.close(async (error) => {
-        if (error) {
-          console.error("HTTP server shutdown failed", error);
-          process.exitCode = 1;
-        }
-        await pool.end().catch((poolError) => {
-          console.error("Database pool shutdown failed", poolError);
-          process.exitCode = 1;
-        });
-        process.exit();
-      });
-      setTimeout(() => {
-        console.error("Graceful shutdown timed out; forcing exit");
-        process.exit(1);
-      }, 25000).unref();
-    };
+app.use(cors({ origin: process.env.CORS_ORIGIN?.split(",").map((v) => v.trim()) ?? true }));
+app.use(express.json());
 
-    process.once("SIGTERM", () => shutdown("SIGTERM"));
-    process.once("SIGINT", () => shutdown("SIGINT"));
-  } catch (error) {
-    console.error("API startup failed", error);
-    await pool.end().catch(() => undefined);
-    process.exit(1);
-  }
-}
+app.get("/health", (_req, res) => res.json({ ok: true, service: "marketplace-api" }));
+app.get("/ready", (_req, res) => res.json({ ready: true }));
+app.get("/api/v1", (_req, res) => res.json({
+  name: "Marketplace API",
+  version: "v1",
+  status: "foundation-ready"
+}));
 
-void start();
+app.listen(port, "0.0.0.0", () => {
+  console.log(`Marketplace API listening on port ${port}`);
+});
