@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "dev": "pnpm --parallel --filter @marketplace/seller --filter @marketplace/customer --filter @marketplace/api dev",
+    "dev": "pnpm --parallel --filter @marketplace/seller --filter @marketplace/customer --filter @mybusiness/api dev",
     "build": "pnpm -r build",
-    "start": "pnpm --filter @marketplace/api start",
+    "start": "pnpm --filter @mybusiness/api start",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint"
   },
