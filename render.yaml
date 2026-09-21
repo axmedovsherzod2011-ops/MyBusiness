@@ -3,9 +3,8 @@ services:
     name: mybusiness-api
     runtime: node
     plan: free
-    rootDir: ""
-    buildCommand: corepack enable && pnpm install --no-frozen-lockfile && pnpm --filter @mybusiness/api build
-    startCommand: node apps/api/dist/server.js
+    buildCommand: corepack enable && pnpm install --no-frozen-lockfile && pnpm --filter @marketplace/api build
+    startCommand: pnpm --filter @marketplace/api start
     healthCheckPath: /ready
     maxShutdownDelaySeconds: 30
     autoDeploy: true
@@ -14,15 +13,7 @@ services:
         value: production
       - key: APP_VERSION
         value: 0.1.0
-      - key: DB_AUTO_PUSH
-        value: "false"
       - key: DATABASE_URL
         sync: false
       - key: CORS_ORIGIN
-        sync: false
-      - key: FIREBASE_PROJECT_ID
-        value: mybusiness-d48d1
-      - key: FIREBASE_CLIENT_EMAIL
-        sync: false
-      - key: FIREBASE_PRIVATE_KEY
         sync: false
