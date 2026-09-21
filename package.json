@@ -1,12 +1,12 @@
 {
-  "name": "mybusiness",
+  "name": "marketplace",
   "private": true,
   "version": "0.1.0",
   "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "dev": "pnpm --filter @mybusiness/api dev",
-    "build": "pnpm --filter @mybusiness/api build",
-    "start": "pnpm --filter @mybusiness/api start",
+    "dev": "pnpm --parallel --filter @marketplace/web --filter @marketplace/api dev",
+    "build": "pnpm -r build",
+    "start": "pnpm --filter @marketplace/api start",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint"
   },
