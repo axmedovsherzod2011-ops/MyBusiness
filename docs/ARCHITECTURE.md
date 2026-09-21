@@ -1,24 +1,32 @@
-# M Cosmetics Marketplace Architecture
+# Marketplace Architecture
 
-The repository is intentionally reset to a clean foundation. No previous MyBusiness business-management domain is retained.
+The project contains two user-facing web applications backed by one shared API and one future source-of-truth database.
 
-## Current layers
+## Applications
 
-- Web: React + Vite
-- API: Node.js + Express
-- Database: PostgreSQL + Drizzle
-- Hosting: Cloudflare frontend + Render API
+- `apps/seller` — seller-facing site for seller accounts, stores, products, inventory, orders and seller operations.
+- `apps/customer` — public customer marketplace for discovery, stores, products, cart and customer orders.
+- `apps/api` — the single backend API used by both sites.
 
-## Design rule
+## Data flow
 
-Do not add marketplace entities or business rules until the product requirements are defined. The product model will be designed from the M Cosmetics ideas first, then implemented as explicit modules.
+```
+Seller Site ─┐
+             ├── Marketplace API ─── Single Database
+Customer Site┘
+```
 
-## Production principles
+The database is not duplicated between the two sites. Both applications read and write marketplace data through the API.
 
-- Keep business rules in the API.
-- Keep PostgreSQL as the source of truth.
-- Validate all public inputs.
-- Keep secrets in environment variables.
-- Use staging before production.
-- Use migrations for database changes.
-- Keep health and readiness endpoints available.
+## Shared code
+
+- `packages/shared` contains contracts and types shared by the applications.
+- A database package can be introduced when the marketplace data model is defined; the database remains behind the API boundary.
+
+## Local development
+
+- Seller: `http://localhost:5173`
+- Customer: `http://localhost:5174`
+- API: `http://localhost:10000`
+
+Do not place business logic or database credentials directly in either web application.

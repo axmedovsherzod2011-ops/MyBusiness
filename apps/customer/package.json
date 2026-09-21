@@ -1,15 +1,17 @@
 {
-  "name": "@marketplace/web",
+  "name": "@marketplace/customer",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5174",
     "build": "vite build",
-    "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "preview": "vite preview --port 4174",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@marketplace/shared": "workspace:*",
     "@vitejs/plugin-react": "^5.0.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

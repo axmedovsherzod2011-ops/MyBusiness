@@ -4,11 +4,13 @@
   "version": "0.1.0",
   "packageManager": "pnpm@10.15.0",
   "scripts": {
-    "dev": "pnpm --parallel --filter @marketplace/web --filter @marketplace/api dev",
+    "dev": "pnpm --parallel --filter @marketplace/seller --filter @marketplace/customer --filter @marketplace/api dev",
     "build": "pnpm -r build",
     "start": "pnpm --filter @marketplace/api start",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint"
   },
-  "devDependencies": { "typescript": "^5.9.2" }
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
 }

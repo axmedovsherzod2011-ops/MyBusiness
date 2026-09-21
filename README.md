@@ -1,15 +1,22 @@
-# MyBusiness Marketplace
+# Marketplace
 
-MyBusiness is now a clean marketplace foundation.
+Marketplace is a monorepo with two separate web experiences:
 
-The previous business-management/POS application is not part of the new application layer. Marketplace requirements, domain models, catalog, search, stores, cart, checkout, orders, delivery, seller tools and administration will be built from the new product specification.
+- Seller Site — seller operations and store management.
+- Customer Site — public marketplace and customer shopping.
 
-## Stack
-- React + Vite + TypeScript
-- Node.js + Express + TypeScript
-- PostgreSQL/Neon
-- Render
-- pnpm monorepo
-- GitHub Actions
+Both sites use the same Marketplace API and one shared database as the system of record.
 
-Do not reintroduce legacy POS/business-management logic unless it is explicitly required by the marketplace product.
+## Structure
+
+```
+apps/
+  seller/
+  customer/
+  api/
+packages/
+  shared/
+docs/
+```
+
+The product requirements and business features will be added incrementally after the architecture is established.

@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/marketplace
-      CORS_ORIGIN: http://localhost:5173
+      CORS_ORIGIN: http://localhost:5173,http://localhost:5174
       NODE_ENV: test
     steps:
       - name: Checkout
@@ -41,16 +41,12 @@ jobs:
       - name: Typecheck all packages
         run: pnpm typecheck
 
-      - name: Build API
-        run: pnpm --filter @marketplace/api build
+      - name: Build all packages
+        run: pnpm build
 
-      - name: Build web
-        run: pnpm --filter @marketplace/web build
-        env:
-          VITE_API_BASE_URL: https://mybusiness-api-e6dk.onrender.com
-
-      - name: Smoke test API build
+      - name: Smoke test builds
         run: |
           set -e
           test -f apps/api/dist/server.js
-          test -f apps/web/dist/index.html
+          test -f apps/seller/dist/index.html
+          test -f apps/customer/dist/index.html

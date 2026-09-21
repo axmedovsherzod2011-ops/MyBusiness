@@ -1,21 +1,21 @@
-# Development Rules
+# Development
 
-## Environments
+## Workspace
 
-- local: development
-- staging: validation
-- production: real M Cosmetics marketplace
+This is a pnpm monorepo with two web applications and one API:
 
-Never point local development at the production database.
+- `@marketplace/seller`
+- `@marketplace/customer`
+- `@marketplace/api`
+- `@marketplace/shared`
 
-## Database
+## Commands
 
-Do not create marketplace tables until the product requirements are agreed. After the model is defined, use reviewed Drizzle migrations.
+```bash
+pnpm install
+pnpm dev
+pnpm typecheck
+pnpm build
+```
 
-## API
-
-Public API routes belong under /api/v1. Health and readiness endpoints remain outside that namespace.
-
-## Product development
-
-Build from the agreed M Cosmetics product ideas rather than carrying forward assumptions from the old MyBusiness application.
+The seller and customer applications intentionally use the same API and will later use the same database through that API.
