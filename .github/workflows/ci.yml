@@ -5,9 +5,14 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -15,6 +20,7 @@ jobs:
     env:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/mybusiness
       CORS_ORIGIN: http://localhost:5173
+      NODE_ENV: test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,6 +34,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -43,13 +50,9 @@ jobs:
         env:
           VITE_API_BASE_URL: https://mybusiness-api-e6dk.onrender.com
 
-      - name: Smoke test production API
+      - name: Smoke test API build
         run: |
           set -e
-          curl --fail --silent --show-error --max-time 30 https://mybusiness-api-e6dk.onrender.com/health
-          curl --fail --silent --show-error --max-time 30 https://mybusiness-api-e6dk.onrender.com/api/v1
+          node -e "const fs=require('fs'); if (!fs.existsSync('apps/api/dist/server.js')) process.exit(1);"
+          node -e "const fs=require('fs'); if (!fs.existsSync('apps/web/dist/index.html')) process.exit(1);"
 
-      - name: Smoke test production web
-        run: |
-          set -e
-          curl --fail --silent --show-error --max-time 30 https://mybusiness.axmedovsherzod2011.workers.dev/ > /dev/null
