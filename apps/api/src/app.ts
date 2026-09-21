@@ -1,5 +1,5 @@
 import cors from "cors";
-import express, { type NextFunction, type Request, type Response } from "express";
+import express, { type Express, type NextFunction, type Request, type Response } from "express";
 
 const appVersion = process.env.APP_VERSION ?? "0.1.0";
 const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:5173")
@@ -7,7 +7,7 @@ const corsOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:5173")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-export const app = express();
+export const app: Express = express();
 
 app.disable("x-powered-by");
 app.use(cors({ origin: corsOrigins, credentials: true }));
