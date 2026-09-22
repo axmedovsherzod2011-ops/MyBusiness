@@ -181,7 +181,13 @@ export default function App(){
 
     <footer className="footer"><div><a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><p>Sellerlar va xaridorlarni bog'laydigan zamonaviy marketplace.</p></div><div><b>Marketplace</b><button onClick={catalog}>Katalog</button><button onClick={()=>chooseCategory("new")}>Yangi mahsulotlar</button><button onClick={()=>chooseCategory("sale")}>Aksiyalar</button><button onClick={()=>setPanel("favorites")}>Sevimlilar</button></div><div><b>Yordam</b><span>Buyurtma berish</span><span>Yetkazib berish</span><span>Qaytarish</span></div><div><b>Til va hudud</b><span>O'zbekiston</span><span>UZ / O'zbekcha</span></div></footer>
 
-    <nav className="mobile-nav"><button onClick={()=>scrollTo(0,0)}><span>⌂</span>Asosiy</button><button onClick={openSearch}><span>⌕</span>Qidirish</button><button onClick={()=>setPanel("favorites")}><span>♡</span>Sevimli</button><button onClick={()=>setPanel("cart")}><span>🛒</span>Savat</button></nav>
+    <nav className="mobile-nav" aria-label="Asosiy navigatsiya">
+  <button className="active" onClick={()=>scrollTo(0,0)}><span>⌂</span>Asosiy</button>
+  <button onClick={()=>{setPanel("menu");}}><span>▦</span>Katalog</button>
+  <button onClick={openSearch}><span>⌕</span>Qidirish</button>
+  <button onClick={()=>setPanel("cart")}><span>🛒</span>Savat{cartCount>0&&<b>{cartCount}</b>}</button>
+  <button onClick={()=>setPanel("profile")}><span>♙</span>Profil</button>
+</nav>
 
     {panel&&<div className="drawer-backdrop" onClick={()=>setPanel(null)}><aside className="drawer" onClick={e=>e.stopPropagation()}>
       <div className="drawer-head"><h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":panel==="profile"?"Profil":panel==="filters"?"Filtrlar":"Menyu"}</h2><button onClick={()=>setPanel(null)}>×</button></div>
