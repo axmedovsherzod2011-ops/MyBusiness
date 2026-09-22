@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
-const apiBase = import.meta.env.VITE_API_BASE_URL ?? "https://oneofficeai-1.onrender.com";
+const apiBase = "https://mybusiness-api-e6dk.onrender.com";
 
 function formatPrice(price: number) {
   return new Intl.NumberFormat("uz-UZ").format(price) + " so'm";
@@ -14,7 +14,7 @@ export default function App() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${apiBase}/api/v1/products`)
+    fetch(`${apiBase}/api/v1/products`, { headers: { Accept: "application/json" } })
       .then(async (response) => {
         const data = (await response.json()) as ProductsResponse & { message?: string };
         if (!response.ok) throw new Error(data.message ?? "Mahsulotlarni yuklab bo'lmadi.");
