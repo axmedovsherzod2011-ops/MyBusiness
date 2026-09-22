@@ -469,3 +469,64 @@ button{min-height:44px}
   .drawer-menu button{background:#f6f4fa!important}
   .toast{background:#171719!important}
 }
+
+
+/* =========================================================
+   ONE APP UI ACROSS ALL SCREENS
+   Customer is always an app-like marketplace — phone, laptop,
+   desktop and Android WebView share the same interaction model.
+   ========================================================= */
+:root{--app-accent:#7000ff;--app-bg:#f5f5f7;--app-surface:#fff;--app-text:#171719;--app-muted:#77777d}
+html,body{background:var(--app-bg)!important;color:var(--app-text)!important}
+body{min-width:320px!important}
+.market{background:var(--app-bg)!important;min-height:100dvh;padding-bottom:96px!important}
+/* Remove website/desktop-only chrome everywhere. */
+.utility-bar,.promo-bar,.category-nav,.subnav,.footer{display:none!important}
+/* One compact app header at every viewport width. */
+.header{
+  position:sticky!important;top:0!important;z-index:60!important;
+  display:grid!important;grid-template-columns:44px minmax(0,1fr) auto!important;
+  grid-template-rows:48px 48px!important;gap:0 8px!important;
+  padding:6px 12px 8px!important;
+  background:rgba(255,255,255,.97)!important;border-bottom:1px solid #e8e8ed!important;
+  box-shadow:0 2px 12px rgba(20,20,30,.06)!important;backdrop-filter:blur(18px)!important;
+}
+.mobile-menu{display:grid!important;place-items:center!important;width:44px!important;height:44px!important;min-height:44px!important;border:1px solid #e5e5ea!important;border-radius:13px!important;background:#fff!important;font-size:19px!important}
+.logo{font-size:17px!important;font-weight:950!important;color:var(--app-text)!important;align-self:center!important;justify-self:start!important}
+.logo span{color:var(--app-accent)!important;font-weight:850!important}
+.build-pill{display:inline-flex!important;align-items:center;justify-content:center;align-self:center;justify-self:start;grid-column:2;grid-row:1;margin-left:4px;padding:3px 7px;border-radius:99px;background:#f0e5ff;color:var(--app-accent);font-size:7px;font-weight:950;letter-spacing:.08em}
+.header-actions{display:flex!important;align-items:center!important;gap:4px!important;grid-column:3!important;grid-row:1!important}
+.header-actions button{display:grid!important;place-items:center!important;width:42px!important;min-width:42px!important;height:42px!important;min-height:42px!important;padding:0!important;border:1px solid #e5e5ea!important;border-radius:13px!important;background:#fff!important}
+.header-actions button:first-child{display:none!important}
+.header-actions small{display:none!important}.header-actions span{font-size:19px!important}
+.search-wrap{grid-column:1/-1!important;grid-row:2!important;width:100%!important;height:44px!important;margin:0!important;border:0!important;border-radius:13px!important;background:#f1f1f4!important;box-shadow:none!important}
+.search-wrap input{height:42px!important;font-size:13px!important}.search-button{display:none!important}
+/* App content keeps the same compact card language at every width. */
+.hero{max-width:none!important;margin:10px 10px 0!important;min-height:0!important;display:block!important;padding:25px 20px!important;border-radius:18px!important;background:linear-gradient(120deg,#efe4ff,#f7ecff 48%,#f0f0ff)!important}
+.hero h1{font-size:clamp(30px,4vw,36px)!important;line-height:.98!important;letter-spacing:-.055em!important}
+.hero p{font-size:12px!important;line-height:1.55!important;color:#686871!important;max-width:620px!important}.hero-art{display:none!important}
+.hero-actions{display:grid!important;grid-template-columns:1fr 1fr!important;max-width:520px!important;gap:8px!important}.hero-actions button{min-height:46px!important}
+.hero-actions .primary,.deal-banner .primary{background:var(--app-accent)!important}.hero-actions .ghost{border-color:#ded1f4!important}
+.hero-trust{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important;font-size:9px!important;max-width:520px!important}
+.quick-categories,.product-section,.catalog-section{max-width:none!important;margin:0!important;padding:26px 10px 0!important}
+.section-title{margin-bottom:13px!important}.section-title h2,.catalog-head h2{font-size:20px!important}
+.category-cards{display:flex!important;overflow-x:auto!important;gap:8px!important;padding:2px 1px 7px!important;scrollbar-width:none!important}.category-cards::-webkit-scrollbar{display:none}
+.category-card{flex:0 0 92px!important;min-height:92px!important;padding:11px!important;border:0!important;border-radius:14px!important;background:#fff!important;box-shadow:0 1px 5px rgba(30,30,40,.06)!important}.category-card>span{font-size:22px!important;color:var(--app-accent)!important}.category-card b{font-size:10px!important}.category-card small{display:block!important;font-size:8px!important}
+.campaign-grid{display:flex!important;overflow-x:auto!important;gap:9px!important;padding:4px 10px 0!important;margin:0!important;scroll-snap-type:x mandatory!important;scrollbar-width:none!important}.campaign-grid::-webkit-scrollbar{display:none}.campaign{flex:0 0 min(84%,560px)!important;min-height:155px!important;padding:19px!important;border-radius:17px!important;scroll-snap-align:start!important}.campaign strong{font-size:20px!important}.campaign-dark{background:linear-gradient(120deg,#7000ff,#9338ff)!important;color:#fff!important}
+.product-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}.product-card{border:0!important;border-radius:13px!important;background:#fff!important;box-shadow:0 1px 5px rgba(30,30,40,.06)!important}.product-card:hover{transform:none!important;box-shadow:0 1px 5px rgba(30,30,40,.06)!important}.product-image{aspect-ratio:1/1!important;background:#fafafa!important}.product-info{padding:9px!important}.product-name{font-size:12px!important;min-height:34px!important}.product-info p{font-size:9px!important;height:28px!important;margin:2px 0 8px!important}.product-bottom strong{font-size:13px!important}.add-button{width:35px!important;height:35px!important;min-height:35px!important;background:var(--app-accent)!important;border-radius:10px!important}
+.deal-banner{margin:24px 10px 0!important;min-height:205px!important;border-radius:18px!important;padding:24px 19px!important;background:linear-gradient(120deg,#eadcff,#f5ecff)!important}.deal-badge{width:95px!important;height:95px!important;background:var(--app-accent)!important}.benefits{display:none!important}
+.catalog-section{padding-top:30px!important}.catalog-head{margin-bottom:13px!important;padding:13px!important;border:0!important;border-radius:14px!important;background:#fff!important}.catalog-tools{width:100%!important}.catalog-tools button,.catalog-tools select{min-height:42px!important;border-radius:12px!important;border:1px solid #e4e4e9!important;background:#fff!important}.catalog-layout{display:block!important}.filter-panel{display:none!important}
+/* Bottom navigation is app navigation on every device. */
+.mobile-nav{position:fixed!important;display:grid!important;grid-template-columns:repeat(5,1fr)!important;left:8px!important;right:8px!important;bottom:8px!important;z-index:100!important;min-height:62px!important;padding:5px!important;border-radius:20px!important;background:rgba(255,255,255,.97)!important;border:1px solid #e7e7ec!important;box-shadow:0 10px 35px rgba(18,24,18,.16)!important;backdrop-filter:blur(18px)!important}
+.mobile-nav button{position:relative!important;min-height:52px!important;border-radius:15px!important;color:#77777d!important;font-size:8px!important;font-weight:850!important}.mobile-nav button span{font-size:19px!important;line-height:22px!important}.mobile-nav button.active{background:var(--app-accent)!important;color:#fff!important}
+/* Sheets/modals remain app-like on large screens too. */
+.drawer{width:min(430px,100vw)!important;top:auto!important;bottom:0!important;height:min(88dvh,760px)!important;border-radius:24px 24px 0 0!important;padding:12px 15px 18px!important}.drawer:before{content:"";width:38px;height:4px;border-radius:99px;background:#d9ddd7;display:block;margin:0 auto 12px}.drawer-menu button{min-height:52px!important;border-radius:14px!important;background:#f6f4fa!important}.quick-view{width:min(620px,96vw)!important;max-height:92dvh!important;border-radius:24px!important;grid-template-columns:1fr!important}.quick-image{min-height:250px!important;max-height:42dvh!important}.quick-info{padding:20px!important}.quick-info h2{font-size:24px!important}
+.toast{bottom:86px!important}
+@media(min-width:701px){
+  .header{padding-left:max(12px,calc((100vw - 900px)/2));padding-right:max(12px,calc((100vw - 900px)/2))!important}
+  .hero,.quick-categories,.product-section,.catalog-section{max-width:900px!important;margin-left:auto!important;margin-right:auto!important}
+  .campaign-grid{max-width:900px!important;margin-left:auto!important;margin-right:auto!important}
+  .deal-banner{max-width:900px!important;margin-left:auto!important;margin-right:auto!important}
+  .hero h1{font-size:36px!important}
+}
+@media(max-width:390px){.hero-actions{grid-template-columns:1fr!important}.product-name{font-size:11px!important}.product-bottom strong{font-size:11px!important}}
