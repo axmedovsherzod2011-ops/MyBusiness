@@ -44,7 +44,7 @@ export default function App() {
     finally { setSaving(false); }
   }
 
-  const nav = [["overview","Dashboard"],["products","Mahsulotlar"],["orders","Buyurtmalar"],["inventory","Ombor"],["marketing","Marketing"],["analytics","Analitika"]];
+  const nav: Array<[string, string]> = [["overview","Dashboard"],["products","Mahsulotlar"],["orders","Buyurtmalar"],["inventory","Ombor"],["marketing","Marketing"],["analytics","Analitika"]];
 
   return <main className="seller-shell">
     <aside className="sidebar">
