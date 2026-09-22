@@ -100,7 +100,7 @@ export default function App(){
   const [error,setError]=useState("");
   const [favs,setFavs]=useState<number[]>(()=>JSON.parse(localStorage.getItem("mybusiness:favorites")||"[]"));
   const [cart,setCart]=useState<Record<string,number>>(()=>JSON.parse(localStorage.getItem("mybusiness:cart")||"{}"));
-  const [panel,setPanel]=useState<"cart"|"favorites"|"menu"|"profile"|"filters"|null>(null);
+  const [panel,setPanel]=useState<"cart"|"favorites"|"menu"|"profile"|"filters"|"search"|null>(null);
   const [quick,setQuick]=useState<Product|null>(null);
   const [toast,setToast]=useState("");
 
@@ -139,7 +139,7 @@ export default function App(){
   function qty(id:number,d:number){setCart(c=>{const n=(c[id]||0)+d;if(n<=0){const z={...c};delete z[id];return z}const p=products.find(x=>x.id===id);return {...c,[id]:Math.min(n,p?.stock||n)}})}
   function clearFilters(){setQuery("");setCategory("all");setSub("");setSort("newest");setAvailability("all");}
   function removeFromCart(id:number){setCart(c=>{const z={...c};delete z[id];return z})}
-  function openSearch(){setPanel(null);setTimeout(()=>document.querySelector<HTMLInputElement>(".search-wrap input")?.focus(),50);}
+  function openSearch(){setPanel("search");setTimeout(()=>document.querySelector<HTMLInputElement>(".screen-search-input")?.focus(),50);}
   function toggleFav(id:number){setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);}
 
   return <main className="market">
@@ -198,17 +198,18 @@ export default function App(){
     <footer className="footer"><div><a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><p>Sellerlar va xaridorlarni bog'laydigan zamonaviy marketplace.</p></div><div><b>Marketplace</b><button onClick={catalog}>Katalog</button><button onClick={()=>chooseCategory("new")}>Yangi mahsulotlar</button><button onClick={()=>chooseCategory("sale")}>Aksiyalar</button><button onClick={()=>setPanel("favorites")}>Sevimlilar</button></div><div><b>Yordam</b><span>Buyurtma berish</span><span>Yetkazib berish</span><span>Qaytarish</span></div><div><b>Til va hudud</b><span>O'zbekiston</span><span>UZ / O'zbekcha</span></div></footer>
 
     <nav className="mobile-nav" aria-label="Asosiy navigatsiya">
-  <button className="active" onClick={()=>scrollTo(0,0)}><span><Icon name="home"/></span><b>Asosiy</b></button>
-  <button onClick={()=>{setPanel("menu");}}><span><Icon name="grid"/></span><b>Katalog</b></button>
+  <button className="active" onClick={()=>{setPanel(null);scrollTo(0,0)}}><span><Icon name="home"/></span><b>Asosiy</b></button>
+  <button onClick={()=>setPanel("menu")}><span><Icon name="grid"/></span><b>Katalog</b></button>
   <button onClick={openSearch}><span><Icon name="search"/></span><b>Qidirish</b></button>
   <button onClick={()=>setPanel("cart")}><span><Icon name="bag"/></span><b>Savat</b>{cartCount>0&&<b>{cartCount}</b>}</button>
   <button onClick={()=>setPanel("profile")}><span><Icon name="user"/></span><b>Profil</b></button>
 </nav>
 
     {panel&&<div className="drawer-backdrop" onClick={()=>setPanel(null)}><aside className="drawer" onClick={e=>e.stopPropagation()}>
-      <div className="drawer-head"><h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":panel==="profile"?"Profil":panel==="filters"?"Filtrlar":"Menyu"}</h2><button onClick={()=>setPanel(null)}>×</button></div>
+      <div className="drawer-head"><button className="screen-back" onClick={()=>setPanel(null)} aria-label="Orqaga">←</button><h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":panel==="profile"?"Profil":panel==="filters"?"Filtrlar":panel==="search"?"Qidirish":"Katalog"}</h2><span className="screen-head-spacer"/></div>
       {panel==="profile"&&<div className="profile-panel"><div className="profile-icon">♙</div><h3>MyBusiness xaridori</h3><p>Kirish yoki ro'yxatdan o'tish orqali profil, manzillar va buyurtmalarni boshqarish mumkin.</p><button className="primary full" onClick={()=>setToast("Profil autentifikatsiyasi keyingi bosqichda ulanadi")}>Kirish / ro'yxatdan o'tish</button></div>}
       {panel==="menu"&&<div className="drawer-menu">{categories.map(c=><button key={c[0]} onClick={()=>chooseCategory(c[0])}>{c[2]} {c[1]} <b>→</b></button>)}</div>}
+      {panel==="search"&&<div className="screen-search"><div className="screen-search-box"><Icon name="search" size={20}/><input className="screen-search-input" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot yoki kategoriya qidiring..." autoFocus/><button onClick={()=>setQuery("")} disabled={!query}>×</button></div><div className="screen-search-meta">{query?`${visible.length} ta mahsulot topildi`:"Qidirish uchun mahsulot nomini yozing"}</div>{query&&<div className="screen-search-results">{visible.length?<Grid items={visible} favs={favs} onLike={toggleFav} onCart={add} onOpen={setQuick}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={()=>setQuery("")}>Qidiruvni tozalash</button></div>}</div>}</div>}
       {panel==="filters"&&<div className="drawer-menu"><button onClick={()=>{setCategory("all");setSub("");setPanel(null)}}>✦ Barcha mahsulotlar</button>{categories.slice(1).map(c=><button key={c[0]} onClick={()=>chooseCategory(c[0])}>{c[2]} {c[1]} <b>→</b></button>)}<button onClick={()=>{setAvailability(availability==="stock"?"all":"stock");setPanel(null)}}>{availability==="stock"?"✓":"○"} Faqat sotuvdagi</button><button onClick={()=>{clearFilters();setPanel(null)}}>↺ Barchasini tozalash</button></div>}
       {panel==="favorites"&&<div className="drawer-list">{products.filter(p=>favs.includes(p.id)).map(p=><Mini key={p.id} p={p} onOpen={()=>setQuick(p)} onCart={()=>add(p)}/>) }{!favs.length&&<div className="drawer-empty">Hali sevimli mahsulotlar yo'q.</div>}</div>}
       {panel==="cart"&&<div className="drawer-cart">{cartItems.map(x=><div className="cart-item" key={x.p.id}><div className="mini-image">{x.p.imageUrl?<img src={x.p.imageUrl} alt=""/>:"MB"}</div><div><b>{x.p.name}</b><span>{money(x.p.price)} × {x.q}</span><div className="qty"><button aria-label="Kamaytirish" onClick={()=>qty(x.p.id,-1)}>−</button><b>{x.q}</b><button aria-label="Ko'paytirish" onClick={()=>qty(x.p.id,1)}>+</button><button className="remove-item" aria-label="O'chirish" onClick={()=>removeFromCart(x.p.id)}>×</button></div></div></div>)}{cartItems.length?<div className="cart-total"><span>Jami</span><strong>{money(cartTotal)}</strong><button className="primary full" onClick={()=>setToast("Buyurtma berish uchun seller bilan bog'lanish moduli keyingi bosqichda ulanadi")}>Buyurtmani davom ettirish</button></div>:<div className="drawer-empty">Savatingiz hozircha bo'sh.</div>}</div>}
@@ -220,3 +221,79 @@ export default function App(){
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+
+/* Separate app screens for bottom navigation: no floating drawer behavior. */
+.drawer-backdrop{
+  position:fixed!important;
+  inset:0!important;
+  z-index:120!important;
+  display:flex!important;
+  align-items:stretch!important;
+  justify-content:stretch!important;
+  background:var(--app-bg)!important;
+}
+.drawer{
+  position:relative!important;
+  inset:auto!important;
+  width:100%!important;
+  max-width:none!important;
+  height:100%!important;
+  max-height:none!important;
+  min-height:100%!important;
+  border-radius:0!important;
+  padding:0!important;
+  background:var(--app-bg)!important;
+  box-shadow:none!important;
+  overflow:auto!important;
+}
+.drawer:before{display:none!important}
+.drawer-head{
+  position:sticky!important;
+  top:0!important;
+  z-index:2!important;
+  display:grid!important;
+  grid-template-columns:44px 1fr 44px!important;
+  align-items:center!important;
+  min-height:60px!important;
+  padding:8px 12px!important;
+  background:rgba(255,255,255,.98)!important;
+  border-bottom:1px solid #e8e8ed!important;
+  box-shadow:0 1px 8px rgba(20,20,30,.05)!important;
+}
+.drawer-head h2{text-align:center!important;margin:0!important;font-size:19px!important}
+.drawer-head>button.screen-back{
+  display:grid!important;place-items:center!important;
+  width:42px!important;height:42px!important;min-height:42px!important;
+  border:0!important;border-radius:12px!important;
+  background:#f2f2f5!important;color:#222!important;font-size:22px!important;
+}
+.screen-head-spacer{display:block!important;width:42px!important;height:42px!important}
+.drawer-menu,.drawer-list,.drawer-cart,.profile-panel,.screen-search{
+  max-width:900px!important;
+  width:100%!important;
+  margin:0 auto!important;
+  padding:18px 12px 110px!important;
+}
+.screen-search-box{
+  display:grid!important;
+  grid-template-columns:24px minmax(0,1fr) 40px!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-height:50px!important;
+  padding:0 8px 0 14px!important;
+  background:#fff!important;
+  border:1px solid #e5e5ea!important;
+  border-radius:14px!important;
+  box-shadow:0 1px 5px rgba(20,20,30,.05)!important;
+}
+.screen-search-box input{
+  width:100%!important;height:48px!important;border:0!important;outline:0!important;
+  background:transparent!important;font-size:16px!important;
+}
+.screen-search-box button{width:40px!important;height:40px!important;border:0!important;border-radius:10px!important;background:#f2f2f5!important;font-size:20px!important}
+.screen-search-meta{padding:14px 2px 8px!important;color:#77777d!important;font-size:12px!important}
+.screen-search-results{padding-top:4px!important}
+@media(min-width:701px){
+  .drawer-menu,.drawer-list,.drawer-cart,.profile-panel,.screen-search{padding-left:20px!important;padding-right:20px!important}
+}
