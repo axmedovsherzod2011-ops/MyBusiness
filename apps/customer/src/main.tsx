@@ -3,148 +3,50 @@ import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
 const apiBase = "https://mybusiness-api-e6dk.onrender.com";
-const categories = ["Barchasi", "Elektronika", "Uy uchun", "Go'zallik", "Kiyim", "Aksessuarlar"];
-
-function formatPrice(price: number) {
-  return new Intl.NumberFormat("uz-UZ").format(price) + " so'm";
+const categories = [
+  ["all","Barcha mahsulotlar","✦"],["new","Yangi tovarlar","✧"],["care","Parvarish","♡"],["makeup","Makiyaj","◌"],
+  ["perfume","Parfyumeriya","◈"],["fashion","Moda","◇"],["health","Sog'liq","+"],["home","Uy","⌂"],["kids","Bolalar","♧"],["sale","Aksiyalar","%"]
+] as const;
+const rules: Record<string,RegExp> = { care:/krem|shampun|balzam|mask|loson|serum|tonik|parvarish|soch|teri|yuz|dush|deodorant|gigien/i, makeup:/rouge|lipstick|pomada|jilo|kosmet|makeup|makiyaj|tonal|kushon|maskara|tush|qosh|ko.z|pudra|bronzer/i, perfume:/parfyum|parfum|ifor|aroma|atir|eau de|toilet water/i, fashion:/futbolka|ko.y|kurtka|shim|kiyim|dress|shirt|sumka|soat|ko.zoynak|paypoq|aksessuar/i, health:/vitamin|omega|collagen|kollagen|wellness|magniy|immun|salomat|sog.liq|protein/i, home:/uy|oshxona|idish|tozalash|kir yuv|salfetka|sovun|yuzalar|vanna|havo|mato/i, kids:/bola|bolalar|baby|kid|umoo/i };
+function money(n:number){return new Intl.NumberFormat("uz-UZ").format(n)+" so'm"}
+function cat(p:Product){const t=p.name+" "+p.description; for(const k of Object.keys(rules)) if(rules[k].test(t)) return k; return "other"}
+function label(k:string){const x=categories.find(function(c){return c[0]===k}); return x?x[1]:"Boshqa"}
+function ProductCard({p,index,liked,onLike,onCart,onOpen}:{p:Product,index:number,liked:boolean,onLike:(id:number)=>void,onCart:(p:Product)=>void,onOpen:(p:Product)=>void}){
+ const discount=[20,30,40,50,25,35][index%6];
+ return <article className="product-card"><div className="product-image" onClick={()=>onOpen(p)}>{p.imageUrl?<img src={p.imageUrl} alt={p.name} loading="lazy"/>:<div className="no-image">MYBUSINESS</div>}<div className="badges"><span>NEW</span><span className="discount">-{discount}%</span></div><button className={"heart "+(liked?"liked":"")} onClick={e=>{e.stopPropagation();onLike(p.id)}}>{liked?"♥":"♡"}</button>{p.stock<=0&&<span className="sold-out">Tugagan</span>}</div><div className="product-info"><span className="product-cat">{label(cat(p))}</span><button className="product-name" onClick={()=>onOpen(p)}>{p.name}</button><p>{p.description||"Mahsulot tavsifi kiritilmagan."}</p><div className="product-bottom"><div><strong>{money(p.price)}</strong><small>{p.stock>0?"Sotuvda":"Tugagan"}</small></div><button className="add-button" disabled={p.stock<=0} onClick={()=>onCart(p)}>{p.stock>0?"+":"—"}</button></div></div></article>
 }
+function Grid({items,favs,onLike,onCart,onOpen}:{items:Product[],favs:number[],onLike:(id:number)=>void,onCart:(p:Product)=>void,onOpen:(p:Product)=>void}){return <div className="product-grid">{items.map((p,i)=><ProductCard key={p.id} p={p} index={i} liked={favs.includes(p.id)} onLike={onLike} onCart={onCart} onOpen={onOpen}/>)}</div>}
 
-function inferCategory(product: Product) {
-  const text = `${product.name} ${product.description}`.toLowerCase();
-  if (/telefon|phone|noutbuk|laptop|quloqchin|naushnik|charger|zaryad|kompyuter|mouse|klaviatura/.test(text)) return "Elektronika";
-  if (/krem|shampun|parfyum|kosmet|rouge|lipstick|makeup|soch|teri/.test(text)) return "Go'zallik";
-  if (/futbolka|ko'ylak|kurtka|shim|kiyim|dress|shirt/.test(text)) return "Kiyim";
-  if (/sumka|soat|ko'zoynak|aksessuar|bag|watch/.test(text)) return "Aksessuarlar";
-  if (/idish|oshxona|uy|yostiq|choyshab|clean/.test(text)) return "Uy uchun";
-  return "Boshqa";
+export default function App(){
+ const [products,setProducts]=useState<Product[]>([]); const [query,setQuery]=useState(""); const [category,setCategory]=useState("all"); const [sort,setSort]=useState("newest");
+ const [loading,setLoading]=useState(true); const [error,setError]=useState(""); const [favs,setFavs]=useState<number[]>(()=>JSON.parse(localStorage.getItem("mybusiness:favorites")||"[]"));
+ const [cart,setCart]=useState<Record<string,number>>(()=>JSON.parse(localStorage.getItem("mybusiness:cart")||"{}")); const [panel,setPanel]=useState<"cart"|"favorites"|"menu"|null>(null); const [quick,setQuick]=useState<Product|null>(null); const [toast,setToast]=useState("");
+ useEffect(()=>{fetch(apiBase+"/api/v1/products",{headers:{Accept:"application/json"}}).then(async r=>{const d=await r.json() as ProductsResponse & {message?:string};if(!r.ok)throw new Error(d.message||"API xatosi");setProducts(d.products||[])}).catch(e=>setError(e instanceof Error?e.message:"API bilan ulanishda xatolik")).finally(()=>setLoading(false))},[]);
+ useEffect(()=>localStorage.setItem("mybusiness:favorites",JSON.stringify(favs)),[favs]); useEffect(()=>localStorage.setItem("mybusiness:cart",JSON.stringify(cart)),[cart]);
+ useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2000);return()=>clearTimeout(t)},[toast]);
+ const visible=useMemo(()=>{const q=query.toLowerCase().trim();const a=products.filter(p=>(!q||(p.name+" "+p.description).toLowerCase().includes(q))&&(category==="all"||(category==="new")||(category==="sale"?p.stock>0:cat(p)===category)));return a.sort((x,y)=>sort==="price-low"?x.price-y.price:sort==="price-high"?y.price-x.price:sort==="name"?x.name.localeCompare(y.name):y.createdAt.localeCompare(x.createdAt))},[products,query,category,sort]);
+ const cartItems=Object.entries(cart).map(([id,q])=>({p:products.find(x=>x.id===Number(id)),q})).filter(x=>x.p) as {p:Product,q:number}[]; const cartCount=cartItems.reduce((s,x)=>s+x.q,0); const cartTotal=cartItems.reduce((s,x)=>s+x.p.price*x.q,0);
+ function add(p:Product){if(!p.stock)return;setCart(c=>({...c,[p.id]:Math.min((c[p.id]||0)+1,p.stock)}));setToast("Mahsulot savatga qo'shildi")}
+ function qty(id:number,d:number){setCart(c=>{const n=(c[id]||0)+d;if(n<=0){const z={...c};delete z[id];return z}const p=products.find(x=>x.id===id);return {...c,[id]:Math.min(n,p?.stock||n)}})}
+ function clear(){setQuery("");setCategory("all");setSort("newest")}
+ function catalog(){document.getElementById("catalog")?.scrollIntoView({behavior:"smooth"})}
+ const newProducts=products.slice(0,8); const popular=[...products].sort((a,b)=>b.stock-a.stock).slice(0,8);
+ return <main className="market">
+  <div className="promo-bar"><span>MYBUSINESS MARKET</span><b>Yangi mahsulotlar va maxsus takliflar</b><button onClick={catalog}>Aksiyalarni ko'rish →</button></div>
+  <header className="header"><button className="mobile-menu" onClick={()=>setPanel("menu")}>☰</button><a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><div className="search-wrap"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot, brend yoki kategoriya qidiring..."/>{query&&<button className="clear" onClick={()=>setQuery("")}>×</button>}<button className="search-button" onClick={catalog}>Qidirish</button></div><div className="header-actions"><button onClick={()=>setPanel("favorites")}><span>♡</span><small>Sevimlilar</small>{favs.length>0&&<b>{favs.length}</b>}</button><button onClick={()=>setPanel("cart")}><span>🛒</span><small>Savat</small>{cartCount>0&&<b>{cartCount}</b>}</button></div></header>
+  <nav className="category-nav"><div className="category-inner">{categories.map(c=><button key={c[0]} className={category===c[0]?"active":""} onClick={()=>{setCategory(c[0]);catalog()}}><span>{c[2]}</span>{c[1]}</button>)}</div></nav>
+  <section className="hero"><div className="hero-copy"><span className="eyebrow">MYBUSINESS MARKETPLACE</span><h1>Har kuni kerakli<br/><em>narsalar bir joyda.</em></h1><p>Mahalliy sellerlarning haqiqiy mahsulotlari. Qidiring, tanlang va xaridni oddiy boshqaring.</p><div className="hero-actions"><button className="primary" onClick={catalog}>Katalogni ko'rish</button><button className="ghost" onClick={()=>{setCategory("new");catalog()}}>Yangi mahsulotlar →</button></div><div className="hero-trust"><span>✓ Haqiqiy sellerlar</span><span>✓ So'mda narxlar</span><span>✓ Real ombor</span></div></div><div className="hero-art"><div className="hero-card a"><span>YANGI</span><b>Tanlangan<br/>mahsulotlar</b></div><div className="hero-card b"><span>SUPER NARX</span><b>Har kuni<br/>yangi taklif</b></div><div className="hero-orb">MB</div></div></section>
+  <section className="quick-categories"><div className="section-title compact"><span className="eyebrow">KATEGORIYALAR</span><h2>O'zingizga keraklisini toping</h2></div><div className="category-cards">{categories.slice(2).map(c=><button key={c[0]} className="category-card" onClick={()=>{setCategory(c[0]);catalog()}}><span>{c[2]}</span><b>{c[1]}</b><small>{products.filter(p=>cat(p)===c[0]).length} mahsulot</small></button>)}</div></section>
+  <section className="product-section" id="new"><div className="section-title"><div><span className="eyebrow">YANGI</span><h2>Yangi tovarlar</h2><p>Sellerlar tomonidan yaqinda qo'shilgan mahsulotlar.</p></div><button onClick={()=>{setCategory("new");catalog()}}>Hammasini ko'rish →</button></div>{loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:<Grid items={newProducts} favs={favs} onLike={id=>setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id])} onCart={add} onOpen={setQuick}/>}</section>
+  <section className="deal-banner"><div><span className="eyebrow">MAXSUS TAKLIF</span><h2>Bugungi tanlangan<br/><em>mahsulotlar</em></h2><p>Omborda mavjud mahsulotlarni bir joyda ko'ring.</p><button className="primary" onClick={()=>{setCategory("sale");catalog()}}>Takliflarni ko'rish</button></div><div className="deal-badge"><strong>SUPER</strong><span>NARX</span><b>UZS</b></div></section>
+  <section className="product-section"><div className="section-title"><div><span className="eyebrow">OMMABOP</span><h2>Xit mahsulotlar</h2><p>Katalogdagi omborda mavjud mashhur mahsulotlar.</p></div></div><Grid items={popular} favs={favs} onLike={id=>setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id])} onCart={add} onOpen={setQuick}/></section>
+  <section className="benefits"><div>✓<b>Real mahsulotlar</b><small>Seller bazasidan</small></div><div>₿<b>Shaffof narx</b><small>UZS formatida</small></div><div>↗<b>Oson qidiruv</b><small>Kategoriya bilan</small></div><div>♡<b>Sevimlilar</b><small>Saqlab qo'ying</small></div></section>
+  <section id="catalog" className="catalog-section"><div className="catalog-head"><div><span className="eyebrow">KATALOG</span><h2>Barcha mahsulotlar</h2><p>{visible.length} ta mahsulot</p></div><div className="catalog-tools"><button onClick={()=>setPanel("menu")}>☰ Filtrlar</button><select value={sort} onChange={e=>setSort(e.target.value)}><option value="newest">Yangilari</option><option value="price-low">Arzonidan</option><option value="price-high">Qimmatidan</option><option value="name">Nomi bo'yicha</option></select></div></div><div className="catalog-layout"><aside className="filter-panel"><div><b>Kategoriya</b><button onClick={clear}>Tozalash</button></div>{categories.map(c=><label key={c[0]}><input type="radio" checked={category===c[0]} onChange={()=>setCategory(c[0])}/><span>{c[1]}</span></label>)}</aside><div className="catalog-results">{loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:error?<div className="state error"><b>Marketplace API bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:visible.length?<Grid items={visible} favs={favs} onLike={id=>setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id])} onCart={add} onOpen={setQuick}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clear}>Filtrlarni tozalash</button></div>}</div></div></section>
+  <footer className="footer"><div><a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><p>Sellerlar va xaridorlarni bog'laydigan marketplace.</p></div><div><b>Marketplace</b><button onClick={catalog}>Katalog</button><button onClick={()=>{setCategory("new");catalog()}}>Yangi mahsulotlar</button><button onClick={()=>setPanel("favorites")}>Sevimlilar</button></div><div><b>Yordam</b><span>Buyurtma berish</span><span>Yetkazib berish</span><span>Qaytarish</span></div></footer>
+  <nav className="mobile-nav"><button onClick={()=>scrollTo(0,0)}><span>⌂</span>Asosiy</button><button onClick={()=>{scrollTo(0,0);setTimeout(()=>document.querySelector<HTMLInputElement>(".search-wrap input")?.focus(),100)}}><span>⌕</span>Qidirish</button><button onClick={()=>setPanel("favorites")}><span>♡</span>Sevimli</button><button onClick={()=>setPanel("cart")}><span>🛒</span>Savat</button></nav>
+  {panel&&<div className="drawer-backdrop" onClick={()=>setPanel(null)}><aside className="drawer" onClick={e=>e.stopPropagation()}><div className="drawer-head"><h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":"Menyu"}</h2><button onClick={()=>setPanel(null)}>×</button></div>{panel==="menu"&&<div className="drawer-menu">{categories.map(c=><button key={c[0]} onClick={()=>{setCategory(c[0]);setPanel(null);catalog()}}>{c[2]} {c[1]} <b>→</b></button>)}</div>}{panel==="favorites"&&<div className="drawer-list">{products.filter(p=>favs.includes(p.id)).map(p=><Mini key={p.id} p={p} onOpen={()=>setQuick(p)} onCart={()=>add(p)}/>) }{!favs.length&&<div className="drawer-empty">Hali sevimli mahsulotlar yo'q.</div>}</div>}{panel==="cart"&&<div className="drawer-cart">{cartItems.map(x=><div className="cart-item" key={x.p.id}><div className="mini-image">{x.p.imageUrl?<img src={x.p.imageUrl} alt=""/>:"MB"}</div><div><b>{x.p.name}</b><span>{money(x.p.price)}</span><div className="qty"><button onClick={()=>qty(x.p.id,-1)}>−</button><b>{x.q}</b><button onClick={()=>qty(x.p.id,1)}>+</button></div></div></div>)}{cartItems.length?<div className="cart-total"><span>Jami</span><strong>{money(cartTotal)}</strong><button className="primary full" onClick={()=>alert("Buyurtma jarayoni keyingi bosqichda ulanadi.")}>Buyurtmani davom ettirish</button></div>:<div className="drawer-empty">Savatingiz hozircha bo'sh.</div>}</div>}</aside></div>}
+  {quick&&<div className="modal-backdrop" onClick={()=>setQuick(null)}><section className="quick-view" onClick={e=>e.stopPropagation()}><button className="modal-close" onClick={()=>setQuick(null)}>×</button><div className="quick-image">{quick.imageUrl?<img src={quick.imageUrl} alt={quick.name}/>:<span>MYBUSINESS</span>}</div><div className="quick-info"><span className="product-cat">{label(cat(quick))}</span><h2>{quick.name}</h2><p>{quick.description||"Mahsulot tavsifi kiritilmagan."}</p><strong>{money(quick.price)}</strong><small>{quick.stock>0?"Omborda "+quick.stock+" dona":"Tugagan"}</small><button className="primary full" disabled={!quick.stock} onClick={()=>{add(quick);setQuick(null)}}>{quick.stock?"Savatga qo'shish":"Tugagan"}</button></div></section></div>}
+  {toast&&<div className="toast">✓ {toast}</div>}
+ </main>
 }
-
-export default function App() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("Barchasi");
-  const [sort, setSort] = useState("newest");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [favorites, setFavorites] = useState<number[]>(() => JSON.parse(localStorage.getItem("mybusiness:favorites") ?? "[]"));
-  const [cart, setCart] = useState<Record<string, number>>(() => JSON.parse(localStorage.getItem("mybusiness:cart") ?? "{}"));
-
-  useEffect(() => {
-    fetch(`${apiBase}/api/v1/products`, { headers: { Accept: "application/json" } })
-      .then(async (response) => {
-        const data = (await response.json()) as ProductsResponse & { message?: string };
-        if (!response.ok) throw new Error(data.message ?? "Mahsulotlarni yuklab bo'lmadi.");
-        setProducts(data.products);
-      })
-      .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Mahsulotlarni yuklab bo'lmadi."))
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => localStorage.setItem("mybusiness:favorites", JSON.stringify(favorites)), [favorites]);
-  useEffect(() => localStorage.setItem("mybusiness:cart", JSON.stringify(cart)), [cart]);
-
-  const visibleProducts = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    const result = products.filter((product) => {
-      const matchesQuery = !normalized || `${product.name} ${product.description}`.toLowerCase().includes(normalized);
-      const matchesCategory = category === "Barchasi" || inferCategory(product) === category;
-      return matchesQuery && matchesCategory;
-    });
-    return [...result].sort((a, z) => sort === "price-low" ? a.price - z.price : sort === "price-high" ? z.price - a.price : z.createdAt.localeCompare(a.createdAt));
-  }, [products, query, category, sort]);
-
-  const cartCount = Object.values(cart).reduce((sum, value) => sum + value, 0);
-
-  function toggleFavorite(id: number) {
-    setFavorites((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
-  }
-
-  function addToCart(product: Product) {
-    if (product.stock <= 0) return;
-    setCart((current) => ({ ...current, [product.id]: Math.min((current[product.id] ?? 0) + 1, product.stock) }));
-  }
-
-  return (
-    <main className="market">
-      <header className="header">
-        <a className="logo" href="/">MYBUSINESS<span>MARKET</span></a>
-        <div className="search-wrap">
-          <span>⌕</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Mahsulot, brend yoki kategoriya qidiring..." aria-label="Mahsulot qidirish" />
-          {query && <button className="clear" onClick={() => setQuery("")}>×</button>}
-        </div>
-        <nav className="actions">
-          <button onClick={() => setFavorites([])}>♡ <span>Sevimlilar</span></button>
-          <button className="cart">Savat <b>{cartCount}</b></button>
-        </nav>
-      </header>
-
-      <section className="hero">
-        <div>
-          <span className="eyebrow">MYBUSINESS MARKETPLACE</span>
-          <h1>Kerakli mahsulotni<br /><em>oson toping.</em></h1>
-          <p>Haqiqiy sellerlar joylagan mahsulotlar. Qidiring, solishtiring va savatga bir bosishda qo'shing.</p>
-          <div className="hero-points"><span>✓ Haqiqiy mahsulotlar</span><span>✓ Aniq narx</span><span>✓ Oddiy xarid</span></div>
-        </div>
-      </section>
-
-      <section className="content">
-        <div className="section-head">
-          <div><span className="eyebrow">KATALOG</span><h2>Mahsulotlarni toping</h2></div>
-          <div className="controls">
-            <select value={sort} onChange={(event) => setSort(event.target.value)} aria-label="Saralash">
-              <option value="newest">Yangilari</option>
-              <option value="price-low">Arzonidan</option>
-              <option value="price-high">Qimmatidan</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="categories" role="tablist">
-          {categories.map((item) => <button className={category === item ? "active" : ""} key={item} onClick={() => setCategory(item)}>{item}</button>)}
-        </div>
-
-        {loading ? <section className="state"><strong>Mahsulotlar yuklanmoqda...</strong><span>Bir necha soniya.</span></section> :
-        error ? <section className="state error"><strong>Marketplace vaqtincha ulanmayapti.</strong><span>{error}</span></section> :
-        !visibleProducts.length ? <section className="state"><strong>Mahsulot topilmadi.</strong><span>Qidiruv yoki kategoriyani o'zgartirib ko'ring.</span><button onClick={() => { setQuery(""); setCategory("Barchasi"); }}>Filtrlarni tozalash</button></section> :
-        <div className="grid">
-          {visibleProducts.map((product) => {
-            const liked = favorites.includes(product.id);
-            return <article className="card" key={product.id}>
-              <div className="photo">
-                {product.imageUrl ? <img src={product.imageUrl} alt={product.name} loading="lazy" /> : <span>NO IMAGE</span>}
-                <button className={`favorite ${liked ? "liked" : ""}`} onClick={() => toggleFavorite(product.id)} aria-label="Sevimliga qo'shish">{liked ? "♥" : "♡"}</button>
-                {product.stock <= 0 && <span className="soldout">Tugagan</span>}
-              </div>
-              <div className="card-body">
-                <span className="category">{inferCategory(product)}</span>
-                <h3>{product.name}</h3>
-                <p>{product.description || "Mahsulot tavsifi kiritilmagan."}</p>
-                <div className="buy-row">
-                  <strong>{formatPrice(product.price)}</strong>
-                  <button disabled={product.stock <= 0} onClick={() => addToCart(product)}>{product.stock > 0 ? "Savatga +" : "Tugagan"}</button>
-                </div>
-              </div>
-            </article>;
-          })}
-        </div>}
-      </section>
-      <footer>MYBUSINESS MARKET · Xaridor uchun sodda, seller uchun qulay.</footer>
-
-      <nav className="mobile-nav" aria-label="Asosiy navigatsiya">
-        <button className="mobile-nav-item active" onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-          <span className="mobile-nav-icon">⌂</span><span>Bosh sahifa</span>
-        </button>
-        <button className="mobile-nav-item" onClick={() => (document.querySelector(".search-wrap input") as HTMLInputElement | null)?.focus()}>
-          <span className="mobile-nav-icon">⌕</span><span>Qidirish</span>
-        </button>
-        <button className="mobile-nav-item" onClick={() => setFavorites([])}>
-          <span className="mobile-nav-icon">♡</span><span>Sevimlilar</span>
-        </button>
-        <button className="mobile-nav-item" onClick={() => document.querySelector(".cart")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
-          <span className="mobile-nav-icon">🛒</span><span>Savat {cartCount > 0 ? `(${cartCount})` : ""}</span>
-        </button>
-      </nav>
-    </main>
-  );
-}
+function Mini({p,onOpen,onCart}:{p:Product,onOpen:()=>void,onCart:()=>void}){return <div className="mini-product"><button className="mini-image" onClick={onOpen}>{p.imageUrl?<img src={p.imageUrl} alt=""/>:"MB"}</button><div><button className="mini-name" onClick={onOpen}>{p.name}</button><b>{money(p.price)}</b><button className="mini-add" onClick={onCart} disabled={!p.stock}>Savatga</button></div></div>}
