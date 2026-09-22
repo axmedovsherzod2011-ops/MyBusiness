@@ -130,6 +130,21 @@ export default function App() {
         </div>}
       </section>
       <footer>MYBUSINESS MARKET · Xaridor uchun sodda, seller uchun qulay.</footer>
+
+      <nav className="mobile-nav" aria-label="Asosiy navigatsiya">
+        <button className="mobile-nav-item active" onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+          <span className="mobile-nav-icon">⌂</span><span>Bosh sahifa</span>
+        </button>
+        <button className="mobile-nav-item" onClick={() => document.querySelector(".search-wrap input")?.focus()}>
+          <span className="mobile-nav-icon">⌕</span><span>Qidirish</span>
+        </button>
+        <button className="mobile-nav-item" onClick={() => setFavorites([])}>
+          <span className="mobile-nav-icon">♡</span><span>Sevimlilar</span>
+        </button>
+        <button className="mobile-nav-item" onClick={() => document.querySelector(".cart")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
+          <span className="mobile-nav-icon">🛒</span><span>Savat {cartCount > 0 ? `(${cartCount})` : ""}</span>
+        </button>
+      </nav>
     </main>
   );
 }
