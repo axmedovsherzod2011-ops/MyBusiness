@@ -1,6 +1,6 @@
 import cors from "cors";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
-import { initializeDatabase } from "./db.js";
+import { checkDatabaseConnection, initializeDatabase } from "./db.js";
 import { productsRouter } from "./products.js";
 
 const appVersion = process.env.APP_VERSION ?? "0.1.0";
@@ -35,17 +35,24 @@ app.use(
 app.use(express.json({ limit: "256kb" }));
 app.use(express.urlencoded({ extended: false, limit: "256kb" }));
 
-app.get("/health", (_req: Request, res: Response) => {
-  res.status(200).json({
-    ok: true,
+app.get("/health", async (_req: Request, res: Response) => {
+  const database = await checkDatabaseConnection();
+  res.status(database ? 200 : 503).json({
+    ok: database,
     service: "marketplace-api",
+    database: database ? "connected" : "unavailable",
     version: appVersion,
     timestamp: new Date().toISOString(),
   });
 });
 
-app.get("/ready", (_req: Request, res: Response) => {
-  res.status(200).json({ ok: true, version: appVersion });
+app.get("/ready", async (_req: Request, res: Response) => {
+  const database = await checkDatabaseConnection();
+  res.status(database ? 200 : 503).json({
+    ok: database,
+    database: database ? "connected" : "unavailable",
+    version: appVersion,
+  });
 });
 
 app.get("/api/v1", (_req: Request, res: Response) => {
