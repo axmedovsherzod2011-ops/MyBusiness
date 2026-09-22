@@ -11,7 +11,7 @@ const rules: Record<string,RegExp> = { care:/krem|shampun|balzam|mask|loson|seru
 function money(n:number){return new Intl.NumberFormat("uz-UZ").format(n)+" so'm"}
 function cat(p:Product){const t=p.name+" "+p.description; for(const k of Object.keys(rules)){const rule=rules[k]; if(rule?.test(t)) return k} return "other"}
 function label(k:string){const x=categories.find(function(c){return c[0]===k}); return x?x[1]:"Boshqa"}
-function ProductCard({p,index,liked,onLike,onCart,onOpen}:{p:Product,index:number,liked:boolean,onLike:(id:number)=>void,onCart:(p:Product)=>void,onOpen:(p:Product)=>void}){
+function ProductCard({p,liked,onLike,onCart,onOpen}:{p:Product,liked:boolean,onLike:(id:number)=>void,onCart:(p:Product)=>void,onOpen:(p:Product)=>void}){
  const discount=[20,30,40,50,25,35][index%6];
  return <article className="product-card"><div className="product-image" onClick={()=>onOpen(p)}>{p.imageUrl?<img src={p.imageUrl} alt={p.name} loading="lazy"/>:<div className="no-image">MYBUSINESS</div>}<div className="badges"><span>NEW</span><span className="discount">-{discount}%</span></div><button className={"heart "+(liked?"liked":"")} onClick={e=>{e.stopPropagation();onLike(p.id)}}>{liked?"♥":"♡"}</button>{p.stock<=0&&<span className="sold-out">Tugagan</span>}</div><div className="product-info"><span className="product-cat">{label(cat(p))}</span><button className="product-name" onClick={()=>onOpen(p)}>{p.name}</button><p>{p.description||"Mahsulot tavsifi kiritilmagan."}</p><div className="product-bottom"><div><strong>{money(p.price)}</strong><small>{p.stock>0?"Sotuvda":"Tugagan"}</small></div><button className="add-button" disabled={p.stock<=0} onClick={()=>onCart(p)}>{p.stock>0?"+":"—"}</button></div></div></article>
 }
@@ -30,7 +30,7 @@ export default function App(){
  function qty(id:number,d:number){setCart(c=>{const n=(c[id]||0)+d;if(n<=0){const z={...c};delete z[id];return z}const p=products.find(x=>x.id===id);return {...c,[id]:Math.min(n,p?.stock||n)}})}
  function clear(){setQuery("");setCategory("all");setSort("newest")}
  function catalog(){document.getElementById("catalog")?.scrollIntoView({behavior:"smooth"})}
- const newProducts=products.slice(0,8); const popular=[...products].sort((a,b)=>b.stock-a.stock).slice(0,8);
+ const newProducts=[...products].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,8); const popular=[...products].filter(p=>p.stock>0).sort((a,b)=>b.stock-a.stock).slice(0,8);
  return <main className="market">
   <div className="promo-bar"><span>MYBUSINESS MARKET</span><b>Yangi mahsulotlar va maxsus takliflar</b><button onClick={catalog}>Aksiyalarni ko'rish →</button></div>
   <header className="header"><button className="mobile-menu" onClick={()=>setPanel("menu")}>☰</button><a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><div className="search-wrap"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot, brend yoki kategoriya qidiring..."/>{query&&<button className="clear" onClick={()=>setQuery("")}>×</button>}<button className="search-button" onClick={catalog}>Qidirish</button></div><div className="header-actions"><button onClick={()=>setPanel("favorites")}><span>♡</span><small>Sevimlilar</small>{favs.length>0&&<b>{favs.length}</b>}</button><button onClick={()=>setPanel("cart")}><span>🛒</span><small>Savat</small>{cartCount>0&&<b>{cartCount}</b>}</button></div></header>
