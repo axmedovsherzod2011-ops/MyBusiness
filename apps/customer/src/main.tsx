@@ -135,7 +135,7 @@ export default function App() {
         <button className="mobile-nav-item active" onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); }}>
           <span className="mobile-nav-icon">⌂</span><span>Bosh sahifa</span>
         </button>
-        <button className="mobile-nav-item" onClick={() => document.querySelector(".search-wrap input")?.focus()}>
+        <button className="mobile-nav-item" onClick={() => (document.querySelector(".search-wrap input") as HTMLInputElement | null)?.focus()}>
           <span className="mobile-nav-icon">⌕</span><span>Qidirish</span>
         </button>
         <button className="mobile-nav-item" onClick={() => setFavorites([])}>
