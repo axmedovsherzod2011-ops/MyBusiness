@@ -3,8 +3,8 @@ services:
     name: mybusiness-api
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install --no-frozen-lockfile && pnpm --filter @marketplace/api build
-    startCommand: pnpm --filter @marketplace/api start
+    buildCommand: corepack enable && pnpm install --no-frozen-lockfile && pnpm --filter @mybusiness/api build
+    startCommand: pnpm --filter @mybusiness/api start
     healthCheckPath: /ready
     maxShutdownDelaySeconds: 30
     autoDeploy: true
