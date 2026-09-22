@@ -132,7 +132,7 @@ export default function App(){
 
     <header className="header">
       <button className="mobile-menu" onClick={()=>setPanel("menu")}>☰</button>
-      <a className="logo" href="/">MYBUSINESS<span>MARKET</span></a>
+      <a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><span className="build-pill">APP</span>
       <div className="search-wrap"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot yoki kategoriya qidiring..."/>{query&&<button className="clear" onClick={()=>setQuery("")}>×</button>}<button className="search-button" onClick={catalog}>Qidirish</button></div>
       <div className="header-actions"><button onClick={()=>setPanel("profile")}><span>♙</span><small>Profil</small></button><button onClick={()=>setPanel("favorites")}><span>♡</span><small>Sevimlilar</small>{favs.length>0&&<b>{favs.length}</b>}</button><button onClick={()=>setPanel("cart")}><span>🛒</span><small>Savat</small>{cartCount>0&&<b>{cartCount}</b>}</button></div>
     </header>
