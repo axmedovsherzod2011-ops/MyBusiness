@@ -1,0 +1,48 @@
+name: Cloudflare Customer Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/customer/**"
+      - "packages/shared/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/cloudflare-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: cloudflare-customer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-customer:
+    runs-on: ubuntu-latest
+    name: Deploy customer site to Cloudflare Pages
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        run: |
+          npm install --global pnpm@10.15.0
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build customer
+        run: pnpm --filter @marketplace/customer build
+
+      - name: Deploy customer
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy apps/customer/dist --project-name=mybusiness-9h9 --branch=main --commit-hash=${{ github.sha }} --commit-message="${{ github.event.head_commit.message }}"
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
