@@ -8,7 +8,6 @@ export const pool = databaseUrl
       max: Number(process.env.DB_POOL_MAX ?? 10),
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
-      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
     })
   : null;
 
@@ -19,6 +18,16 @@ export function requireDatabase(): Pool {
     throw new Error("DATABASE_URL is not configured.");
   }
   return pool;
+}
+
+export async function checkDatabaseConnection(): Promise<boolean> {
+  if (!pool) return false;
+  try {
+    await pool.query("SELECT 1");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function initializeDatabase(): Promise<void> {
