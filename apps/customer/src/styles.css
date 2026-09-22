@@ -530,3 +530,49 @@ body{min-width:320px!important}
   .hero h1{font-size:36px!important}
 }
 @media(max-width:390px){.hero-actions{grid-template-columns:1fr!important}.product-name{font-size:11px!important}.product-bottom strong{font-size:11px!important}}
+
+/* Minimal navigation with clean SVG iconography */
+.mobile-nav{
+  gap:2px!important;
+  background:rgba(255,255,255,.96)!important;
+  border:1px solid #e9e9ee!important;
+  box-shadow:0 8px 28px rgba(20,20,30,.12)!important;
+  padding:4px!important;
+}
+.mobile-nav button{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:3px!important;
+  min-height:52px!important;
+  border-radius:13px!important;
+  background:transparent!important;
+  color:#8a8a92!important;
+  font-size:8px!important;
+  font-weight:750!important;
+  letter-spacing:-.01em!important;
+}
+.mobile-nav button span{
+  display:grid!important;
+  place-items:center!important;
+  height:22px!important;
+  margin:0!important;
+}
+.mobile-nav button span svg{display:block!important}
+.mobile-nav button.active{
+  background:transparent!important;
+  color:var(--app-accent)!important;
+}
+.mobile-nav button.active span{transform:translateY(-1px)}
+.mobile-nav button.active:after{
+  content:"";
+  position:absolute!important;
+  bottom:4px!important;
+  width:4px!important;
+  height:4px!important;
+  border-radius:50%!important;
+  background:currentColor!important;
+}
+.header-actions button svg,.mobile-menu svg,.search-icon svg{display:block}
+.header-actions button,.mobile-menu{color:#45454d!important}
