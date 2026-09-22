@@ -38,6 +38,22 @@ const rules: Record<string,RegExp> = {
   kids:/bola|bolalar|baby|kid|umoo/i,
 };
 
+
+function Icon({name,size=20}:{name:"home"|"grid"|"search"|"bag"|"user"|"heart"|"menu"|"close";size?:number}){
+  const common={width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:1.8,strokeLinecap:"round" as const,strokeLinejoin:"round" as const,ariaHidden:true};
+  const paths={
+    home:<><path d="m3 10 9-7 9 7"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-7h6v7"/></>,
+    grid:<><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></>,
+    search:<><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></>,
+    bag:<><path d="M6 8h12l1 12H5L6 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></>,
+    user:<><circle cx="12" cy="8" r="3.5"/><path d="M5 21a7 7 0 0 1 14 0"/></>,
+    heart:<path d="M20.8 8.7c0 5-8.8 10.3-8.8 10.3S3.2 13.7 3.2 8.7A4.7 4.7 0 0 1 12 6.2a4.7 4.7 0 0 1 8.8 2.5Z"/>,
+    menu:<><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></>,
+    close:<><path d="m6 6 12 12"/><path d="m18 6-12 12"/></>
+  };
+  return <svg {...common}>{paths[name]}</svg>;
+}
+
 function money(n:number){ return new Intl.NumberFormat("uz-UZ").format(n)+" so'm"; }
 function isNew(p:Product){ const t=Date.parse(p.createdAt); return Number.isFinite(t) && Date.now()-t <= 30*24*60*60*1000; }
 function cat(p:Product){
@@ -131,10 +147,10 @@ export default function App(){
     <div className="promo-bar"><span>MYBUSINESS MARKET</span><b>Yangi mahsulotlar va maxsus takliflar</b><button onClick={()=>chooseCategory("new")}>Yangi tovarlarni ko'rish →</button></div>
 
     <header className="header">
-      <button className="mobile-menu" onClick={()=>setPanel("menu")}>☰</button>
+      <button className="mobile-menu" aria-label="Menyu" onClick={()=>setPanel("menu")}><Icon name="menu"/></button>
       <a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><span className="build-pill">APP</span>
-      <div className="search-wrap"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot yoki kategoriya qidiring..."/>{query&&<button className="clear" onClick={()=>setQuery("")}>×</button>}<button className="search-button" onClick={catalog}>Qidirish</button></div>
-      <div className="header-actions"><button onClick={()=>setPanel("profile")}><span>♙</span><small>Profil</small></button><button onClick={()=>setPanel("favorites")}><span>♡</span><small>Sevimlilar</small>{favs.length>0&&<b>{favs.length}</b>}</button><button onClick={()=>setPanel("cart")}><span>🛒</span><small>Savat</small>{cartCount>0&&<b>{cartCount}</b>}</button></div>
+      <div className="search-wrap"><span className="search-icon"><Icon name="search" size={18}/></span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot yoki kategoriya qidiring..."/>{query&&<button className="clear" onClick={()=>setQuery("")}>×</button>}<button className="search-button" onClick={catalog}>Qidirish</button></div>
+      <div className="header-actions"><button onClick={()=>setPanel("profile")}><span><Icon name="user" size={19}/></span><small>Profil</small></button><button onClick={()=>setPanel("favorites")}><span><Icon name="heart" size={19}/></span><small>Sevimlilar</small>{favs.length>0&&<b>{favs.length}</b>}</button><button onClick={()=>setPanel("cart")}><span><Icon name="bag" size={19}/></span><small>Savat</small>{cartCount>0&&<b>{cartCount}</b>}</button></div>
     </header>
 
     <nav className="category-nav"><div className="category-inner">{categories.map(c=><button key={c[0]} className={category===c[0]?"active":""} onClick={()=>chooseCategory(c[0])}><span>{c[2]}</span>{c[1]}</button>)}</div></nav>
@@ -182,11 +198,11 @@ export default function App(){
     <footer className="footer"><div><a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><p>Sellerlar va xaridorlarni bog'laydigan zamonaviy marketplace.</p></div><div><b>Marketplace</b><button onClick={catalog}>Katalog</button><button onClick={()=>chooseCategory("new")}>Yangi mahsulotlar</button><button onClick={()=>chooseCategory("sale")}>Aksiyalar</button><button onClick={()=>setPanel("favorites")}>Sevimlilar</button></div><div><b>Yordam</b><span>Buyurtma berish</span><span>Yetkazib berish</span><span>Qaytarish</span></div><div><b>Til va hudud</b><span>O'zbekiston</span><span>UZ / O'zbekcha</span></div></footer>
 
     <nav className="mobile-nav" aria-label="Asosiy navigatsiya">
-  <button className="active" onClick={()=>scrollTo(0,0)}><span>⌂</span>Asosiy</button>
-  <button onClick={()=>{setPanel("menu");}}><span>▦</span>Katalog</button>
-  <button onClick={openSearch}><span>⌕</span>Qidirish</button>
-  <button onClick={()=>setPanel("cart")}><span>🛒</span>Savat{cartCount>0&&<b>{cartCount}</b>}</button>
-  <button onClick={()=>setPanel("profile")}><span>♙</span>Profil</button>
+  <button className="active" onClick={()=>scrollTo(0,0)}><span><Icon name="home"/></span>Asosiy</button>
+  <button onClick={()=>{setPanel("menu");}}><span><Icon name="grid"/></span>Katalog</button>
+  <button onClick={openSearch}><span><Icon name="search"/></span>Qidirish</button>
+  <button onClick={()=>setPanel("cart")}><span><Icon name="bag"/></span>Savat{cartCount>0&&<b>{cartCount}</b>}</button>
+  <button onClick={()=>setPanel("profile")}><span><Icon name="user"/></span>Profil</button>
 </nav>
 
     {panel&&<div className="drawer-backdrop" onClick={()=>setPanel(null)}><aside className="drawer" onClick={e=>e.stopPropagation()}>
