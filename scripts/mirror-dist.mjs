@@ -9,10 +9,15 @@ if (!app || !["customer", "seller"].includes(app)) {
 const appRoot = resolve(process.cwd());
 const source = resolve(appRoot, "dist");
 const repoRoot = resolve(appRoot, "../..");
-const target = resolve(repoRoot, "dist");
+const rootTarget = resolve(repoRoot, "dist");
 
-await rm(target, { recursive: true, force: true });
-await mkdir(target, { recursive: true });
-await cp(source, target, { recursive: true });
+await rm(rootTarget, { recursive: true, force: true });
+await mkdir(rootTarget, { recursive: true });
+await cp(source, rootTarget, { recursive: true });
 
-console.log(`Mirrored ${app}/dist -> root dist for static hosting.`);
+// Also make apps/<app>/ itself contain the built static site.
+// This covers Cloudflare Pages configurations that use apps/<app>
+// as the output directory.
+await cp(source, appRoot, { recursive: true });
+
+console.log(`Mirrored ${app}/dist -> root dist and apps/${app}/ for static hosting.`);
