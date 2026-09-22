@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
-const apiBase = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:10000";
+const apiBase = import.meta.env.VITE_API_BASE_URL ?? "https://oneofficeai-1.onrender.com";
 
 const emptyForm = {
   name: "",
