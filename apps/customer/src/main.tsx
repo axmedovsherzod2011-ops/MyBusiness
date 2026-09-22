@@ -9,7 +9,7 @@ const categories = [
 ] as const;
 const rules: Record<string,RegExp> = { care:/krem|shampun|balzam|mask|loson|serum|tonik|parvarish|soch|teri|yuz|dush|deodorant|gigien/i, makeup:/rouge|lipstick|pomada|jilo|kosmet|makeup|makiyaj|tonal|kushon|maskara|tush|qosh|ko.z|pudra|bronzer/i, perfume:/parfyum|parfum|ifor|aroma|atir|eau de|toilet water/i, fashion:/futbolka|ko.y|kurtka|shim|kiyim|dress|shirt|sumka|soat|ko.zoynak|paypoq|aksessuar/i, health:/vitamin|omega|collagen|kollagen|wellness|magniy|immun|salomat|sog.liq|protein/i, home:/uy|oshxona|idish|tozalash|kir yuv|salfetka|sovun|yuzalar|vanna|havo|mato/i, kids:/bola|bolalar|baby|kid|umoo/i };
 function money(n:number){return new Intl.NumberFormat("uz-UZ").format(n)+" so'm"}
-function cat(p:Product){const t=p.name+" "+p.description; for(const k of Object.keys(rules)) if(rules[k].test(t)) return k; return "other"}
+function cat(p:Product){const t=p.name+" "+p.description; for(const k of Object.keys(rules)){const rule=rules[k]; if(rule?.test(t)) return k} return "other"}
 function label(k:string){const x=categories.find(function(c){return c[0]===k}); return x?x[1]:"Boshqa"}
 function ProductCard({p,index,liked,onLike,onCart,onOpen}:{p:Product,index:number,liked:boolean,onLike:(id:number)=>void,onCart:(p:Product)=>void,onOpen:(p:Product)=>void}){
  const discount=[20,30,40,50,25,35][index%6];
