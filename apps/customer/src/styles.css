@@ -48,3 +48,42 @@
   .catalog-tools{width:100%}
   .catalog-tools button,.catalog-tools select{min-width:0}
 }
+
+/* Phone-first customer experience */
+@media(max-width:700px){
+  body{min-width:0}
+  .promo-bar{padding:0 8px;text-align:center;white-space:nowrap;overflow:hidden}
+  .utility-bar{height:27px;overflow:hidden;white-space:nowrap}
+  .header{padding:8px 10px;position:sticky;top:0}
+  .header-actions{gap:0}
+  .header-actions button{min-width:34px;padding:3px}
+  .logo{font-size:16px}
+  .search-wrap{margin-top:2px}
+  .category-inner{padding-left:4px}
+  .hero{min-height:auto;padding:34px 15px 30px}
+  .hero h1{font-size:36px}
+  .hero p{font-size:12px}
+  .hero-actions{gap:7px}
+  .hero-actions button{padding:11px 13px}
+  .category-cards{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .category-card{min-height:86px}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .product-image{aspect-ratio:1/1}
+  .product-info{padding:9px}
+  .product-name{font-size:12px}
+  .product-info p{height:30px;font-size:9px}
+  .product-bottom strong{font-size:13px}
+  .add-button{width:33px;height:33px}
+  .campaign-grid{padding:0 10px}
+  .deal-banner{margin-left:10px;margin-right:10px}
+  .benefits{margin-left:10px;margin-right:10px}
+  .quick-categories,.product-section,.catalog-section{padding-left:10px;padding-right:10px}
+  .footer{padding-left:15px;padding-right:15px}
+  .mobile-nav{left:7px;right:7px}
+}
+@media(max-width:390px){
+  .category-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .product-image{aspect-ratio:1/1}
+  .hero h1{font-size:32px}
+}
