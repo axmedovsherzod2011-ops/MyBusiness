@@ -198,11 +198,11 @@ export default function App(){
     <footer className="footer"><div><a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><p>Sellerlar va xaridorlarni bog'laydigan zamonaviy marketplace.</p></div><div><b>Marketplace</b><button onClick={catalog}>Katalog</button><button onClick={()=>chooseCategory("new")}>Yangi mahsulotlar</button><button onClick={()=>chooseCategory("sale")}>Aksiyalar</button><button onClick={()=>setPanel("favorites")}>Sevimlilar</button></div><div><b>Yordam</b><span>Buyurtma berish</span><span>Yetkazib berish</span><span>Qaytarish</span></div><div><b>Til va hudud</b><span>O'zbekiston</span><span>UZ / O'zbekcha</span></div></footer>
 
     <nav className="mobile-nav" aria-label="Asosiy navigatsiya">
-  <button className="active" onClick={()=>scrollTo(0,0)}><span><Icon name="home"/></span>Asosiy</button>
-  <button onClick={()=>{setPanel("menu");}}><span><Icon name="grid"/></span>Katalog</button>
-  <button onClick={openSearch}><span><Icon name="search"/></span>Qidirish</button>
-  <button onClick={()=>setPanel("cart")}><span><Icon name="bag"/></span>Savat{cartCount>0&&<b>{cartCount}</b>}</button>
-  <button onClick={()=>setPanel("profile")}><span><Icon name="user"/></span>Profil</button>
+  <button className="active" onClick={()=>scrollTo(0,0)}><span><Icon name="home"/></span><b>Asosiy</b></button>
+  <button onClick={()=>{setPanel("menu");}}><span><Icon name="grid"/></span><b>Katalog</b></button>
+  <button onClick={openSearch}><span><Icon name="search"/></span><b>Qidirish</b></button>
+  <button onClick={()=>setPanel("cart")}><span><Icon name="bag"/></span><b>Savat</b>{cartCount>0&&<b>{cartCount}</b>}</button>
+  <button onClick={()=>setPanel("profile")}><span><Icon name="user"/></span><b>Profil</b></button>
 </nav>
 
     {panel&&<div className="drawer-backdrop" onClick={()=>setPanel(null)}><aside className="drawer" onClick={e=>e.stopPropagation()}>
