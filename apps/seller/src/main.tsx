@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
-const apiBase = import.meta.env.VITE_API_BASE_URL ?? "https://oneofficeai-1.onrender.com";
+const apiBase = "https://mybusiness-api-e6dk.onrender.com";
 
 const emptyForm = {
   name: "",
@@ -26,7 +26,7 @@ export default function App() {
   async function loadProducts() {
     setLoading(true);
     try {
-      const response = await fetch(`${apiBase}/api/v1/products`);
+      const response = await fetch(`${apiBase}/api/v1/products`, { headers: { Accept: "application/json" } });
       const data = (await response.json()) as ProductsResponse & { message?: string };
       if (!response.ok) throw new Error(data.message ?? "Mahsulotlarni yuklab bo'lmadi.");
       setProducts(data.products);
@@ -49,7 +49,7 @@ export default function App() {
     try {
       const response = await fetch(`${apiBase}/api/v1/products`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           name: form.name,
           description: form.description,
@@ -84,52 +84,36 @@ export default function App() {
       <section className="workspace">
         <form className="panel form-panel" onSubmit={submit}>
           <div className="panel-title">
-            <div>
-              <span className="step">01</span>
-              <h2>Yangi mahsulot</h2>
-            </div>
+            <div><span className="step">01</span><h2>Yangi mahsulot</h2></div>
             <span className="live">DB LIVE</span>
           </div>
 
-          <label>
-            Mahsulot nomi
+          <label>Mahsulot nomi
             <input required maxLength={180} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Masalan: Wireless Headphones" />
           </label>
-
-          <label>
-            Tavsif
+          <label>Tavsif
             <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Mahsulot haqida qisqacha ma'lumot..." rows={4} />
           </label>
-
           <div className="two">
-            <label>
-              Narx
+            <label>Narx
               <input required min="0" step="0.01" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="0" />
             </label>
-            <label>
-              Qoldiq
+            <label>Qoldiq
               <input required min="0" step="1" type="number" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} />
             </label>
           </div>
-
-          <label>
-            Rasm URL
+          <label>Rasm URL
             <input type="url" value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} placeholder="https://..." />
             <small>Hozircha rasmni URL orqali biriktiramiz. Demo mahsulot kiritilmagan.</small>
           </label>
-
           <button disabled={saving} type="submit">{saving ? "Saqlanmoqda..." : "Mahsulotni bazaga qo'shish"}</button>
           {message && <div className="message">{message}</div>}
         </form>
 
         <section className="panel">
           <div className="panel-title">
-            <div>
-              <span className="step">02</span>
-              <h2>Bazadagi mahsulotlar</h2>
-            </div>
+            <div><span className="step">02</span><h2>Bazadagi mahsulotlar</h2></div>
           </div>
-
           {loading ? (
             <div className="empty">Yuklanmoqda...</div>
           ) : products.length === 0 ? (
@@ -139,10 +123,7 @@ export default function App() {
               {products.map((product) => (
                 <article className="product-row" key={product.id}>
                   <div className="thumb">{product.imageUrl ? <img src={product.imageUrl} alt="" /> : <span>No image</span>}</div>
-                  <div className="product-info">
-                    <strong>{product.name}</strong>
-                    <span>{formatPrice(product.price)} · {product.stock} dona</span>
-                  </div>
+                  <div className="product-info"><strong>{product.name}</strong><span>{formatPrice(product.price)} · {product.stock} dona</span></div>
                 </article>
               ))}
             </div>
