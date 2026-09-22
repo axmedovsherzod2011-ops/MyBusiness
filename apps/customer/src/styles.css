@@ -424,3 +424,48 @@ button{min-height:44px}
 @media(prefers-reduced-motion:reduce){
   .campaign-grid{scroll-behavior:auto!important}
 }
+
+/* Uzum-style marketplace visual system — original MyBusiness implementation */
+:root{--mb-purple:#7000ff;--mb-purple-2:#8f35ff;--mb-bg:#f5f5f7;--mb-text:#171719;--mb-muted:#77777d}
+@media(max-width:700px){
+  body,.market{background:var(--mb-bg)!important;color:var(--mb-text)!important}
+  .header{background:#fff!important;border-bottom:1px solid #ececf0!important;box-shadow:0 1px 10px rgba(20,20,30,.06)!important}
+  .logo{font-weight:950!important;color:#171719!important}
+  .logo span{color:var(--mb-purple)!important;font-weight:800!important}
+  .build-pill{display:inline-flex;align-items:center;justify-content:center;align-self:center;justify-self:start;grid-column:2;grid-row:1;margin-left:4px;padding:3px 7px;border-radius:99px;background:#f0e5ff;color:var(--mb-purple);font-size:7px;font-weight:950;letter-spacing:.08em}
+  .search-wrap{background:#f1f1f4!important;border:0!important;border-radius:12px!important}
+  .search-wrap input{font-size:13px!important}
+  .hero{margin:8px 8px 0!important;padding:20px 17px 18px!important;border-radius:16px!important;background:linear-gradient(120deg,#efe4ff 0%,#f7ecff 48%,#f0f0ff 100%)!important}
+  .hero h1{font-size:29px!important;letter-spacing:-.055em!important}
+  .hero p{color:#686871!important}
+  .hero-actions .primary,.deal-banner .primary{background:var(--mb-purple)!important}
+  .hero-actions .ghost{border-color:#ded1f4!important}
+  .eyebrow{color:#77727f!important}
+  .section-title h2,.catalog-head h2{font-size:20px!important}
+  .category-cards{gap:7px!important}
+  .category-card{background:#fff!important;border:0!important;border-radius:12px!important;box-shadow:0 1px 4px rgba(30,30,40,.05)!important}
+  .category-card>span{color:var(--mb-purple)!important}
+  .campaign-grid{padding-inline:8px!important}
+  .campaign{border-radius:15px!important}
+  .campaign-dark{background:linear-gradient(120deg,#7000ff,#9338ff)!important;color:#fff!important}
+  .product-grid{gap:7px!important}
+  .product-card{background:#fff!important;border:0!important;border-radius:11px!important;box-shadow:0 1px 5px rgba(30,30,40,.06)!important}
+  .product-info{padding:9px!important}
+  .product-image{background:#fafafa!important}
+  .badges span{border-radius:4px!important}
+  .badges .stock-badge{background:#efe5ff!important;color:#7000ff!important}
+  .heart{background:#fff!important;box-shadow:0 1px 5px #0001!important}
+  .add-button{background:var(--mb-purple)!important;border-radius:10px!important}
+  .product-bottom strong{font-size:13px!important}
+  .deal-banner{margin-inline:8px!important;border-radius:16px!important;background:linear-gradient(120deg,#eadcff,#f5ecff)!important}
+  .deal-badge{background:var(--mb-purple)!important}
+  .catalog-section{padding-inline:8px!important}
+  .catalog-head{background:#fff;border-radius:14px;padding:13px!important;border:0!important}
+  .catalog-tools button,.catalog-tools select{background:#fff!important;border:1px solid #e4e4e9!important}
+  .mobile-nav{background:rgba(255,255,255,.97)!important;border-color:#e7e7ec!important}
+  .mobile-nav button.active{background:var(--mb-purple)!important}
+  .drawer-backdrop{background:rgba(18,12,28,.48)!important}
+  .drawer{background:#fff!important}
+  .drawer-menu button{background:#f6f4fa!important}
+  .toast{background:#171719!important}
+}
