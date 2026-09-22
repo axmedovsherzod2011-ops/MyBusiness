@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createRoot } from "react-dom/client";
 import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
@@ -193,3 +194,5 @@ export default function App(){
     {toast&&<div className="toast">✓ {toast}</div>}
   </main>;
 }
+
+createRoot(document.getElementById("root")!).render(<App />);
