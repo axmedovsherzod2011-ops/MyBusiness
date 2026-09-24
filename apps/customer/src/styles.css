@@ -778,3 +778,39 @@ body{min-width:320px!important}
   margin-left:3px!important;
 }
 .detail-back:active{transform:scale(.94)!important;background:#f5f5f7!important}
+
+
+/* Final customer app navigation correction: five equal touch targets, active label only. */
+.mobile-nav{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  align-items:stretch!important;
+}
+.mobile-nav button{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  padding:4px 2px!important;
+  overflow:visible!important;
+  white-space:nowrap!important;
+}
+.mobile-nav button span{flex:0 0 auto!important}
+.mobile-nav button b{
+  display:block!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.detail-back{
+  cursor:pointer!important;
+  display:grid!important;
+  place-items:center!important;
+  overflow:visible!important;
+}
+.detail-back::before{
+  display:block!important;
+  flex:none!important;
+}
+@media(min-width:701px){
+  .mobile-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+}
