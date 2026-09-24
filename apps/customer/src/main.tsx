@@ -89,6 +89,24 @@ function Mini({p,onOpen,onCart}:{p:Product;onOpen:()=>void;onCart:()=>void}){
   return <div className="mini-product"><button className="mini-image" onClick={onOpen}>{p.imageUrl?<img src={p.imageUrl} alt=""/>:"MB"}</button><div><button className="mini-name" onClick={onOpen}>{p.name}</button><b>{money(p.price)}</b><button className="mini-add" onClick={onCart} disabled={!p.stock}>Savatga</button></div></div>;
 }
 
+function HomeProductGrid({items,favs,onLike,onCart,onOpen}:{items:Product[];favs:number[];onLike:(id:number)=>void;onCart:(p:Product)=>void;onOpen:(p:Product)=>void}){
+  const chunks:React.ReactNode[]=[];
+  items.forEach((p,i)=>{
+    chunks.push(<ProductCard key={"p-"+p.id} p={p} liked={favs.includes(p.id)} onLike={onLike} onCart={onCart} onOpen={onOpen}/>);
+    if((i+1)%6===0 && i<items.length-1){
+      const promo=(Math.floor(i/6))%3;
+      chunks.push(<div className="inline-promo-rail" key={"promo-"+i}>
+        <button onClick={()=>promo===0&&document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"})}>
+          <span>{promo===0?"MAXSUS TAKLIF":promo===1?"YANGI TOVARLAR":"AKSIYALAR"}</span>
+          <b>{promo===0?"Bugun tanlash uchun ko'proq sabab.":promo===1?"Marketplace'dagi yangi mahsulotlarni ko'ring.":"Omborda mavjud maxsus tanlovlar."}</b>
+          <em>Ko'rish →</em>
+        </button>
+      </div>);
+    }
+  });
+  return <div className="product-grid home-product-grid">{chunks}</div>;
+}
+
 export default function App(){
   const [products,setProducts]=useState<Product[]>([]);
   const [query,setQuery]=useState("");
@@ -143,72 +161,33 @@ export default function App(){
   function toggleFav(id:number){setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);}
 
   return <main className="market">
-    <div className="utility-bar"><div><span>O'zbekiston</span><button>UZ / O'zbekcha⌄</button></div><div><span>MYBUSINESS MARKET</span><button onClick={()=>setPanel("profile")}>Kirish / ro'yxatdan o'tish</button></div></div>
-    <div className="promo-bar"><span>MYBUSINESS MARKET</span><b>Yangi mahsulotlar va maxsus takliflar</b><button onClick={()=>chooseCategory("new")}>Yangi tovarlarni ko'rish →</button></div>
-
-    <header className="header">
-      <button className="mobile-menu" aria-label="Menyu" onClick={()=>setPanel("menu")}><Icon name="menu"/></button>
-      <a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><span className="build-pill">APP</span>
-      <div className="search-wrap"><span className="search-icon"><Icon name="search" size={18}/></span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot yoki kategoriya qidiring..."/>{query&&<button className="clear" onClick={()=>setQuery("")}>×</button>}<button className="search-button" onClick={catalog}>Qidirish</button></div>
-      <div className="header-actions"><button onClick={()=>setPanel("profile")}><span><Icon name="user" size={19}/></span><small>Profil</small></button><button onClick={()=>setPanel("favorites")}><span><Icon name="heart" size={19}/></span><small>Sevimlilar</small>{favs.length>0&&<b>{favs.length}</b>}</button><button onClick={()=>setPanel("cart")}><span><Icon name="bag" size={19}/></span><small>Savat</small>{cartCount>0&&<b>{cartCount}</b>}</button></div>
+    <header className="app-header">
+      <a className="logo" href="/" aria-label="MyBusiness Market">MYBUSINESS<span>MARKET</span></a>
+      <button className="header-search-trigger" onClick={openSearch}><Icon name="search" size={21}/><span>Mahsulot qidiring...</span></button>
     </header>
 
-    <nav className="category-nav"><div className="category-inner">{categories.map(c=><button key={c[0]} className={category===c[0]?"active":""} onClick={()=>chooseCategory(c[0])}><span>{c[2]}</span>{c[1]}</button>)}</div></nav>
-
-    {category!=="all"&&category!=="new"&&category!=="sale"&&subcategories[category]&&
-      <div className="subnav"><div><b>{label(category)}</b>{subcategories[category].map(s=><button className={sub===s?"active":""} key={s} onClick={()=>chooseSub(s)}>{s}</button>)}</div></div>}
-
-    <section className="hero">
-      <div className="hero-copy"><span className="eyebrow">MYBUSINESS MARKETPLACE</span><h1>Har kuni kerakli<br/><em>narsalar bir joyda.</em></h1><p>Mahalliy sellerlarning haqiqiy mahsulotlari. Qidiring, tanlang va xaridni oddiy boshqaring.</p><div className="hero-actions"><button className="primary" onClick={catalog}>Katalogni ko'rish</button><button className="ghost" onClick={()=>chooseCategory("new")}>Yangi mahsulotlar →</button></div><div className="hero-trust"><span>✓ Haqiqiy sellerlar</span><span>✓ So'mda narxlar</span><span>✓ Real ombor</span></div></div>
-      <div className="hero-art"><div className="hero-card a"><span>YANGI</span><b>Tanlangan<br/>mahsulotlar</b></div><div className="hero-card b"><span>MAXSUS</span><b>Har kuni<br/>yangi taklif</b></div><div className="hero-orb">MB</div></div>
+    <section className="app-hero">
+      <div className="app-hero-copy"><span className="eyebrow">MYBUSINESS MARKET</span><h1>Kerakli mahsulotlar<br/><em>bir joyda.</em></h1><p>Yangi mahsulotlar, kundalik xaridlar va maxsus takliflar.</p><button className="primary" onClick={()=>document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"})}>Barcha mahsulotlarni ko'rish</button></div>
+      <div className="app-hero-art"><span>NEW</span><b>Tanlangan<br/>mahsulotlar</b><strong>MB</strong></div>
     </section>
 
-    <section className="quick-categories"><div className="section-title compact"><span className="eyebrow">KATEGORIYALAR</span><h2>Mahsulotni bo'limdan toping</h2></div><div className="category-cards">{categories.slice(2,9).map(c=><button key={c[0]} className="category-card" onClick={()=>chooseCategory(c[0])}><span>{c[2]}</span><b>{c[1]}</b><small>{categoryCounts[c[0]]||0} mahsulot</small><i>→</i></button>)}</div></section>
-
-    <section className="campaign-grid">
-      <button className="campaign campaign-light" onClick={()=>chooseCategory("new")}><span>YANGI TOVARLAR</span><strong>Yangi kolleksiyani<br/>birinchi bo'lib ko'ring</strong><em>Ko'rish →</em></button>
-      <button className="campaign campaign-dark" onClick={()=>chooseCategory("sale")}><span>AKSIYALAR</span><strong>Omborda mavjud<br/>maxsus tanlovlar</strong><em>Katalogga o'tish →</em></button>
-      <button className="campaign campaign-soft" onClick={()=>chooseCategory("all")}><span>MYBUSINESS</span><strong>Barcha sellerlar<br/>mahsulotlari bir joyda</strong><em>Barchasini ko'rish →</em></button>
+    <section id="all-products" className="product-section app-products">
+      <div className="section-title app-section-title"><div><span className="eyebrow">KATALOG</span><h2>Barcha mahsulotlar</h2><p>{visible.length} ta mahsulot</p></div><button onClick={()=>setPanel("filters")}>Filtrlar</button></div>
+      {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<HomeProductGrid items={visible} favs={favs} onLike={toggleFav} onCart={add} onOpen={setQuick}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
     </section>
-
-    <section className="product-section"><div className="section-title"><div><span className="eyebrow">YANGI</span><h2>Yangi mahsulotlar</h2><p>Yaqinda marketplace'ga qo'shilgan mahsulotlar.</p></div><button onClick={()=>chooseCategory("new")}>Hammasini ko'rish →</button></div>{loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:newProducts.length?<Grid items={newProducts} favs={favs} onLike={toggleFav} onCart={add} onOpen={setQuick}/>:<div className="state">Hozircha yangi mahsulotlar yo'q.</div>}</section>
-
-    <section className="deal-banner"><div><span className="eyebrow">MAXSUS TAKLIF</span><h2>Bugun tanlash uchun<br/><em>ko'proq sabab.</em></h2><p>Omborda mavjud mahsulotlarni tez toping va savatga qo'shing.</p><button className="primary" onClick={()=>chooseCategory("sale")}>Aksiyalarni ko'rish</button></div><div className="deal-badge"><strong>MB</strong><span>MARKET</span><b>UZS</b></div></section>
-
-    <section className="product-section"><div className="section-title"><div><span className="eyebrow">OMMABOP</span><h2>Ko'p tanlanayotganlar</h2><p>Hozir omborda mavjud mahsulotlar.</p></div><button onClick={catalog}>Katalogni ko'rish →</button></div><Grid items={popular} favs={favs} onLike={toggleFav} onCart={add} onOpen={setQuick}/></section>
-
-    <section className="benefits"><div><span>✓</span><b>Real mahsulotlar</b><small>Seller bazasidan</small></div><div><span>₿</span><b>Shaffof narx</b><small>UZS formatida</small></div><div><span>⌕</span><b>Oson qidiruv</b><small>Kategoriya va bo'limlar</small></div><div><span>♡</span><b>Sevimlilar</b><small>Saqlab qo'ying</small></div></section>
-
-    <section id="catalog" className="catalog-section">
-      <div className="catalog-head"><div><span className="eyebrow">KATALOG</span><h2>{category==="all"?"Barcha mahsulotlar":label(category)}</h2><p>{visible.length} ta mahsulot topildi</p></div><div className="catalog-tools"><button onClick={()=>setPanel("filters")}>☷ Filtrlar</button><select value={sort} onChange={e=>setSort(e.target.value)}><option value="newest">Yangi qo'shilgan</option><option value="price-low">Narx: arzonidan</option><option value="price-high">Narx: qimmatidan</option><option value="name">Nomi bo'yicha</option></select></div></div>
-      <div className="catalog-layout">
-        <aside className="filter-panel">
-          <div><b>Filtrlar</b><button onClick={clearFilters}>Barchasini tozalash</button></div>
-          <h4>Bo'lim</h4>
-          {categories.map(c=><label key={c[0]}><input type="radio" checked={category===c[0]} onChange={()=>{setCategory(c[0]);setSub("")}}/><span>{c[1]}</span></label>)}
-          {category!=="all"&&subcategories[category]&&<><h4>Ichki bo'lim</h4>{subcategories[category].map(s=><label key={s}><input type="radio" checked={sub===s} onChange={()=>setSub(s)}/><span>{s}</span></label>)}</>}
-          <h4>Mavjudligi</h4><label><input type="checkbox" checked={availability==="stock"} onChange={e=>setAvailability(e.target.checked?"stock":"all")}/><span>Faqat sotuvdagi</span></label>
-        </aside>
-        <div className="catalog-results">
-          {error?<div className="state error"><b>Marketplace API bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<Grid items={visible} favs={favs} onLike={toggleFav} onCart={add} onOpen={setQuick}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
-        </div>
-      </div>
-    </section>
-
-    <footer className="footer"><div><a className="logo" href="/">MYBUSINESS<span>MARKET</span></a><p>Sellerlar va xaridorlarni bog'laydigan zamonaviy marketplace.</p></div><div><b>Marketplace</b><button onClick={catalog}>Katalog</button><button onClick={()=>chooseCategory("new")}>Yangi mahsulotlar</button><button onClick={()=>chooseCategory("sale")}>Aksiyalar</button><button onClick={()=>setPanel("favorites")}>Sevimlilar</button></div><div><b>Yordam</b><span>Buyurtma berish</span><span>Yetkazib berish</span><span>Qaytarish</span></div><div><b>Til va hudud</b><span>O'zbekiston</span><span>UZ / O'zbekcha</span></div></footer>
 
     <nav className="mobile-nav" aria-label="Asosiy navigatsiya">
-  <button className="active" onClick={()=>{setPanel(null);scrollTo(0,0)}}><span><Icon name="home"/></span><b>Asosiy</b></button>
-  <button onClick={()=>setPanel("menu")}><span><Icon name="grid"/></span><b>Katalog</b></button>
-  <button onClick={openSearch}><span><Icon name="search"/></span><b>Qidirish</b></button>
-  <button onClick={()=>setPanel("cart")}><span><Icon name="bag"/></span><b>Savat</b>{cartCount>0&&<b>{cartCount}</b>}</button>
-  <button onClick={()=>setPanel("profile")}><span><Icon name="user"/></span><b>Profil</b></button>
+  <button className={panel===null?"active":""} onClick={()=>{setPanel(null);scrollTo(0,0)}}><span><Icon name="home"/></span>{panel===null&&<b>Asosiy</b>}</button>
+  <button className={panel==="menu"?"active":""} onClick={()=>setPanel("menu")}><span><Icon name="grid"/></span>{panel==="menu"&&<b>Mahsulotlar</b>}</button>
+  <button className={panel==="search"?"active":""} onClick={openSearch}><span><Icon name="search"/></span>{panel==="search"&&<b>Qidirish</b>}</button>
+  <button className={panel==="cart"?"active":""} onClick={()=>setPanel("cart")}><span><Icon name="bag"/></span>{panel==="cart"&&<b>Savat</b>}{cartCount>0&&<i className="nav-badge">{cartCount}</i>}</button>
+  <button className={panel==="profile"?"active":""} onClick={()=>setPanel("profile")}><span><Icon name="user"/></span>{panel==="profile"&&<b>Profil</b>}</button>
 </nav>
 
     {panel&&<div className="drawer-backdrop" onClick={()=>setPanel(null)}><aside className="drawer" onClick={e=>e.stopPropagation()}>
       <div className="drawer-head"><button className="screen-back" onClick={()=>setPanel(null)} aria-label="Orqaga">←</button><h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":panel==="profile"?"Profil":panel==="filters"?"Filtrlar":panel==="search"?"Qidirish":"Katalog"}</h2><span className="screen-head-spacer"/></div>
       {panel==="profile"&&<div className="profile-panel"><div className="profile-icon">♙</div><h3>MyBusiness xaridori</h3><p>Kirish yoki ro'yxatdan o'tish orqali profil, manzillar va buyurtmalarni boshqarish mumkin.</p><button className="primary full" onClick={()=>setToast("Profil autentifikatsiyasi keyingi bosqichda ulanadi")}>Kirish / ro'yxatdan o'tish</button></div>}
-      {panel==="menu"&&<div className="drawer-menu">{categories.map(c=><button key={c[0]} onClick={()=>chooseCategory(c[0])}>{c[2]} {c[1]} <b>→</b></button>)}</div>}
+      {panel==="menu"&&<div className="menu-products-screen"><div className="menu-promo"><span>MYBUSINESS MARKET</span><b>Bugungi mahsulotlarni bir joyda toping</b><button onClick={()=>{setCategory("all");setPanel("menu")}}>Barchasini ko'rish →</button></div><div className="menu-products-title"><h3>Barcha mahsulotlar</h3><span>{visible.length} ta mahsulot</span></div>{visible.length?<Grid items={visible} favs={favs} onLike={toggleFav} onCart={add} onOpen={setQuick}/>:<div className="state">Mahsulot topilmadi.</div>}</div>}
       {panel==="search"&&<div className="screen-search"><div className="screen-search-box"><Icon name="search" size={20}/><input className="screen-search-input" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot yoki kategoriya qidiring..." autoFocus/><button onClick={()=>setQuery("")} disabled={!query}>×</button></div><div className="screen-search-meta">{query?`${visible.length} ta mahsulot topildi`:"Qidirish uchun mahsulot nomini yozing"}</div>{query&&<div className="screen-search-results">{visible.length?<Grid items={visible} favs={favs} onLike={toggleFav} onCart={add} onOpen={setQuick}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={()=>setQuery("")}>Qidiruvni tozalash</button></div>}</div>}</div>}
       {panel==="filters"&&<div className="drawer-menu"><button onClick={()=>{setCategory("all");setSub("");setPanel(null)}}>✦ Barcha mahsulotlar</button>{categories.slice(1).map(c=><button key={c[0]} onClick={()=>chooseCategory(c[0])}>{c[2]} {c[1]} <b>→</b></button>)}<button onClick={()=>{setAvailability(availability==="stock"?"all":"stock");setPanel(null)}}>{availability==="stock"?"✓":"○"} Faqat sotuvdagi</button><button onClick={()=>{clearFilters();setPanel(null)}}>↺ Barchasini tozalash</button></div>}
       {panel==="favorites"&&<div className="drawer-list">{products.filter(p=>favs.includes(p.id)).map(p=><Mini key={p.id} p={p} onOpen={()=>setQuick(p)} onCart={()=>add(p)}/>) }{!favs.length&&<div className="drawer-empty">Hali sevimli mahsulotlar yo'q.</div>}</div>}
