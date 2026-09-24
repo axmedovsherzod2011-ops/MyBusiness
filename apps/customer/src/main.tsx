@@ -96,11 +96,9 @@ function HomeProductGrid({items,favs,onLike,onCart,onOpen}:{items:Product[];favs
     if((i+1)%6===0 && i<items.length-1){
       const promo=(Math.floor(i/6))%3;
       chunks.push(<div className="inline-promo-rail" key={"promo-"+i}>
-        <button onClick={()=>promo===0&&document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"})}>
-          <span>{promo===0?"MAXSUS TAKLIF":promo===1?"YANGI TOVARLAR":"AKSIYALAR"}</span>
-          <b>{promo===0?"Bugun tanlash uchun ko'proq sabab.":promo===1?"Marketplace'dagi yangi mahsulotlarni ko'ring.":"Omborda mavjud maxsus tanlovlar."}</b>
-          <em>Ko'rish →</em>
-        </button>
+        {[["MAXSUS TAKLIF","Bugun tanlash uchun ko'proq sabab."],["YANGI TOVARLAR","Marketplace'dagi yangi mahsulotlarni ko'ring."],["AKSIYALAR","Omborda mavjud maxsus tanlovlar."]].map((x,j)=><button key={j} onClick={()=>{if(j===1)chooseCategory("new");else if(j===2)chooseCategory("sale");}}>
+          <span>{x[0]}</span><b>{x[1]}</b><em>Ko'rish →</em>
+        </button>)}
       </div>);
     }
   });
