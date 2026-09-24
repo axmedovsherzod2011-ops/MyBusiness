@@ -89,14 +89,14 @@ function Mini({p,onOpen,onCart}:{p:Product;onOpen:()=>void;onCart:()=>void}){
   return <div className="mini-product"><button className="mini-image" onClick={onOpen}>{p.imageUrl?<img src={p.imageUrl} alt=""/>:"MB"}</button><div><button className="mini-name" onClick={onOpen}>{p.name}</button><b>{money(p.price)}</b><button className="mini-add" onClick={onCart} disabled={!p.stock}>Savatga</button></div></div>;
 }
 
-function HomeProductGrid({items,favs,onLike,onCart,onOpen}:{items:Product[];favs:number[];onLike:(id:number)=>void;onCart:(p:Product)=>void;onOpen:(p:Product)=>void}){
+function HomeProductGrid({items,favs,onLike,onCart,onOpen,onPromo}:{items:Product[];favs:number[];onLike:(id:number)=>void;onCart:(p:Product)=>void;onOpen:(p:Product)=>void;onPromo:(kind:"new"|"sale")=>void}){
   const chunks=[];
   items.forEach((p,i)=>{
     chunks.push(<ProductCard key={"p-"+p.id} p={p} liked={favs.includes(p.id)} onLike={onLike} onCart={onCart} onOpen={onOpen}/>);
     if((i+1)%6===0 && i<items.length-1){
       const promo=(Math.floor(i/6))%3;
       chunks.push(<div className="inline-promo-rail" key={"promo-"+i}>
-        {[["MAXSUS TAKLIF","Bugun tanlash uchun ko'proq sabab."],["YANGI TOVARLAR","Marketplace'dagi yangi mahsulotlarni ko'ring."],["AKSIYALAR","Omborda mavjud maxsus tanlovlar."]].map((x,j)=><button key={j} onClick={()=>{if(j===1)chooseCategory("new");else if(j===2)chooseCategory("sale");}}>
+        {[["MAXSUS TAKLIF","Bugun tanlash uchun ko'proq sabab."],["YANGI TOVARLAR","Marketplace'dagi yangi mahsulotlarni ko'ring."],["AKSIYALAR","Omborda mavjud maxsus tanlovlar."]].map((x,j)=><button key={j} onClick={()=>{if(j===1)onPromo("new");else if(j===2)onPromo("sale");}}>
           <span>{x[0]}</span><b>{x[1]}</b><em>Ko'rish →</em>
         </button>)}
       </div>);
@@ -171,7 +171,7 @@ export default function App(){
 
     <section id="all-products" className="product-section app-products">
       <div className="section-title app-section-title"><div><span className="eyebrow">KATALOG</span><h2>Barcha mahsulotlar</h2><p>{visible.length} ta mahsulot</p></div><button onClick={()=>setPanel("filters")}>Filtrlar</button></div>
-      {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<HomeProductGrid items={visible} favs={favs} onLike={toggleFav} onCart={add} onOpen={setQuick}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
+      {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<HomeProductGrid items={visible} favs={favs} onLike={toggleFav} onCart={add} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
     </section>
 
     <nav className="mobile-nav" aria-label="Asosiy navigatsiya">
