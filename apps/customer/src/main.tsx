@@ -90,7 +90,7 @@ function Mini({p,onOpen,onCart}:{p:Product;onOpen:()=>void;onCart:()=>void}){
 }
 
 function HomeProductGrid({items,favs,onLike,onCart,onOpen}:{items:Product[];favs:number[];onLike:(id:number)=>void;onCart:(p:Product)=>void;onOpen:(p:Product)=>void}){
-  const chunks:React.ReactNode[]=[];
+  const chunks=[];
   items.forEach((p,i)=>{
     chunks.push(<ProductCard key={"p-"+p.id} p={p} liked={favs.includes(p.id)} onLike={onLike} onCart={onCart} onOpen={onOpen}/>);
     if((i+1)%6===0 && i<items.length-1){
