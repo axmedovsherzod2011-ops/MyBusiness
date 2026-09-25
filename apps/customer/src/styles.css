@@ -733,22 +733,15 @@ body{min-width:320px!important}
 @media(min-width:701px){.inline-promo-rail button{flex-basis:31%!important}}
 
 
-/* Keep the app navigation attached to every customer screen, including product detail. */
-.mobile-nav{
-  z-index:200!important;
-}
-.drawer-backdrop{
-  z-index:120!important;
-  padding-bottom:70px!important;
-}
+/* Screen layering: product detail is a true full-screen view, so bottom navigation stays behind it. */
+.mobile-nav{z-index:100!important}
+.drawer-backdrop{z-index:120!important}
 .product-detail-screen{
-  z-index:130!important;
-  padding-bottom:calc(88px + env(safe-area-inset-bottom))!important;
+  z-index:220!important;
+  isolation:isolate!important;
+  padding-bottom:calc(18px + env(safe-area-inset-bottom))!important;
 }
 @media(max-width:700px){
-  .drawer-backdrop{
-    padding-bottom:calc(70px + env(safe-area-inset-bottom))!important;
-  }
   .product-detail-screen{
     padding-bottom:calc(96px + env(safe-area-inset-bottom))!important;
   }
@@ -761,32 +754,65 @@ body{min-width:320px!important}
 }
 .drawer-head .screen-head-spacer{display:none!important}
 
-/* Product detail gets a clean, touch-friendly back control. */
-.detail-back{
+/* Product detail back control: explicit SVG, perfectly centered by the header grid. */
+.product-detail-head{
+  position:sticky!important;
+  top:0!important;
+  z-index:10!important;
+  height:64px!important;
+  min-height:64px!important;
+  display:grid!important;
+  grid-template-columns:44px minmax(0,1fr) 44px!important;
+  align-items:center!important;
+  padding:8px 12px!important;
+  background:rgba(255,255,255,.98)!important;
+  border-bottom:1px solid #e8e8ed!important;
+  backdrop-filter:blur(18px)!important;
+}
+.product-detail-head>span{
+  text-align:center!important;
+  font-size:17px!important;
+  line-height:24px!important;
+  font-weight:800!important;
+}
+.product-detail-head .detail-back,
+.product-detail-head .detail-fav{
   width:44px!important;
   height:44px!important;
   min-width:44px!important;
+  min-height:44px!important;
+  margin:0!important;
+  padding:0!important;
   border:1px solid #e1e1e7!important;
   border-radius:14px!important;
-  background:rgba(255,255,255,.96)!important;
+  display:grid!important;
+  place-items:center!important;
+  align-self:center!important;
+  justify-self:start!important;
+  background:#fff!important;
   color:#24242a!important;
   box-shadow:0 2px 10px rgba(20,20,30,.08)!important;
+  cursor:pointer!important;
+  line-height:0!important;
   font-size:0!important;
-  position:relative!important;
-  transition:transform .15s ease,background .15s ease!important;
 }
-.detail-back::before{
-  content:""!important;
-  width:9px!important;
-  height:9px!important;
-  border-left:2px solid currentColor!important;
-  border-bottom:2px solid currentColor!important;
-  transform:rotate(45deg)!important;
-  margin-left:3px!important;
+.product-detail-head .detail-back svg{
+  display:block!important;
+  width:22px!important;
+  height:22px!important;
+  margin:0!important;
+  flex:none!important;
 }
-.detail-back:active{transform:scale(.94)!important;background:#f5f5f7!important}
-
-
+.product-detail-head .detail-fav{
+  justify-self:end!important;
+  font-size:23px!important;
+}
+.detail-fav.liked{color:#7000ff!important;background:#f0e5ff!important}
+.product-detail-head .detail-back:active,
+.product-detail-head .detail-fav:active{
+  transform:scale(.96)!important;
+  background:#f5f5f7!important;
+}
 /* Final customer app navigation correction: five equal touch targets, active label only. */
 .mobile-nav{
   grid-template-columns:repeat(5,minmax(0,1fr))!important;
