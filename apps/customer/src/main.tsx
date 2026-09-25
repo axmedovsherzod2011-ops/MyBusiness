@@ -67,6 +67,33 @@ function label(k:string){ return categories.find(c=>c[0]===k)?.[1] || "Boshqa"; 
 
 function productImages(p:Product){return (p.imageUrl||"").split(/[\n|,]+/).map(x=>x.trim()).filter(Boolean);}
 
+function productTokens(value:string){
+  return value.toLowerCase().replace(/[^a-z0-9а-яё'’]+/gi," ").split(/\s+/).filter(x=>x.length>2);
+}
+function similarityScore(p:Product,q:string){
+  const queryTokens=productTokens(q);
+  if(!queryTokens.length)return p.stock>0?1:0;
+  const nameTokens=productTokens(p.name);
+  const textTokens=productTokens(p.name+" "+p.description);
+  let score=0;
+  for(const token of queryTokens){
+    if(nameTokens.some(x=>x===token))score+=8;
+    else if(nameTokens.some(x=>x.includes(token)||token.includes(x)))score+=5;
+    else if(textTokens.some(x=>x===token))score+=3;
+    else if(textTokens.some(x=>x.includes(token)||token.includes(x)))score+=1;
+  }
+  if(p.stock>0)score+=.25;
+  return score;
+}
+
+function SimilarProducts({items,onOpen,onCart,cart,onQty,favs,onLike,onAsk}:{items:Product[];onOpen:(p:Product)=>void;onCart:(p:Product)=>void;cart:Record<string,number>;onQty:(id:number,d:number)=>void;favs:number[];onLike:(id:number)=>void;onAsk:(p:Product)=>void}){
+  if(!items.length)return null;
+  return <section className="no-results-similar">
+    <div className="no-results-title"><b>Mahsulot topilmadi</b><span>O'xshash mahsulotlar:</span></div>
+    <Grid items={items} favs={favs} cart={cart} onLike={onLike} onCart={onCart} onQty={onQty} onAsk={onAsk} onOpen={onOpen}/>
+  </section>;
+}
+
 function ProductCard({p,liked,qty,onLike,onCart,onQty,onAsk,onOpen}:{p:Product;liked:boolean;qty:number;onLike:(id:number)=>void;onCart:(p:Product)=>void;onQty:(id:number,d:number)=>void;onAsk:(p:Product)=>void;onOpen:(p:Product)=>void}){
   const fresh=isNew(p); const images=productImages(p);
   return <article className="product-card">
@@ -146,7 +173,18 @@ export default function App(){
       return (!q||text.includes(q))&&subMatch&&categoryMatch&&(availability==="all"||p.stock>0)&&priceMatch;
     });
     return [...filtered].sort((a,b)=>sort==="price-low"?a.price-b.price:sort==="price-high"?b.price-a.price:sort==="name"?a.name.localeCompare(b.name):Date.parse(b.createdAt)-Date.parse(a.createdAt));
-  },[products,query,category,sub,sort,availability]);
+  },[products,query,category,sub,sort,availability,minPrice,maxPrice]);
+
+  const similarProducts=useMemo(()=>{
+    const q=query.trim();
+    return [...products]
+      .filter(p=>p.stock>0)
+      .sort((a,b)=>{
+        const score=similarityScore(b,q)-similarityScore(a,q);
+        return score||Date.parse(b.createdAt)-Date.parse(a.createdAt);
+      })
+      .slice(0,4);
+  },[products,query]);
 
   const cartItems=Object.entries(cart).map(([id,q])=>({p:products.find(x=>x.id===Number(id)),q})).filter(x=>x.p) as {p:Product;q:number}[];
   const cartCount=cartItems.reduce((s,x)=>s+x.q,0);
@@ -196,7 +234,7 @@ export default function App(){
       <div className="drawer-head"><h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":panel==="profile"?"Profil":panel==="filters"?"Filtrlar":panel==="search"?"Qidirish":"Katalog"}</h2></div>
       {panel==="profile"&&<div className="profile-panel"><div className="profile-icon">♙</div><h3>{authUser?authUser.name:"MyBusiness xaridori"}</h3><p>{authUser?"Siz tizimga kirgansiz. Sotuvchiga yozish va chatlarni ochish mumkin.":"Sotuvchiga yozish uchun avval kirish yoki ro'yxatdan o'tish kerak."}</p>{authUser?<button className="secondary full" onClick={signOut}>Chiqish</button>:<button className="primary full" onClick={()=>setAuthOpen(true)}>Kirish / ro'yxatdan o'tish</button>}</div>}
       {panel==="menu"&&<div className="menu-products-screen"><div className="menu-promo"><span>MYBUSINESS MARKET</span><b>Bugungi mahsulotlarni bir joyda toping</b><button onClick={()=>{setCategory("all");setPanel("menu")}}>Barchasini ko'rish →</button></div><div className="menu-products-title"><h3>Barcha mahsulotlar</h3><span>{visible.length} ta mahsulot</span></div>{visible.length?<Grid items={visible} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick}/>:<div className="state">Mahsulot topilmadi.</div>}</div>}
-      {panel==="search"&&<div className="screen-search"><div className="screen-search-box"><Icon name="search" size={20}/><input className="screen-search-input" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot yoki kategoriya qidiring..."/><button onClick={()=>setQuery("")} disabled={!query} aria-label="Qidiruvni tozalash">×</button></div><div className="screen-search-meta">{query?`${visible.length} ta mahsulot topildi`:`Barcha mahsulotlar · ${visible.length} ta`}</div><div className="screen-search-results">{visible.length?<Grid items={visible} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={()=>setQuery("")}>Qidiruvni tozalash</button></div>}</div></div>}
+      {panel==="search"&&<div className="screen-search"><div className="screen-search-box"><Icon name="search" size={20}/><input className="screen-search-input" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot yoki kategoriya qidiring..."/><button onClick={()=>setQuery("")} disabled={!query} aria-label="Qidiruvni tozalash">×</button></div><div className="screen-search-meta">{query?`${visible.length} ta mahsulot topildi`:`Barcha mahsulotlar · ${visible.length} ta`}</div><div className="screen-search-results">{visible.length?<Grid items={visible} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick}/>:<SimilarProducts items={similarProducts} onOpen={setQuick} onCart={add} cart={cart} onQty={qty} favs={favs} onLike={toggleFav} onAsk={askSeller}/>}</div></div>}
       {panel==="filters"&&<div className="filter-sheet">
         <div className="filter-sheet-head"><div><span>Tanlash</span><h2>Filtrlar</h2></div><button onClick={()=>setPanel(null)} aria-label="Filtrlarni yopish"><Icon name="close" size={21}/></button></div>
         <div className="filter-section"><div className="filter-section-title"><b>Kategoriya</b><span>{label(category)}</span></div><div className="filter-chips">{categories.map(c=><button key={c[0]} className={category===c[0]?"selected":""} onClick={()=>{setCategory(c[0]);setSub("")}}>{c[2]} {c[1]}</button>)}</div></div>
