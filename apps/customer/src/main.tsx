@@ -149,7 +149,9 @@ export default function App(){
   const [toast,setToast]=useState("");
   const [authUser,setAuthUser]=useState<{name:string}|null>(()=>{try{return JSON.parse(localStorage.getItem("mybusiness:customer-auth")||"null")}catch{return null}});
   const [authOpen,setAuthOpen]=useState(false);
-  const [chatProduct,setChatProduct]=useState<Product|null>(null);\n  const [searchFocused,setSearchFocused]=useState(false);\n  const [recentSearches,setRecentSearches]=useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem("mybusiness:recent-searches")||"[]")}catch{return []}});
+  const [chatProduct,setChatProduct]=useState<Product|null>(null);
+  const [searchFocused,setSearchFocused]=useState(false);
+  const [recentSearches,setRecentSearches]=useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem("mybusiness:recent-searches")||"[]")}catch{return []}});
 
   useEffect(()=>{
     fetch(apiBase+"/api/v1/products",{headers:{Accept:"application/json"}})
@@ -158,7 +160,8 @@ export default function App(){
       .finally(()=>setLoading(false));
   },[]);
   useEffect(()=>localStorage.setItem("mybusiness:favorites",JSON.stringify(favs)),[favs]);
-  useEffect(()=>localStorage.setItem("mybusiness:cart",JSON.stringify(cart)),[cart]);\n  useEffect(()=>localStorage.setItem("mybusiness:recent-searches",JSON.stringify(recentSearches)),[recentSearches]);
+  useEffect(()=>localStorage.setItem("mybusiness:cart",JSON.stringify(cart)),[cart]);
+  useEffect(()=>localStorage.setItem("mybusiness:recent-searches",JSON.stringify(recentSearches)),[recentSearches]);
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2200);return()=>clearTimeout(t)},[toast]);
 
   const visible=useMemo(()=>{
@@ -200,7 +203,12 @@ export default function App(){
   function qty(id:number,d:number){setCart(c=>{const n=(c[id]||0)+d;if(n<=0){const z={...c};delete z[id];return z}const p=products.find(x=>x.id===id);return {...c,[id]:Math.min(n,p?.stock||n)}})}
   function clearFilters(){setQuery("");setCategory("all");setSub("");setSort("newest");setAvailability("all");setMinPrice("");setMaxPrice("");}
   function removeFromCart(id:number){setCart(c=>{const z={...c};delete z[id];return z})}
-  function saveSearch(value:string){\n    const q=value.trim();\n    if(!q)return;\n    setRecentSearches(prev=>{const next=[q,...prev.filter(x=>x.toLowerCase()!==q.toLowerCase())].slice(0,5);localStorage.setItem("mybusiness:recent-searches",JSON.stringify(next));return next});\n  }\n  function openSearch(nextQuery=query){const q=nextQuery.trim();setQuery(q);setSearchFocused(false);if(q)saveSearch(q);setPanel("search");}
+  function saveSearch(value:string){
+    const q=value.trim();
+    if(!q)return;
+    setRecentSearches(prev=>{const next=[q,...prev.filter(x=>x.toLowerCase()!==q.toLowerCase())].slice(0,5);localStorage.setItem("mybusiness:recent-searches",JSON.stringify(next));return next});
+  }
+  function openSearch(nextQuery=query){const q=nextQuery.trim();setQuery(q);setSearchFocused(false);if(q)saveSearch(q);setPanel("search");}
   function toggleFav(id:number){setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);}
   function askSeller(p:Product){if(!authUser){setAuthOpen(true);return}setPanel(null);setChatProduct(p);}
   function finishAuth(name:string){const user={name:name.trim()||"Xaridor"};localStorage.setItem("mybusiness:customer-auth",JSON.stringify(user));setAuthUser(user);setAuthOpen(false);setToast("Kirish muvaffaqiyatli");}
