@@ -150,8 +150,6 @@ export default function App(){
   const [authUser,setAuthUser]=useState<{name:string}|null>(()=>{try{return JSON.parse(localStorage.getItem("mybusiness:customer-auth")||"null")}catch{return null}});
   const [authOpen,setAuthOpen]=useState(false);
   const [chatProduct,setChatProduct]=useState<Product|null>(null);
-  const [searchFocused,setSearchFocused]=useState(false);
-  const [recentSearches,setRecentSearches]=useState<string[]>(()=>{try{return JSON.parse(localStorage.getItem("mybusiness:recent-searches")||"[]")}catch{return []}});
 
   useEffect(()=>{
     fetch(apiBase+"/api/v1/products",{headers:{Accept:"application/json"}})
@@ -161,7 +159,6 @@ export default function App(){
   },[]);
   useEffect(()=>localStorage.setItem("mybusiness:favorites",JSON.stringify(favs)),[favs]);
   useEffect(()=>localStorage.setItem("mybusiness:cart",JSON.stringify(cart)),[cart]);
-  useEffect(()=>localStorage.setItem("mybusiness:recent-searches",JSON.stringify(recentSearches)),[recentSearches]);
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2200);return()=>clearTimeout(t)},[toast]);
 
   const visible=useMemo(()=>{
@@ -203,22 +200,22 @@ export default function App(){
   function qty(id:number,d:number){setCart(c=>{const n=(c[id]||0)+d;if(n<=0){const z={...c};delete z[id];return z}const p=products.find(x=>x.id===id);return {...c,[id]:Math.min(n,p?.stock||n)}})}
   function clearFilters(){setQuery("");setCategory("all");setSub("");setSort("newest");setAvailability("all");setMinPrice("");setMaxPrice("");}
   function removeFromCart(id:number){setCart(c=>{const z={...c};delete z[id];return z})}
-  function saveSearch(value:string){
-    const q=value.trim();
-    if(!q)return;
-    setRecentSearches(prev=>{const next=[q,...prev.filter(x=>x.toLowerCase()!==q.toLowerCase())].slice(0,5);localStorage.setItem("mybusiness:recent-searches",JSON.stringify(next));return next});
-  }
-  function openSearch(nextQuery=query){const q=nextQuery.trim();setQuery(q);setSearchFocused(false);if(q)saveSearch(q);setPanel("search");}
+  function openSearch(nextQuery=query){setQuery(nextQuery.trim());setPanel("search");}
   function toggleFav(id:number){setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);}
   function askSeller(p:Product){if(!authUser){setAuthOpen(true);return}setPanel(null);setChatProduct(p);}
   function finishAuth(name:string){const user={name:name.trim()||"Xaridor"};localStorage.setItem("mybusiness:customer-auth",JSON.stringify(user));setAuthUser(user);setAuthOpen(false);setToast("Kirish muvaffaqiyatli");}
   function signOut(){localStorage.removeItem("mybusiness:customer-auth");setAuthUser(null);setToast("Profil chiqildi");}
 
   return <main className="market">
-    <header className="app-header">
+    {panel===null&&<header className="app-header">
       <a className="logo" href="/" aria-label="MyBusiness Market">MYBUSINESS<span>MARKET</span></a>
-      <div className={"header-search-wrap "+(searchFocused?"is-focused":"")}><form className="header-search-trigger" role="search" onSubmit={e=>{e.preventDefault();openSearch(query)}}><span className="search-leading" aria-hidden="true"><Icon name="search" size={21}/></span><input value={query} onFocus={()=>setSearchFocused(true)} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Escape"){setQuery("");setSearchFocused(false)}}} placeholder="Mahsulot, brend yoki kategoriya..." aria-label="Mahsulot, brend yoki kategoriya qidiring" enterKeyHint="search"/>{query&&<button className="search-clear" type="button" onClick={()=>setQuery("")} aria-label="Qidiruvni tozalash"><Icon name="close" size={16}/></button>}<button className="search-submit" type="submit" aria-label="Qidirish"><Icon name="search" size={18}/></button></form>{searchFocused&&<div className="home-search-popover">{query.trim()?products.filter(p=>(p.name+" "+p.description).toLowerCase().includes(query.toLowerCase().trim())).slice(0,5).map(p=><button key={p.id} onMouseDown={e=>e.preventDefault()} onClick={()=>openSearch(p.name)}><span className="suggestion-icon"><Icon name="search" size={16}/></span><span><b>{p.name}</b><small>{label(cat(p))} · {money(p.price)}</small></span><Icon name="back" size={16}/></button>):<><div className="search-popover-title">Tez qidirish</div>{recentSearches.length?recentSearches.map(q=><button key={q} onMouseDown={e=>e.preventDefault()} onClick={()=>openSearch(q)}><span className="suggestion-icon"><Icon name="search" size={15}/></span><span><b>{q}</b><small>So‘nggi qidiruv</small></span><Icon name="back" size={16}/></button>):<div className="search-popover-empty">Mahsulot, brend yoki kategoriya nomini yozing</div>}</>}</div>}</div>
-    </header>
+      <form className="header-search-trigger" role="search" onSubmit={e=>{e.preventDefault();openSearch(query)}}>
+        <span className="search-leading" aria-hidden="true"><Icon name="search" size={21}/></span>
+        <input value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setQuery("")}} placeholder="Mahsulot, brend yoki kategoriya..." aria-label="Mahsulot, brend yoki kategoriya qidiring" enterKeyHint="search"/>
+        {query&&<button className="search-clear" type="button" onClick={()=>setQuery("")} aria-label="Qidiruvni tozalash"><Icon name="close" size={16}/></button>}
+        <button className="search-submit" type="submit" aria-label="Qidirish"><Icon name="search" size={18}/></button>
+      </form>
+    </header>}der>
 
     <section className="app-hero">
       <div className="app-hero-copy"><span className="eyebrow">MYBUSINESS MARKET</span><h1>Kerakli mahsulotlar<br/><em>bir joyda.</em></h1><p>Yangi mahsulotlar, kundalik xaridlar va maxsus takliflar.</p><button className="primary" onClick={()=>document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"})}>Barcha mahsulotlarni ko'rish</button></div>
