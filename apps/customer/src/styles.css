@@ -894,3 +894,248 @@ body{min-width:320px!important}
   flex:0 0 44px!important;
 }
 .product-detail-head 
+
+
+/* Product card v2: 1080x1440 portrait media, swipe-only gallery, compact purchase actions. */
+.product-image{
+  aspect-ratio:3/4!important;
+  position:relative!important;
+  overflow:hidden!important;
+  background:#f7f7f8!important;
+}
+.product-image-track{
+  width:100%!important;
+  height:100%!important;
+  display:flex!important;
+  overflow:hidden!important;
+  scroll-snap-type:x mandatory!important;
+  overscroll-behavior-x:contain!important;
+  scrollbar-width:none!important;
+}
+.product-image-track::-webkit-scrollbar{display:none!important}
+.product-image.has-gallery .product-image-track{overflow-x:auto!important;overflow-y:hidden!important;touch-action:pan-x!important}
+.product-image-track>img,
+.product-image-track>.no-image{
+  flex:0 0 100%!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:100%!important;
+  scroll-snap-align:start!important;
+  object-fit:cover!important;
+  display:block!important;
+}
+.product-image.single-image .product-image-track{overflow:hidden!important}
+.product-image.single-image .product-image-track>img{object-fit:cover!important}
+.product-price{
+  display:block!important;
+  margin-top:8px!important;
+  color:var(--app-accent,#7000ff)!important;
+  font-size:17px!important;
+  line-height:1.15!important;
+  font-weight:950!important;
+}
+.product-stock-text{
+  display:block!important;
+  margin-top:3px!important;
+  color:#77777d!important;
+  font-size:10px!important;
+}
+.product-actions{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  gap:7px!important;
+  margin-top:9px!important;
+}
+.product-actions .card-add,
+.product-actions .card-qty,
+.product-actions .ask-seller-button{
+  width:100%!important;
+  min-width:0!important;
+  height:44px!important;
+  min-height:44px!important;
+  border-radius:11px!important;
+}
+.product-actions .card-add{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  padding:0 8px!important;
+  font-size:11px!important;
+  font-weight:850!important;
+}
+.product-actions .card-add svg{flex:none!important}
+.card-qty{
+  display:grid!important;
+  grid-template-columns:1fr 1fr 1fr!important;
+  align-items:center!important;
+  overflow:hidden!important;
+  border:1px solid #dddde4!important;
+  background:#fff!important;
+}
+.card-qty button{
+  height:100%!important;
+  border:0!important;
+  background:transparent!important;
+  color:#24242a!important;
+  font-size:20px!important;
+  cursor:pointer!important;
+}
+.card-qty button:disabled{color:#c6c6cc!important}
+.card-qty b{text-align:center!important;font-size:14px!important}
+.ask-seller-button{
+  border:1px solid #dedee5!important;
+  background:#fff!important;
+  color:#24242a!important;
+  padding:0 7px!important;
+  font:inherit!important;
+  font-size:10px!important;
+  line-height:1.1!important;
+  font-weight:800!important;
+  cursor:pointer!important;
+}
+.ask-seller-button:active,.card-add:active,.card-qty button:active{transform:scale(.98)!important}
+.product-bottom{display:none!important}
+
+.auth-overlay,.chat-overlay{
+  position:fixed!important;
+  inset:0!important;
+  z-index:400!important;
+  background:rgba(18,18,24,.42)!important;
+  backdrop-filter:blur(10px)!important;
+}
+.auth-overlay{display:grid!important;place-items:center!important;padding:18px!important}
+.auth-modal{
+  position:relative!important;
+  width:min(100%,430px)!important;
+  padding:26px 20px 20px!important;
+  border-radius:22px!important;
+  background:#fff!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.22)!important;
+}
+.auth-modal h2{margin:8px 0!important;font-size:23px!important;line-height:1.1!important}
+.auth-modal p{margin:0 0 16px!important;color:#707078!important;font-size:13px!important;line-height:1.5!important}
+.auth-modal form{display:grid!important;gap:10px!important}
+.auth-modal input{
+  width:100%!important;
+  min-height:48px!important;
+  padding:0 14px!important;
+  border:1px solid #dedee5!important;
+  border-radius:12px!important;
+  outline:0!important;
+  background:#fafafd!important;
+  font:inherit!important;
+  font-size:14px!important;
+}
+.auth-modal input:focus{border-color:#7000ff!important;background:#fff!important}
+.auth-modal small{display:block!important;margin-top:12px!important;color:#92929a!important;font-size:10px!important;line-height:1.45!important}
+.auth-close{
+  position:absolute!important;
+  top:13px!important;
+  right:13px!important;
+  width:38px!important;
+  height:38px!important;
+  border:1px solid #e2e2e7!important;
+  border-radius:11px!important;
+  display:grid!important;
+  place-items:center!important;
+  background:#fff!important;
+  color:#24242a!important;
+}
+
+.chat-overlay{background:#f6f6f8!important;backdrop-filter:none!important}
+.chat-screen{
+  width:min(100%,760px)!important;
+  height:100%!important;
+  margin:0 auto!important;
+  display:grid!important;
+  grid-template-rows:68px minmax(0,1fr) 66px!important;
+  background:#f1f1f4!important;
+}
+.chat-head{
+  display:grid!important;
+  grid-template-columns:44px minmax(0,1fr) 24px!important;
+  align-items:center!important;
+  gap:10px!important;
+  padding:8px 12px!important;
+  background:#fff!important;
+  border-bottom:1px solid #e5e5ea!important;
+}
+.chat-head>button{
+  width:42px!important;height:42px!important;border:1px solid #e1e1e7!important;border-radius:13px!important;
+  display:grid!important;place-items:center!important;background:#fff!important;color:#24242a!important;
+}
+.chat-head>div{min-width:0!important;display:grid!important;gap:2px!important}
+.chat-head b{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:14px!important}
+.chat-head span:not(.chat-online){font-size:10px!important;color:#85858c!important}
+.chat-online{color:#2da44e!important;font-size:13px!important}
+.chat-messages{
+  overflow:auto!important;
+  padding:18px 12px 24px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:10px!important;
+}
+.chat-empty-product{
+  align-self:center!important;
+  display:grid!important;
+  justify-items:center!important;
+  gap:5px!important;
+  max-width:180px!important;
+  margin:8px 0 14px!important;
+  text-align:center!important;
+}
+.chat-empty-product>div{
+  width:74px!important;height:98px!important;border-radius:12px!important;overflow:hidden!important;
+  display:grid!important;place-items:center!important;background:#fff!important;
+}
+.chat-empty-product img{width:100%!important;height:100%!important;object-fit:cover!important}
+.chat-empty-product>div>span{font-weight:950!important;color:#aaa!important}
+.chat-empty-product b{font-size:12px!important;line-height:1.2!important}
+.chat-empty-product>span{font-size:10px!important;color:#7000ff!important;font-weight:800!important}
+.chat-bubble{
+  max-width:78%!important;
+  padding:10px 12px!important;
+  border-radius:15px 15px 15px 5px!important;
+  background:#fff!important;
+  color:#34343b!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+  box-shadow:0 1px 3px rgba(20,20,30,.04)!important;
+}
+.chat-bubble.muted{color:#77777d!important}
+.chat-composer{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 48px!important;
+  gap:7px!important;
+  align-items:center!important;
+  padding:8px 10px calc(8px + env(safe-area-inset-bottom))!important;
+  background:#fff!important;
+  border-top:1px solid #e3e3e8!important;
+}
+.chat-composer input{
+  height:48px!important;
+  border:1px solid #dedee5!important;
+  border-radius:15px!important;
+  padding:0 14px!important;
+  background:#f6f6f8!important;
+  color:#777!important;
+  font:inherit!important;
+  font-size:12px!important;
+}
+.chat-composer button{
+  width:48px!important;height:48px!important;border:0!important;border-radius:15px!important;
+  background:#7000ff!important;color:#fff!important;font-size:18px!important;
+}
+.chat-composer button:disabled{opacity:.35!important}
+
+@media(max-width:700px){
+  .product-info{padding:9px!important}
+  .product-name{font-size:14px!important}
+  .product-info p{min-height:30px!important}
+  .product-actions{gap:6px!important}
+  .product-actions .card-add,.product-actions .card-qty,.product-actions .ask-seller-button{height:46px!important;min-height:46px!important}
+  .product-actions .card-add{font-size:10px!important}
+  .ask-seller-button{font-size:9px!important}
+  .product-price{font-size:16px!important}
+}
