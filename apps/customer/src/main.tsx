@@ -111,6 +111,8 @@ export default function App(){
   const [sub,setSub]=useState("");
   const [sort,setSort]=useState("newest");
   const [availability,setAvailability]=useState<"all"|"stock">("all");
+  const [minPrice,setMinPrice]=useState("");
+  const [maxPrice,setMaxPrice]=useState("");
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
   const [favs,setFavs]=useState<number[]>(()=>JSON.parse(localStorage.getItem("mybusiness:favorites")||"[]"));
@@ -138,7 +140,10 @@ export default function App(){
       const text=(p.name+" "+p.description).toLowerCase();
       const subMatch=!sub||text.includes(sub.toLowerCase());
       const categoryMatch=category==="all"||(category==="new"?isNew(p):category==="sale"?p.stock>0:cat(p)===category);
-      return (!q||text.includes(q))&&subMatch&&categoryMatch&&(availability==="all"||p.stock>0);
+      const min=minPrice?Number(minPrice):0;
+      const max=maxPrice?Number(maxPrice):Infinity;
+      const priceMatch=p.price>=min&&p.price<=max;
+      return (!q||text.includes(q))&&subMatch&&categoryMatch&&(availability==="all"||p.stock>0)&&priceMatch;
     });
     return [...filtered].sort((a,b)=>sort==="price-low"?a.price-b.price:sort==="price-high"?b.price-a.price:sort==="name"?a.name.localeCompare(b.name):Date.parse(b.createdAt)-Date.parse(a.createdAt));
   },[products,query,category,sub,sort,availability]);
@@ -155,7 +160,7 @@ export default function App(){
   function chooseSub(s:string){setSub(s);setPanel(null);setTimeout(catalog,30);}
   function add(p:Product){if(!p.stock)return;setCart(c=>({...c,[p.id]:Math.min((c[p.id]||0)+1,p.stock)}));setToast("Mahsulot savatga qo'shildi");}
   function qty(id:number,d:number){setCart(c=>{const n=(c[id]||0)+d;if(n<=0){const z={...c};delete z[id];return z}const p=products.find(x=>x.id===id);return {...c,[id]:Math.min(n,p?.stock||n)}})}
-  function clearFilters(){setQuery("");setCategory("all");setSub("");setSort("newest");setAvailability("all");}
+  function clearFilters(){setQuery("");setCategory("all");setSub("");setSort("newest");setAvailability("all");setMinPrice("");setMaxPrice("");}
   function removeFromCart(id:number){setCart(c=>{const z={...c};delete z[id];return z})}
   function openSearch(nextQuery=query){setQuery(nextQuery);setPanel("search");}
   function toggleFav(id:number){setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);}
@@ -175,7 +180,7 @@ export default function App(){
     </section>
 
     <section id="all-products" className="product-section app-products">
-      <div className="section-title app-section-title"><div><span className="eyebrow">KATALOG</span><h2>Barcha mahsulotlar</h2><p>{visible.length} ta mahsulot</p></div><button onClick={()=>setPanel("filters")}>Filtrlar</button></div>
+      <div className="catalog-filter-bar"><button className="filter-main-button" onClick={()=>setPanel("filters")}><span>Filtrlar</span><Icon name="grid" size={17}/></button><button className="sort-button" onClick={()=>setPanel("filters")}><span>{sort==="price-low"?"Arzon → qimmat":sort==="price-high"?"Qimmat → arzon":sort==="name"?"Nomi bo‘yicha":"Yangi mahsulotlar"}</span><span>⌄</span></button>{(category!=="all"||sub||availability==="stock"||minPrice||maxPrice||query)&&<button className="filter-reset-chip" onClick={clearFilters}>Tozalash</button>}</div>
       {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<HomeProductGrid items={visible} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
     </section>
 
@@ -192,7 +197,15 @@ export default function App(){
       {panel==="profile"&&<div className="profile-panel"><div className="profile-icon">♙</div><h3>{authUser?authUser.name:"MyBusiness xaridori"}</h3><p>{authUser?"Siz tizimga kirgansiz. Sotuvchiga yozish va chatlarni ochish mumkin.":"Sotuvchiga yozish uchun avval kirish yoki ro'yxatdan o'tish kerak."}</p>{authUser?<button className="secondary full" onClick={signOut}>Chiqish</button>:<button className="primary full" onClick={()=>setAuthOpen(true)}>Kirish / ro'yxatdan o'tish</button>}</div>}
       {panel==="menu"&&<div className="menu-products-screen"><div className="menu-promo"><span>MYBUSINESS MARKET</span><b>Bugungi mahsulotlarni bir joyda toping</b><button onClick={()=>{setCategory("all");setPanel("menu")}}>Barchasini ko'rish →</button></div><div className="menu-products-title"><h3>Barcha mahsulotlar</h3><span>{visible.length} ta mahsulot</span></div>{visible.length?<Grid items={visible} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick}/>:<div className="state">Mahsulot topilmadi.</div>}</div>}
       {panel==="search"&&<div className="screen-search"><div className="screen-search-box"><Icon name="search" size={20}/><input className="screen-search-input" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Mahsulot yoki kategoriya qidiring..."/><button onClick={()=>setQuery("")} disabled={!query} aria-label="Qidiruvni tozalash">×</button></div><div className="screen-search-meta">{query?`${visible.length} ta mahsulot topildi`:`Barcha mahsulotlar · ${visible.length} ta`}</div><div className="screen-search-results">{visible.length?<Grid items={visible} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={()=>setQuery("")}>Qidiruvni tozalash</button></div>}</div></div>}
-      {panel==="filters"&&<div className="drawer-menu"><button onClick={()=>{setCategory("all");setSub("");setPanel(null)}}>✦ Barcha mahsulotlar</button>{categories.slice(1).map(c=><button key={c[0]} onClick={()=>chooseCategory(c[0])}>{c[2]} {c[1]} <b>→</b></button>)}<button onClick={()=>{setAvailability(availability==="stock"?"all":"stock");setPanel(null)}}>{availability==="stock"?"✓":"○"} Faqat sotuvdagi</button><button onClick={()=>{clearFilters();setPanel(null)}}>↺ Barchasini tozalash</button></div>}
+      {panel==="filters"&&<div className="filter-sheet">
+        <div className="filter-sheet-head"><div><span>Tanlash</span><h2>Filtrlar</h2></div><button onClick={()=>setPanel(null)} aria-label="Filtrlarni yopish"><Icon name="close" size={21}/></button></div>
+        <div className="filter-section"><div className="filter-section-title"><b>Kategoriya</b><span>{label(category)}</span></div><div className="filter-chips">{categories.map(c=><button key={c[0]} className={category===c[0]?"selected":""} onClick={()=>{setCategory(c[0]);setSub("")}}>{c[2]} {c[1]}</button>)}</div></div>
+        {category!=="all"&&category!=="new"&&category!=="sale"&&subcategories[category]&&<div className="filter-section"><div className="filter-section-title"><b>Turkum</b><span>{sub||"Barchasi"}</span></div><div className="filter-chips">{subcategories[category].map(x=><button key={x} className={sub===x?"selected":""} onClick={()=>setSub(sub===x?"":x)}>{x}</button>)}</div></div>}
+        <div className="filter-section"><div className="filter-section-title"><b>Narx</b><span>so'm</span></div><div className="price-inputs"><input inputMode="numeric" value={minPrice} onChange={e=>setMinPrice(e.target.value.replace(/\\D/g,""))} placeholder="dan"/><span>—</span><input inputMode="numeric" value={maxPrice} onChange={e=>setMaxPrice(e.target.value.replace(/\\D/g,""))} placeholder="gacha"/></div></div>
+        <div className="filter-section"><div className="filter-section-title"><b>Mavjudligi</b></div><button className={"filter-row "+(availability==="stock"?"selected":"")} onClick={()=>setAvailability(availability==="stock"?"all":"stock")}><span><i>{availability==="stock"?"✓":"○"}</i> Faqat sotuvdagi mahsulotlar</span><b>›</b></button></div>
+        <div className="filter-section"><div className="filter-section-title"><b>Saralash</b></div><div className="filter-sort-list">{[["newest","Yangi mahsulotlar"],["price-low","Arzon → qimmat"],["price-high","Qimmat → arzon"],["name","Nomi bo‘yicha"]].map(([k,v])=><button key={k} className={sort===k?"selected":""} onClick={()=>setSort(k)}><span>{v}</span><i>{sort===k?"✓":"○"}</i></button>)}</div></div>
+        <div className="filter-bottom"><button className="filter-clear" onClick={clearFilters}>Tozalash</button><button className="filter-apply" onClick={()=>setPanel(null)}>Ko‘rsatish · {visible.length}</button></div>
+      </div>}
       {panel==="favorites"&&<div className="drawer-list">{products.filter(p=>favs.includes(p.id)).map(p=><Mini key={p.id} p={p} onOpen={()=>setQuick(p)} onCart={()=>add(p)}/>) }{!favs.length&&<div className="drawer-empty">Hali sevimli mahsulotlar yo'q.</div>}</div>}
       {panel==="cart"&&<div className="drawer-cart">{cartItems.map(x=><div className="cart-item" key={x.p.id}><div className="mini-image">{x.p.imageUrl?<img src={x.p.imageUrl} alt=""/>:"MB"}</div><div><b>{x.p.name}</b><span>{money(x.p.price)} × {x.q}</span><div className="qty"><button aria-label="Kamaytirish" onClick={()=>qty(x.p.id,-1)}>−</button><b>{x.q}</b><button aria-label="Ko'paytirish" onClick={()=>qty(x.p.id,1)}>+</button><button className="remove-item" aria-label="O'chirish" onClick={()=>removeFromCart(x.p.id)}>×</button></div></div></div>)}{cartItems.length?<div className="cart-total"><span>Jami</span><strong>{money(cartTotal)}</strong><button className="primary full" onClick={()=>setToast("Buyurtma berish uchun seller bilan bog'lanish moduli keyingi bosqichda ulanadi")}>Buyurtmani davom ettirish</button></div>:<div className="drawer-empty">Savatingiz hozircha bo'sh.</div>}</div>}
     </aside></div>}
