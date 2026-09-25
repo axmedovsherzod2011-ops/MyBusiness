@@ -733,9 +733,10 @@ body{min-width:320px!important}
 @media(min-width:701px){.inline-promo-rail button{flex-basis:31%!important}}
 
 
-/* Screen layering: product detail is a true full-screen view, so bottom navigation stays behind it. */
-.mobile-nav{z-index:100!important}
-.drawer-backdrop{z-index:120!important}
+/* App screen layering: bottom navigation must stay visible above search/menu/cart/profile screens, while product detail stays above everything. */
+.mobile-nav{z-index:200!important}
+.drawer-backdrop{z-index:150!important}
+.product-detail-screen{z-index:220!important}
 .product-detail-screen{
   z-index:220!important;
   isolation:isolate!important;
