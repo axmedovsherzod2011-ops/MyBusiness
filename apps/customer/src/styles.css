@@ -1231,3 +1231,14 @@ body{min-width:320px!important}
  .detail-purchase-row .detail-add{font-size:12px!important}
  .detail-ask{font-size:10px!important}
 }
+
+/* Product detail purchase bar: full-width two-button layout, seller left and cart right. */
+.detail-actions{display:block!important;width:100%!important;grid-template-columns:none!important}
+.detail-purchase-row{width:100%!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important;align-items:stretch!important}
+.detail-purchase-row .detail-ask{grid-column:1!important;grid-row:1!important}
+.detail-purchase-row .detail-add,.detail-purchase-row .detail-qty{grid-column:2!important;grid-row:1!important}
+@media(max-width:700px){
+  .detail-actions{left:0!important;right:0!important;width:100%!important;padding:9px 10px calc(9px + env(safe-area-inset-bottom))!important}
+  .detail-purchase-row{width:100%!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}
+  .detail-purchase-row .detail-ask,.detail-purchase-row .detail-add,.detail-purchase-row .detail-qty{width:100%!important;min-width:0!important}
+}
