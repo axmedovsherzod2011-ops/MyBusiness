@@ -1242,3 +1242,14 @@ body{min-width:320px!important}
   .detail-purchase-row{width:100%!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:8px!important}
   .detail-purchase-row .detail-ask,.detail-purchase-row .detail-add,.detail-purchase-row .detail-qty{width:100%!important;min-width:0!important}
 }
+
+
+/* Product card cart control: fill the card width after seller action was removed. */
+.product-actions{
+  grid-template-columns:1fr!important;
+}
+.product-actions .card-add,
+.product-actions .card-qty{
+  grid-column:1/-1!important;
+  width:100%!important;
+}
