@@ -153,7 +153,7 @@ export default function App(){
   function catalog(){document.getElementById("catalog")?.scrollIntoView({behavior:"smooth"});}
   function chooseCategory(k:string){setCategory(k);setSub("");setPanel(null);setTimeout(catalog,30);}
   function chooseSub(s:string){setSub(s);setPanel(null);setTimeout(catalog,30);}
-  function add(p:Product){if(!p.stock)return;setCart(c=>({...c,[p.id]:Math.min((c[p.id]||0)+1,p.stock)}));setToast("Mahsulot savatga qo'shildi");setPanel("cart");}
+  function add(p:Product){if(!p.stock)return;setCart(c=>({...c,[p.id]:Math.min((c[p.id]||0)+1,p.stock)}));setToast("Mahsulot savatga qo'shildi");}
   function qty(id:number,d:number){setCart(c=>{const n=(c[id]||0)+d;if(n<=0){const z={...c};delete z[id];return z}const p=products.find(x=>x.id===id);return {...c,[id]:Math.min(n,p?.stock||n)}})}
   function clearFilters(){setQuery("");setCategory("all");setSub("");setSort("newest");setAvailability("all");}
   function removeFromCart(id:number){setCart(c=>{const z={...c};delete z[id];return z})}
