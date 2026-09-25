@@ -215,7 +215,7 @@ export default function App(){
         {query&&<button className="search-clear" type="button" onClick={()=>setQuery("")} aria-label="Qidiruvni tozalash"><Icon name="close" size={16}/></button>}
         <button className="search-submit" type="submit" aria-label="Qidirish"><Icon name="search" size={18}/></button>
       </form>
-    </header>}der>
+    </header>}
 
     <section className="app-hero">
       <div className="app-hero-copy"><span className="eyebrow">MYBUSINESS MARKET</span><h1>Kerakli mahsulotlar<br/><em>bir joyda.</em></h1><p>Yangi mahsulotlar, kundalik xaridlar va maxsus takliflar.</p><button className="primary" onClick={()=>document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"})}>Barcha mahsulotlarni ko'rish</button></div>
