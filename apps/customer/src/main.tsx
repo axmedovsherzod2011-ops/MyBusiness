@@ -155,6 +155,15 @@ export default function App(){
   const [authLastName,setAuthLastName]=useState("");
   const [authError,setAuthError]=useState("");
   const [chatProduct,setChatProduct]=useState<Product|null>(null);
+  const [chatId,setChatId]=useState<number|null>(null);
+  const [chatMessages,setChatMessages]=useState<Array<{id:number;senderRole:"customer"|"seller";body:string;createdAt:string}>>([]);
+  const [chatInput,setChatInput]=useState("");
+  const [chatLoading,setChatLoading]=useState(false);
+  const [checkoutOpen,setCheckoutOpen]=useState(false);
+  const [checkoutName,setCheckoutName]=useState("");
+  const [checkoutPhone,setCheckoutPhone]=useState("");
+  const [checkoutLoading,setCheckoutLoading]=useState(false);
+  const [checkoutError,setCheckoutError]=useState("");
 
   useEffect(()=>{
     fetch(apiBase+"/api/v1/products",{headers:{Accept:"application/json"}})
@@ -237,7 +246,43 @@ export default function App(){
   function removeFromCart(id:number){setCart(c=>{const z={...c};delete z[id];return z})}
   function openSearch(nextQuery=query){setQuery(nextQuery.trim());setPanel("search");}
   function toggleFav(id:number){setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);}
-  function askSeller(p:Product){if(!authUser){setAuthOpen(true);return}setPanel(null);setChatProduct(p);}
+  function askSeller(p:Product){if(!authUser){setAuthOpen(true);return}setPanel(null);setChatId(null);setChatMessages([]);setChatInput("");setChatProduct(p);}
+  async function sendChatMessage(){
+    const body=chatInput.trim();
+    if(!chatProduct||!authUser||!body||chatLoading)return;
+    setChatLoading(true);
+    try{
+      if(chatId){
+        const r=await fetch(apiBase+"/api/v1/chats/"+chatId+"/messages",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({message:body})});
+        const d=await r.json() as {message?:{id:number;senderRole:"customer"|"seller";body:string;createdAt:string};message?:string};
+        if(!r.ok||!d.message)throw new Error((d as any).message||"Xabar yuborilmadi.");
+        setChatMessages(x=>[...x,d.message!]);
+      }else{
+        const r=await fetch(apiBase+"/api/v1/chats",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({customerName:authUser.name||"Mijoz",customerUserId:null,productId:chatProduct.id,message:body})});
+        const d=await r.json() as {chatId?:number;message?:{id:number;senderRole:"customer"|"seller";body:string;createdAt:string};message?:string};
+        if(!r.ok||!d.chatId||!d.message)throw new Error((d as any).message||"Chat ochilmadi.");
+        setChatId(d.chatId);setChatMessages([d.message]);
+      }
+      setChatInput("");
+    }catch(e){setToast(e instanceof Error?e.message:"Xabar yuborilmadi.")}finally{setChatLoading(false)}
+  }
+  function openCheckout(){
+    if(!authUser){setAuthOpen(true);return}
+    if(!cartItems.length)return;
+    setCheckoutName(authUser.name||"");setCheckoutPhone(authUser.phone||"");setCheckoutError("");setCheckoutOpen(true);setPanel(null);
+  }
+  async function submitCheckout(e:React.FormEvent){
+    e.preventDefault();
+    if(!checkoutName.trim()||!checkoutPhone.trim()||!cartItems.length)return;
+    setCheckoutLoading(true);setCheckoutError("");
+    try{
+      const r=await fetch(apiBase+"/api/v1/orders",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({customerName:checkoutName.trim(),customerPhone:checkoutPhone.trim(),customerUserId:null,items:cartItems.map(x=>({productId:x.p.id,quantity:x.q}))})});
+      const d=await r.json() as {order?:{id:number};message?:string};
+      if(!r.ok||!d.order)throw new Error(d.message||"Buyurtma yaratilmadi.");
+      setCart({});setCheckoutOpen(false);setToast("Buyurtma #"+d.order.id+" qabul qilindi.");
+      const fresh=await fetch(apiBase+"/api/v1/products",{headers:{Accept:"application/json"}});const fd=await fresh.json() as ProductsResponse;setProducts(fd.products||[]);
+    }catch(e){setCheckoutError(e instanceof Error?e.message:"Buyurtma yuborilmadi.")}finally{setCheckoutLoading(false)}
+  }
   async function startTelegramAuth(){
     setAuthError("");
     setAuthStatus("idle");
@@ -316,12 +361,13 @@ export default function App(){
         <div className="filter-bottom"><button className="filter-clear" onClick={clearFilters}>Tozalash</button><button className="filter-apply" onClick={()=>setPanel(null)}>Ko‘rsatish · {visible.length}</button></div>
       </div>}
       {panel==="favorites"&&<div className="drawer-list">{products.filter(p=>favs.includes(p.id)).map(p=><Mini key={p.id} p={p} onOpen={()=>setQuick(p)} onCart={()=>add(p)}/>) }{!favs.length&&<div className="drawer-empty">Hali sevimli mahsulotlar yo'q.</div>}</div>}
-      {panel==="cart"&&<div className="drawer-cart">{cartItems.map(x=><div className="cart-item" key={x.p.id}><div className="mini-image">{x.p.imageUrl?<img src={x.p.imageUrl} alt=""/>:"MB"}</div><div><b>{x.p.name}</b><span>{money(x.p.price)} × {x.q}</span><div className="qty"><button aria-label="Kamaytirish" onClick={()=>qty(x.p.id,-1)}>−</button><b>{x.q}</b><button aria-label="Ko'paytirish" onClick={()=>qty(x.p.id,1)}>+</button><button className="remove-item" aria-label="O'chirish" onClick={()=>removeFromCart(x.p.id)}>×</button></div></div></div>)}{cartItems.length?<div className="cart-total"><span>Jami</span><strong>{money(cartTotal)}</strong><button className="primary full" onClick={()=>setToast("Buyurtma berish uchun seller bilan bog'lanish moduli keyingi bosqichda ulanadi")}>Buyurtmani davom ettirish</button></div>:<div className="drawer-empty">Savatingiz hozircha bo'sh.</div>}</div>}
+      {panel==="cart"&&<div className="drawer-cart">{cartItems.map(x=><div className="cart-item" key={x.p.id}><div className="mini-image">{x.p.imageUrl?<img src={x.p.imageUrl} alt=""/>:"MB"}</div><div><b>{x.p.name}</b><span>{money(x.p.price)} × {x.q}</span><div className="qty"><button aria-label="Kamaytirish" onClick={()=>qty(x.p.id,-1)}>−</button><b>{x.q}</b><button aria-label="Ko'paytirish" onClick={()=>qty(x.p.id,1)}>+</button><button className="remove-item" aria-label="O'chirish" onClick={()=>removeFromCart(x.p.id)}>×</button></div></div></div>)}{cartItems.length?<div className="cart-total"><span>Jami</span><strong>{money(cartTotal)}</strong><button className="primary full" onClick={openCheckout}>Buyurtma berish</button></div>:<div className="drawer-empty">Savatingiz hozircha bo'sh.</div>}</div>}
     </aside></div>}
 
     {quick&&<div className="product-detail-screen"><div className="product-detail-head"><button className="detail-back" onClick={()=>setQuick(null)} aria-label="Orqaga"><Icon name="back" size={22}/></button><span>Mahsulot</span><button className={"detail-fav "+(favs.includes(quick!.id)?"liked":"")} onClick={()=>toggleFav(quick!.id)} aria-label="Sevimliga qo'shish">{favs.includes(quick!.id)?"♥":"♡"}</button></div><section className="product-detail"><div className="detail-gallery"><div className={"detail-image-track "+(productImages(quick).length>1?"has-gallery":"single-image")}>{productImages(quick).length?productImages(quick).map((src,i)=><img key={src+i} src={src} alt={i===0?quick!.name:""} />):<span>MYBUSINESS</span>}</div></div><div className="detail-info"><div className="detail-category">{label(cat(quick))}</div><h1>{quick!.name}</h1><div className="detail-meta"><span className="detail-stock">{quick!.stock>0?"Sotuvda":"Tugagan"}</span><span>Mahsulot ID: {quick!.id}</span></div><div className="detail-price">{money(quick!.price)}</div><p className="detail-description">{quick!.description||"Mahsulot tavsifi kiritilmagan."}</p><div className="detail-block"><b>Mahsulot haqida</b><span>Kategoriya: {label(cat(quick))}</span><span>{quick!.stock>0?"Omborda "+quick!.stock+" dona mavjud":"Hozircha mavjud emas"}</span></div><div className="detail-actions"><div className="detail-purchase-row"><button className="detail-ask" onClick={()=>askSeller(quick)}>Sotuvchidan so'rash</button>{cart[quick!.id]?<div className="detail-qty"><button onClick={()=>qty(quick!.id,-1)} aria-label="Kamaytirish">−</button><b>{cart[quick!.id]}</b><button onClick={()=>qty(quick!.id,1)} disabled={!(quick!.stock>0)||((cart[quick!.id]||0)>=quick!.stock)} aria-label="Ko'paytirish">+</button></div>:<button className="detail-add" disabled={!quick!.stock} onClick={()=>add(quick)}><Icon name="cart" size={19}/><span>{quick!.stock?"Savatga qo'shish":"Tugagan"}</span></button>}</div></div></div></section></div>}
     {authOpen&&<div className="auth-overlay" onClick={()=>setAuthOpen(false)}><section className="auth-modal telegram-auth-modal" onClick={e=>e.stopPropagation()}><button className="auth-close" onClick={()=>setAuthOpen(false)} aria-label="Yopish"><Icon name="close" size={20}/></button><span className="eyebrow">MYBUSINESS MARKET</span>{authStatus==="verified"?<><h2>Telefon tasdiqlandi</h2><p>Endi ismingizni kiriting. Shu ma'lumot bilan MyBusiness akkauntingiz yaratiladi yoki mavjud akkauntingizga kirasiz.</p><div className="auth-name-fields"><input value={authFirstName} onChange={e=>setAuthFirstName(e.target.value)} placeholder="Ism" autoComplete="given-name"/><input value={authLastName} onChange={e=>setAuthLastName(e.target.value)} placeholder="Familiya" autoComplete="family-name"/></div><button className="primary full" onClick={completeTelegramAuth}>Kirish / ro'yxatdan o'tish</button></>:authStatus==="expired"?<><h2>Sessiya tugadi</h2><p>Telegram ulanish sessiyasi 10 daqiqadan keyin tugaydi.</p><button className="primary full" onClick={startTelegramAuth}>Telegram orqali qayta ulash</button></>:<><h2>Kirish yoki ro'yxatdan o'tish</h2><p>Telefon raqamingizni xavfsiz tasdiqlash uchun Telegram orqali ulaning.</p><button className="telegram-auth-button" onClick={startTelegramAuth}>Telegram orqali ulash</button><div className="auth-flow-note">{authStatus==="waiting"?"Telegram ochiladi. Botda Start → Raqamni yuborish tugmalarini bosing, so'ng MyBusiness'ga qayting.":"Telegram bot orqali raqamingizni tasdiqlash uchun davom eting."}</div></>}{authError&&<div className="auth-error">{authError}</div>}</section></div>}
-    {chatProduct&&<div className="chat-overlay"><section className="chat-screen"><header className="chat-head"><button onClick={()=>setChatProduct(null)} aria-label="Orqaga"><Icon name="back" size={22}/></button><div><b>{chatProduct.name}</b><span>Sotuvchi bilan chat</span></div><span className="chat-online">●</span></header><div className="chat-messages"><div className="chat-empty-product"><div>{productImages(chatProduct)[0]?<img src={productImages(chatProduct)[0]} alt=""/>:<span>MB</span>}</div><b>{chatProduct.name}</b><span>{money(chatProduct.price)}</span></div><div className="chat-bubble system">Siz sotuvchiga mahsulot haqida savol berishingiz mumkin.</div><div className="chat-bubble muted">Yozishmalar seller ilovasi bilan ulanishdan keyin yuboriladi.</div></div><div className="chat-composer"><input disabled placeholder="Xabar yozish hozircha o'chirilgan"/><button disabled aria-label="Yuborish">➤</button></div></section></div>}
+    {chatProduct&&<div className="chat-overlay"><section className="chat-screen"><header className="chat-head"><button onClick={()=>setChatProduct(null)} aria-label="Orqaga"><Icon name="back" size={22}/></button><div><b>{chatProduct.name}</b><span>Sotuvchi bilan real chat</span></div><span className="chat-online">●</span></header><div className="chat-messages"><div className="chat-empty-product"><div>{productImages(chatProduct)[0]?<img src={productImages(chatProduct)[0]} alt=""/>:<span>MB</span>}</div><b>{chatProduct.name}</b><span>{money(chatProduct.price)}</span></div>{!chatMessages.length&&<div className="chat-bubble system">Mahsulot haqida savolingizni yozing — sotuvchi shu paneldan javob beradi.</div>}{chatMessages.map(m=><div key={m.id} className={"chat-bubble "+(m.senderRole==="customer"?"customer":"seller")}><span>{m.body}</span><small>{new Intl.DateTimeFormat("uz-UZ",{hour:"2-digit",minute:"2-digit"}).format(new Date(m.createdAt))}</small></div>)}</div><form className="chat-composer" onSubmit={e=>{e.preventDefault();void sendChatMessage()}}><input value={chatInput} onChange={e=>setChatInput(e.target.value)} placeholder="Xabar yozing..." disabled={chatLoading}/><button className="primary" disabled={!chatInput.trim()||chatLoading} aria-label="Yuborish">➤</button></form></section></div>}
+    {checkoutOpen&&<div className="auth-overlay" onClick={()=>setCheckoutOpen(false)}><section className="auth-modal checkout-modal" onClick={e=>e.stopPropagation()}><button className="auth-close" onClick={()=>setCheckoutOpen(false)} aria-label="Yopish"><Icon name="close" size={20}/></button><span className="eyebrow">MYBUSINESS MARKET</span><h2>Buyurtmani rasmiylashtirish</h2><p>{cartItems.length} ta mahsulot · {money(cartTotal)}</p><form onSubmit={submitCheckout}><div className="auth-name-fields"><input required value={checkoutName} onChange={e=>setCheckoutName(e.target.value)} placeholder="Ism" autoComplete="name"/><input required value={checkoutPhone} onChange={e=>setCheckoutPhone(e.target.value)} placeholder="Telefon raqami" inputMode="tel" autoComplete="tel"/></div><button className="primary full" disabled={checkoutLoading}>{checkoutLoading?"Yuborilmoqda...":"Buyurtmani yuborish"}</button>{checkoutError&&<div className="auth-error">{checkoutError}</div>}</form></section></div>}
     {toast&&<div className="toast">✓ {toast}</div>}
   </main>;
 }
