@@ -102,7 +102,7 @@ export default function App(){
 
     <section className="seller-main">
       <header className="top">
-        <div><span className="eyebrow">SELLER CENTER</span><h1>{tab==="overview"?"Dashboard":nav.find(x=>x[0]===tab)?.[1]}</h1><p>Do'koningizni bitta joydan boshqaring.</p></div>
+        <div><span className="eyebrow">SELLER CENTER · LIVE v2</span><h1>{tab==="overview"?"Dashboard":nav.find(x=>x[0]===tab)?.[1]}</h1><p>Do'koningizni bitta joydan boshqaring.</p></div>
         <div className="top-actions">{notification&&<button className="notice" onClick={()=>setNotification("")}>🔔 {notification}</button>}<div className="status">● LIVE DATABASE</div></div>
       </header>
 
