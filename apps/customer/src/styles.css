@@ -1596,3 +1596,12 @@ body{min-width:320px!important}
   .search-submit{width:44px!important;height:44px!important;border-radius:13px!important}
   .search-clear{width:40px!important;height:40px!important}
 }
+
+
+/* Final app-layer fix: home search must never sit above other customer screens on desktop. */
+.app-header{z-index:50!important}
+.drawer-backdrop,.modal-backdrop{z-index:200!important}
+.drawer{z-index:201!important}
+.mobile-nav{z-index:190!important}
+.product-detail-screen{z-index:240!important}
+.auth-overlay,.chat-overlay{z-index:250!important}
