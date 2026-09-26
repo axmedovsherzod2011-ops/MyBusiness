@@ -11,7 +11,7 @@ type Order = {
   createdAt:string; updatedAt:string; items:OrderItem[];
 };
 type Chat = {
-  id:number; customerName:string; productId:number|null; status:string;
+  id:number; customerUserId:number|null; customerName:string; productId:number|null; status:string;
   lastMessage:string; messageCount:number; updatedAt:string;
 };
 type ChatMessage = { id:number; senderRole:"customer"|"seller"; body:string; createdAt:string };
@@ -41,6 +41,8 @@ export default function App(){
   const [saving,setSaving]=useState(false);
   const [message,setMessage]=useState("");
   const [liveTick,setLiveTick]=useState(0);
+  const [orderFilter,setOrderFilter]=useState<"all"|"new"|"active"|"completed">("all");
+  const [lastSync,setLastSync]=useState<Date|null>(null);
 
   async function api(path:string, options:RequestInit={}) {
     const r=await fetch(apiBase+path,{...options,headers:{"Accept":"application/json","Content-Type":"application/json",...(options.headers||{})}});
@@ -65,19 +67,27 @@ export default function App(){
         setLastSeenNewOrders(incoming);
         setOrders(next);
         const c=await api("/api/v1/chats");
-        setChats(c.chats||[]);setLiveTick(x=>x+1);
+        setChats(c.chats||[]);setLiveTick(x=>x+1);setLastSync(new Date());
       }catch{}
     },15000);
     return()=>window.clearInterval(timer);
-  },[lastSeenNewOrders]);
+  },[]);
 
-  async function openChat(id:number){setActiveChat(id);try{const d=await api("/api/v1/chats/"+id+"/messages");setMessages(d.messages||[])}catch(e){setMessage(e instanceof Error?e.message:"Xabarlarni yuklab bo'lmadi.")}}
+  async function openChat(id:number){setActiveChat(id);setTab("chats");try{const d=await api("/api/v1/chats/"+id+"/messages");setMessages(d.messages||[])}catch(e){setMessage(e instanceof Error?e.message:"Xabarlarni yuklab bo'lmadi.")}}
   useEffect(()=>{
     if(!activeChat)return;
     const timer=window.setInterval(async()=>{try{const d=await api("/api/v1/chats/"+activeChat+"/messages");setMessages(d.messages||[])}catch{}},3000);
     return()=>window.clearInterval(timer);
   },[activeChat]);
   async function sendChat(e:FormEvent){e.preventDefault();const text=chatText.trim();if(!activeChat||!text)return;try{const d=await api("/api/v1/chats/"+activeChat+"/messages",{method:"POST",body:JSON.stringify({message:text})});setMessages(x=>[...x,d.message]);setChatText("");await loadChats()}catch(e){setMessage(e instanceof Error?e.message:"Xabar yuborilmadi.")}}
+  async function openOrderChat(order:Order){
+    const match=chats.find(c=>c.customerUserId===order.customerUserId && (order.items.length===0 || c.productId===order.items[0].productId))
+      || chats.find(c=>c.customerUserId===order.customerUserId)
+      || chats.find(c=>c.customerName===order.customerName);
+    if(match){await openChat(match.id);return;}
+    setMessage("Bu mijoz uchun hali chat ochilmagan.");
+    setTab("chats");
+  }
   async function changeStatus(order:Order,status:string){try{const d=await api("/api/v1/orders/"+order.id+"/status",{method:"PATCH",body:JSON.stringify({status})});setOrders(x=>x.map(o=>o.id===order.id?d.order:o))}catch(e){setMessage(e instanceof Error?e.message:"Holatni o'zgartirib bo'lmadi.")}}
 
   async function submit(e:FormEvent<HTMLFormElement>){
@@ -96,6 +106,7 @@ export default function App(){
   const catalogValue=products.reduce((s,p)=>s+p.price*p.stock,0);
   const newOrders=orders.filter(o=>o.status==="new").length;
   const openChats=chats.filter(c=>c.status==="open").length;
+  const filteredOrders=orders.filter(o=>orderFilter==="all"?true:orderFilter==="new"?o.status==="new":orderFilter==="active"?["confirmed","preparing","shipping"].includes(o.status):["completed","cancelled"].includes(o.status));
   const selected=selectedOrder===null?null:orders.find(o=>o.id===selectedOrder)||null;
   const nav: Array<[string,string]> = [["overview","Dashboard"],["products","Mahsulotlar"],["orders","Buyurtmalar"],["chats","Chatlar"],["inventory","Ombor"],["marketing","Marketing"],["analytics","Analitika"]];
 
@@ -109,7 +120,7 @@ export default function App(){
     <section className="seller-main">
       <header className="top">
         <div><span className="eyebrow">SELLER CENTER · LIVE v3</span><h1>{tab==="overview"?"Dashboard":nav.find(x=>x[0]===tab)?.[1]}</h1><p>Do'koningizni bitta joydan boshqaring.</p></div>
-        <div className="top-actions">{notification&&<button className="notice" onClick={()=>setNotification("")}>🔔 {notification}</button>}<div className="status">● LIVE DATABASE · {liveTick}</div></div>
+        <div className="top-actions">{notification&&<button className="notice" onClick={()=>setNotification("")}>🔔 {notification}</button>}<div className="status">● LIVE DATABASE · {liveTick}{lastSync?` · ${lastSync.toLocaleTimeString("uz-UZ",{hour:"2-digit",minute:"2-digit"})}`:""}</div></div>
       </header>
 
       {tab==="overview"&&<>
@@ -142,15 +153,14 @@ export default function App(){
       {tab==="orders"&&(
         <section className="panel">
           <div className="panel-head">
-            <div><h2>Buyurtmalar</h2><span className="muted">Customer saytidan kelgan buyurtmalar</span></div>
-            <button className="secondary small" onClick={()=>void loadOrders()}>Yangilash</button>
+            <div><h2>Buyurtmalar</h2><span className="muted">Customer saytidan kelgan buyurtmalar · {filteredOrders.length} ta</span></div>
+            <div className="order-toolbar"><div className="filter-tabs">{([["all","Barchasi"],["new","Yangi"],["active","Jarayonda"],["completed","Yakunlangan"]] as const).map(([id,label])=><button key={id} className={orderFilter===id?"active":""} onClick={()=>setOrderFilter(id)}>{label}</button>)}</div><button className="secondary small" onClick={()=>{void loadOrders();void loadChats()}}>Yangilash</button></div>
           </div>
-          {!orders.length ? (
+          {!filteredOrders.length ? (
             <div className="empty"><b>Hali buyurtma yo'q</b><span>Customer checkout ishlaganda yangi buyurtmalar shu yerda paydo bo'ladi.</span></div>
           ) : (
             <div className="orders-list">
-              {orders.map(o=>(
-                <article
+              {filteredOrders.map(o=>(                <article
                   className={"order-card "+(selectedOrder===o.id?"selected-order":"")}
                   key={o.id}
                   onClick={()=>setSelectedOrder(selectedOrder===o.id?null:o.id)}
@@ -194,7 +204,7 @@ export default function App(){
                       {o.status!=="completed" && o.status!=="cancelled" && (
                         <button className="secondary small" onClick={()=>changeStatus(o,"cancelled")}>Bekor qilish</button>
                       )}
-                      <button className="secondary small" onClick={()=>{setTab("chats");setSelectedOrder(null)}}>Chat</button>
+                      <button className="secondary small" onClick={()=>void openOrderChat(o)}>Chat</button>
                     </div>
                   </div>
                 </article>
