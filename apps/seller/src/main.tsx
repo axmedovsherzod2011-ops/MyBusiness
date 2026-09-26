@@ -81,7 +81,7 @@ export default function App(){
   },[activeChat]);
   async function sendChat(e:FormEvent){e.preventDefault();const text=chatText.trim();if(!activeChat||!text)return;try{const d=await api("/api/v1/chats/"+activeChat+"/messages",{method:"POST",body:JSON.stringify({message:text})});setMessages(x=>[...x,d.message]);setChatText("");await loadChats()}catch(e){setMessage(e instanceof Error?e.message:"Xabar yuborilmadi.")}}
   async function openOrderChat(order:Order){
-    const match=chats.find(c=>c.customerUserId===order.customerUserId && (order.items.length===0 || c.productId===order.items[0].productId))
+    const match=chats.find(c=>c.customerUserId===order.customerUserId && (order.items.length===0 || c.productId===order.items[0]?.productId))
       || chats.find(c=>c.customerUserId===order.customerUserId)
       || chats.find(c=>c.customerName===order.customerName);
     if(match){await openChat(match.id);return;}
