@@ -46,6 +46,31 @@ export async function initializeDatabase(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS marketplace_products_created_at_idx
         ON marketplace_products (created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS customer_users (
+        id BIGSERIAL PRIMARY KEY,
+        phone VARCHAR(32) NOT NULL UNIQUE,
+        telegram_id BIGINT UNIQUE,
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100) NOT NULL DEFAULT '',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS telegram_auth_sessions (
+        id UUID PRIMARY KEY,
+        status VARCHAR(20) NOT NULL DEFAULT 'pending',
+        phone VARCHAR(32),
+        telegram_id BIGINT,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        expires_at TIMESTAMPTZ NOT NULL,
+        completed_at TIMESTAMPTZ
+      );
+
+      CREATE INDEX IF NOT EXISTS telegram_auth_sessions_expires_at_idx
+        ON telegram_auth_sessions (expires_at);
     `).then(() => undefined).catch((error) => {
       initializationPromise = null;
       throw error;
