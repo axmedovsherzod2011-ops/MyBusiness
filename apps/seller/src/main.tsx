@@ -123,18 +123,70 @@ export default function App(){
         </div>
       </>}
 
-      {tab==="orders"&&<section className="panel">
-        <div className="panel-head"><div><h2>Buyurtmalar</h2><span className="muted">Customer saytidan kelgan buyurtmalar</span></div><button className="secondary small" onClick={()=>void loadOrders()}>Yangilash</button></div>
-        {!orders.length?<div className="empty"><b>Hali buyurtma yo'q</b><span>Customer checkout ishlaganda yangi buyurtmalar shu yerda paydo bo'ladi.</span></div>:
-        <div className="orders-list">{orders.map(o=><article className={"order-card "+(selectedOrder===o.id?"selected-order":"")} key={o.id} onClick={()=>setSelectedOrder(selectedOrder===o.id?null:o.id)}>
-          <div className="order-main"><div><span className="order-id">BUYURTMA #{o.id}</span><h3>{o.customerName}</h3><p>{o.customerPhone} · {formatDate(o.createdAt)} · {o.items?.length||0} ta mahsulot</p></div><span className={"status-pill "+o.status}>{statusLabels[o.status]||o.status}</span></div>
-          {selectedOrder===o.id&&<div className="order-details" onClick={e=>e.stopPropagation()}>
-            <div className="customer-box"><b>Mijoz</b><span>{o.customerName}</span><a href={"tel:"+o.customerPhone}>{o.customerPhone}</a>{o.customerUserId&&<small>Customer ID: {o.customerUserId}</small>}</div>
-            <div className="item-list">{(o.items||[]).map(i=><div className="item-line" key={i.id}><span>{i.productName} × {i.quantity}</span><b>{formatPrice(Number(i.price)*i.quantity)}</b></div>)}</div>
-          </div>}
-          <div className="order-bottom"><b>{formatPrice(o.total)}</b><div className="order-actions">{o.status!=="cancelled"&&o.status!=="completed"&&<button className="primary small" onClick={()=>changeStatus(o,nextStatus[o.status]||"completed")}>{nextStatus[o.status]==="confirmed"?"Qabul qilish":nextStatus[o.status]==="preparing"?"Tayyorlash":nextStatus[o.status]==="shipping"?"Yetkazishga berish":"Yakunlash"}</button>} {o.status!=="completed"&&o.status!=="cancelled"&&<button className="secondary small" onClick={()=>changeStatus(o,"cancelled")}>Bekor qilish</button>}<button className="secondary small" onClick={()=>{setTab("chats");setSelectedOrder(null)}}>Chat</button></div></div>
-        </article>)}</div>
-      </section>}
+      {tab==="orders"&&(
+        <section className="panel">
+          <div className="panel-head">
+            <div><h2>Buyurtmalar</h2><span className="muted">Customer saytidan kelgan buyurtmalar</span></div>
+            <button className="secondary small" onClick={()=>void loadOrders()}>Yangilash</button>
+          </div>
+          {!orders.length ? (
+            <div className="empty"><b>Hali buyurtma yo'q</b><span>Customer checkout ishlaganda yangi buyurtmalar shu yerda paydo bo'ladi.</span></div>
+          ) : (
+            <div className="orders-list">
+              {orders.map(o=>(
+                <article
+                  className={"order-card "+(selectedOrder===o.id?"selected-order":"")}
+                  key={o.id}
+                  onClick={()=>setSelectedOrder(selectedOrder===o.id?null:o.id)}
+                >
+                  <div className="order-main">
+                    <div>
+                      <span className="order-id">BUYURTMA #{o.id}</span>
+                      <h3>{o.customerName}</h3>
+                      <p>{o.customerPhone} · {formatDate(o.createdAt)} · {o.items?.length||0} ta mahsulot</p>
+                    </div>
+                    <span className={"status-pill "+o.status}>{statusLabels[o.status]||o.status}</span>
+                  </div>
+                  {selectedOrder===o.id && (
+                    <div className="order-details" onClick={e=>e.stopPropagation()}>
+                      <div className="customer-box">
+                        <b>Mijoz</b><span>{o.customerName}</span>
+                        <a href={"tel:"+o.customerPhone}>{o.customerPhone}</a>
+                        {o.customerUserId && <small>Customer ID: {o.customerUserId}</small>}
+                      </div>
+                      <div className="item-list">
+                        {(o.items||[]).map(i=>(
+                          <div className="item-line" key={i.id}>
+                            <span>{i.productName} × {i.quantity}</span>
+                            <b>{formatPrice(Number(i.price)*i.quantity)}</b>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="order-bottom">
+                    <b>{formatPrice(o.total)}</b>
+                    <div className="order-actions">
+                      {o.status!=="cancelled" && o.status!=="completed" && (
+                        <button
+                          className="primary small"
+                          onClick={()=>changeStatus(o,nextStatus[o.status]||"completed")}
+                        >
+                          {nextStatus[o.status]==="confirmed"?"Qabul qilish":nextStatus[o.status]==="preparing"?"Tayyorlash":nextStatus[o.status]==="shipping"?"Yetkazishga berish":"Yakunlash"}
+                        </button>
+                      )}
+                      {o.status!=="completed" && o.status!=="cancelled" && (
+                        <button className="secondary small" onClick={()=>changeStatus(o,"cancelled")}>Bekor qilish</button>
+                      )}
+                      <button className="secondary small" onClick={()=>{setTab("chats");setSelectedOrder(null)}}>Chat</button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {tab==="chats"&&<section className="chat-layout panel">
         <div className="chat-list"><div className="panel-head"><div><h2>Mijozlar chatlari</h2><span className="muted">{chats.length} ta suhbat</span></div><button className="secondary small" onClick={()=>void loadChats()}>Yangilash</button></div>
