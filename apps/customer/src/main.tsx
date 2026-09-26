@@ -170,9 +170,24 @@ export default function App(){
     const check=async()=>{
       try{
         const r=await fetch(apiBase+"/api/v1/auth/telegram/session/"+encodeURIComponent(authSession),{headers:{Accept:"application/json"}});
-        const d=await r.json() as {status?:string;phone?:string;message?:string};
+        const d=await r.json() as {status?:string;phone?:string;existingUser?:boolean;message?:string};
         if(stopped)return;
-        if(d.status==="verified"){setAuthStatus("verified");if(d.phone)setAuthFirstName(prev=>prev);return;}
+        if(d.status==="verified"){
+          if(d.existingUser){
+            try{
+              const complete=await fetch(apiBase+"/api/v1/auth/telegram/complete",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({sessionId:authSession})});
+              const result=await complete.json() as {token?:string;user?:{first_name:string;last_name:string;phone:string};message?:string};
+              if(!complete.ok||!result.token||!result.user)throw new Error(result.message||"Kirishda xatolik.");
+              const user={name:[result.user.first_name,result.user.last_name].filter(Boolean).join(" "),phone:result.user.phone,token:result.token};
+              localStorage.setItem("mybusiness:customer-auth",JSON.stringify(user));
+              setAuthUser(user); setAuthOpen(false); setAuthSession(""); setAuthStatus("idle");
+              setToast("Kirish muvaffaqiyatli");
+            }catch(e){if(!stopped){setAuthStatus("error");setAuthError(e instanceof Error?e.message:"Kirishda xatolik.");}}
+          }else{
+            setAuthStatus("verified");
+          }
+          return;
+        }
         if(d.status==="expired")setAuthStatus("expired");
       }catch{if(!stopped)setAuthStatus("error")}
     };
