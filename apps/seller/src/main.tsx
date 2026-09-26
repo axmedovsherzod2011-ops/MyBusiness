@@ -40,6 +40,7 @@ export default function App(){
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [message,setMessage]=useState("");
+  const [liveTick,setLiveTick]=useState(0);
 
   async function api(path:string, options:RequestInit={}) {
     const r=await fetch(apiBase+path,{...options,headers:{"Accept":"application/json","Content-Type":"application/json",...(options.headers||{})}});
@@ -64,13 +65,18 @@ export default function App(){
         setLastSeenNewOrders(incoming);
         setOrders(next);
         const c=await api("/api/v1/chats");
-        setChats(c.chats||[]);
+        setChats(c.chats||[]);setLiveTick(x=>x+1);
       }catch{}
     },15000);
     return()=>window.clearInterval(timer);
   },[lastSeenNewOrders]);
 
   async function openChat(id:number){setActiveChat(id);try{const d=await api("/api/v1/chats/"+id+"/messages");setMessages(d.messages||[])}catch(e){setMessage(e instanceof Error?e.message:"Xabarlarni yuklab bo'lmadi.")}}
+  useEffect(()=>{
+    if(!activeChat)return;
+    const timer=window.setInterval(async()=>{try{const d=await api("/api/v1/chats/"+activeChat+"/messages");setMessages(d.messages||[])}catch{}},3000);
+    return()=>window.clearInterval(timer);
+  },[activeChat]);
   async function sendChat(e:FormEvent){e.preventDefault();const text=chatText.trim();if(!activeChat||!text)return;try{const d=await api("/api/v1/chats/"+activeChat+"/messages",{method:"POST",body:JSON.stringify({message:text})});setMessages(x=>[...x,d.message]);setChatText("");await loadChats()}catch(e){setMessage(e instanceof Error?e.message:"Xabar yuborilmadi.")}}
   async function changeStatus(order:Order,status:string){try{const d=await api("/api/v1/orders/"+order.id+"/status",{method:"PATCH",body:JSON.stringify({status})});setOrders(x=>x.map(o=>o.id===order.id?d.order:o))}catch(e){setMessage(e instanceof Error?e.message:"Holatni o'zgartirib bo'lmadi.")}}
 
@@ -102,8 +108,8 @@ export default function App(){
 
     <section className="seller-main">
       <header className="top">
-        <div><span className="eyebrow">SELLER CENTER · LIVE v2</span><h1>{tab==="overview"?"Dashboard":nav.find(x=>x[0]===tab)?.[1]}</h1><p>Do'koningizni bitta joydan boshqaring.</p></div>
-        <div className="top-actions">{notification&&<button className="notice" onClick={()=>setNotification("")}>🔔 {notification}</button>}<div className="status">● LIVE DATABASE</div></div>
+        <div><span className="eyebrow">SELLER CENTER · LIVE v3</span><h1>{tab==="overview"?"Dashboard":nav.find(x=>x[0]===tab)?.[1]}</h1><p>Do'koningizni bitta joydan boshqaring.</p></div>
+        <div className="top-actions">{notification&&<button className="notice" onClick={()=>setNotification("")}>🔔 {notification}</button>}<div className="status">● LIVE DATABASE · {liveTick}</div></div>
       </header>
 
       {tab==="overview"&&<>
