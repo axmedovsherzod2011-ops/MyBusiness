@@ -136,9 +136,9 @@ async function handleTelegramUpdate(update: TelegramUpdate): Promise<void> {
 
     await telegramApi("sendMessage", {
       chat_id: chatId,
-      text: "Telefon raqamingiz tasdiqlandi. Endi MyBusiness ilovasiga qayting va ismingizni kiriting.",
+      text: "Telefon raqamingiz tasdiqlandi. Endi ilovaga qayting va ismingizni kiriting.",
       reply_markup: {
-        inline_keyboard: [[{ text: "↩️ MyBusiness'ga qaytish", url: customerAppUrl }]],
+        inline_keyboard: [[{ text: "↩️ Ilovaga qaytish", url: customerAppUrl }]],
       },
     });
   }
