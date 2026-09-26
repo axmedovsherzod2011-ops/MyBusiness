@@ -33,10 +33,6 @@ jobs:
           pnpm --version
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
-      - name: Build customer
-        run: pnpm --filter @marketplace/customer build
-      - name: Verify customer build
-        run: test -f apps/customer/dist/index.html
       - name: Build seller
         run: pnpm --filter @marketplace/seller build
       - name: Verify seller build
@@ -47,10 +43,10 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: apps/seller
-          command: deploy --config wrangler.jsonc
+          command: deploy --config wrangler.jsonc --name mybusiness
       - name: Verify live seller version
         run: |
           set -e
           body="$(curl -fsSL "https://mybusiness.axmedovsherzod2011.workers.dev/?v=$GITHUB_SHA")"
-          echo "$body" | grep -q "SELLER CENTER"
-          echo "Live Seller Worker responded with the newly built HTML."
+          echo "$body" | grep -q "SELLER CENTER · LIVE v2"
+          echo "Live Seller Worker is serving the current Seller build."
