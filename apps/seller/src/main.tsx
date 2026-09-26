@@ -5,9 +5,10 @@ import "./styles.css";
 const apiBase = "https://mybusiness-api-e6dk.onrender.com";
 const emptyForm = { name: "", description: "", price: "", stock: "0", imageUrl: "" };
 
+type OrderItem = { id:number; productId:number|null; productName:string; price:number; quantity:number };
 type Order = {
-  id:number; customerName:string; customerPhone:string; status:string; total:number;
-  createdAt:string; updatedAt:string;
+  id:number; customerUserId:number|null; customerName:string; customerPhone:string; status:string; total:number;
+  createdAt:string; updatedAt:string; items:OrderItem[];
 };
 type Chat = {
   id:number; customerName:string; productId:number|null; status:string;
@@ -29,6 +30,9 @@ export default function App(){
   const [chats,setChats]=useState<Chat[]>([]);
   const [messages,setMessages]=useState<ChatMessage[]>([]);
   const [activeChat,setActiveChat]=useState<number|null>(null);
+  const [selectedOrder,setSelectedOrder]=useState<number|null>(null);
+  const [lastSeenNewOrders,setLastSeenNewOrders]=useState(0);
+  const [notification,setNotification]=useState("");
   const [chatText,setChatText]=useState("");
   const [form,setForm]=useState(emptyForm);
   const [query,setQuery]=useState("");
@@ -46,7 +50,25 @@ export default function App(){
   async function loadProducts(){try{const d=await api("/api/v1/products");setProducts((d as ProductsResponse).products)}catch(e){setMessage(e instanceof Error?e.message:"Mahsulotlarni yuklab bo'lmadi.")}finally{setLoading(false)}}
   async function loadOrders(){try{const d=await api("/api/v1/orders");setOrders(d.orders||[])}catch(e){setMessage(e instanceof Error?e.message:"Buyurtmalarni yuklab bo'lmadi.")}}
   async function loadChats(){try{const d=await api("/api/v1/chats");setChats(d.chats||[])}catch(e){setMessage(e instanceof Error?e.message:"Chatlarni yuklab bo'lmadi.")}}
-  useEffect(()=>{void loadProducts();void loadOrders();void loadChats()},[]);
+  useEffect(()=>{
+    void loadProducts(); void loadOrders(); void loadChats();
+    const timer=window.setInterval(async()=>{
+      try{
+        const d=await api("/api/v1/orders");
+        const next=(d.orders||[]) as Order[];
+        const incoming=next.filter(o=>o.status==="new").length;
+        if(lastSeenNewOrders>0 && incoming>lastSeenNewOrders){
+          setNotification(`Yangi buyurtma keldi: ${incoming-lastSeenNewOrders} ta`);
+          setTab("orders");
+        }
+        setLastSeenNewOrders(incoming);
+        setOrders(next);
+        const c=await api("/api/v1/chats");
+        setChats(c.chats||[]);
+      }catch{}
+    },15000);
+    return()=>window.clearInterval(timer);
+  },[lastSeenNewOrders]);
 
   async function openChat(id:number){setActiveChat(id);try{const d=await api("/api/v1/chats/"+id+"/messages");setMessages(d.messages||[])}catch(e){setMessage(e instanceof Error?e.message:"Xabarlarni yuklab bo'lmadi.")}}
   async function sendChat(e:FormEvent){e.preventDefault();const text=chatText.trim();if(!activeChat||!text)return;try{const d=await api("/api/v1/chats/"+activeChat+"/messages",{method:"POST",body:JSON.stringify({message:text})});setMessages(x=>[...x,d.message]);setChatText("");await loadChats()}catch(e){setMessage(e instanceof Error?e.message:"Xabar yuborilmadi.")}}
@@ -68,6 +90,7 @@ export default function App(){
   const catalogValue=products.reduce((s,p)=>s+p.price*p.stock,0);
   const newOrders=orders.filter(o=>o.status==="new").length;
   const openChats=chats.filter(c=>c.status==="open").length;
+  const selected=selectedOrder===null?null:orders.find(o=>o.id===selectedOrder)||null;
   const nav=[["overview","Dashboard"],["products","Mahsulotlar"],["orders","Buyurtmalar"],["chats","Chatlar"],["inventory","Ombor"],["marketing","Marketing"],["analytics","Analitika"]];
 
   return <main className="seller-shell">
@@ -80,7 +103,7 @@ export default function App(){
     <section className="seller-main">
       <header className="top">
         <div><span className="eyebrow">SELLER CENTER</span><h1>{tab==="overview"?"Dashboard":nav.find(x=>x[0]===tab)?.[1]}</h1><p>Do'koningizni bitta joydan boshqaring.</p></div>
-        <div className="status">● LIVE DATABASE</div>
+        <div className="top-actions">{notification&&<button className="notice" onClick={()=>setNotification("")}>🔔 {notification}</button>}<div className="status">● LIVE DATABASE</div></div>
       </header>
 
       {tab==="overview"&&<>
@@ -103,7 +126,14 @@ export default function App(){
       {tab==="orders"&&<section className="panel">
         <div className="panel-head"><div><h2>Buyurtmalar</h2><span className="muted">Customer saytidan kelgan buyurtmalar</span></div><button className="secondary small" onClick={()=>void loadOrders()}>Yangilash</button></div>
         {!orders.length?<div className="empty"><b>Hali buyurtma yo'q</b><span>Customer checkout ishlaganda yangi buyurtmalar shu yerda paydo bo'ladi.</span></div>:
-        <div className="orders-list">{orders.map(o=><article className="order-card" key={o.id}><div className="order-main"><div><span className="order-id">BUYURTMA #{o.id}</span><h3>{o.customerName}</h3><p>{o.customerPhone} · {formatDate(o.createdAt)}</p></div><span className={"status-pill "+o.status}>{statusLabels[o.status]||o.status}</span></div><div className="order-bottom"><b>{formatPrice(o.total)}</b><div className="order-actions">{o.status!=="cancelled"&&o.status!=="completed"&&<button className="primary small" onClick={()=>changeStatus(o,nextStatus[o.status]||"completed")}>{nextStatus[o.status]==="confirmed"?"Qabul qilish":nextStatus[o.status]==="preparing"?"Tayyorlash":nextStatus[o.status]==="shipping"?"Yetkazishga berish":"Yakunlash"}</button>} {o.status!=="completed"&&o.status!=="cancelled"&&<button className="secondary small" onClick={()=>changeStatus(o,"cancelled")}>Bekor qilish</button>}</div></div></article>)}</div>}
+        <div className="orders-list">{orders.map(o=><article className={"order-card "+(selectedOrder===o.id?"selected-order":"")} key={o.id} onClick={()=>setSelectedOrder(selectedOrder===o.id?null:o.id)}>
+          <div className="order-main"><div><span className="order-id">BUYURTMA #{o.id}</span><h3>{o.customerName}</h3><p>{o.customerPhone} · {formatDate(o.createdAt)} · {o.items?.length||0} ta mahsulot</p></div><span className={"status-pill "+o.status}>{statusLabels[o.status]||o.status}</span></div>
+          {selectedOrder===o.id&&<div className="order-details" onClick={e=>e.stopPropagation()}>
+            <div className="customer-box"><b>Mijoz</b><span>{o.customerName}</span><a href={"tel:"+o.customerPhone}>{o.customerPhone}</a>{o.customerUserId&&<small>Customer ID: {o.customerUserId}</small>}</div>
+            <div className="item-list">{(o.items||[]).map(i=><div className="item-line" key={i.id}><span>{i.productName} × {i.quantity}</span><b>{formatPrice(Number(i.price)*i.quantity)}</b></div>)}</div>
+          </div>}
+          <div className="order-bottom"><b>{formatPrice(o.total)}</b><div className="order-actions">{o.status!=="cancelled"&&o.status!=="completed"&&<button className="primary small" onClick={()=>changeStatus(o,nextStatus[o.status]||"completed")}>{nextStatus[o.status]==="confirmed"?"Qabul qilish":nextStatus[o.status]==="preparing"?"Tayyorlash":nextStatus[o.status]==="shipping"?"Yetkazishga berish":"Yakunlash"}</button>} {o.status!=="completed"&&o.status!=="cancelled"&&<button className="secondary small" onClick={()=>changeStatus(o,"cancelled")}>Bekor qilish</button>}<button className="secondary small" onClick={()=>{setTab("chats");setSelectedOrder(null)}}>Chat</button></div></div>
+        </article>)}</div>
       </section>}
 
       {tab==="chats"&&<section className="chat-layout panel">
