@@ -1,9 +1,11 @@
 import { app } from "./app.js";
+import { configureTelegramWebhook } from "./telegram-auth.js";
 
 const port = Number(process.env.PORT ?? 10000);
 
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`Marketplace API listening on 0.0.0.0:${port}`);
+  void configureTelegramWebhook().catch((error) => console.error("Telegram webhook setup failed", error));
 });
 
 let shuttingDown = false;
