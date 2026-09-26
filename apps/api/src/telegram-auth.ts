@@ -194,7 +194,13 @@ export function registerTelegramAuthRoutes(app: Express): void {
         }
       }
       res.setHeader("Cache-Control", "no-store");
-      res.json({ status: row.status, phone: row.phone ?? null });
+      const existing = row.phone
+        ? await db.query(
+            `SELECT id FROM customer_users WHERE phone = $1 LIMIT 1`,
+            [row.phone],
+          )
+        : { rowCount: 0 };
+      res.json({ status: row.status, phone: row.phone ?? null, existingUser: Boolean(existing.rowCount) });
     } catch (error) {
       console.error("Telegram auth session lookup failed", error);
       res.status(500).json({ message: "Login holatini tekshirib bo'lmadi." });
@@ -206,8 +212,8 @@ export function registerTelegramAuthRoutes(app: Express): void {
     const firstName = String(req.body?.firstName ?? "").trim();
     const lastName = String(req.body?.lastName ?? "").trim();
 
-    if (!sessionId || !firstName) {
-      res.status(400).json({ message: "Ism va login sessiyasi kerak." });
+    if (!sessionId) {
+      res.status(400).json({ message: "Login sessiyasi kerak." });
       return;
     }
 
@@ -225,19 +231,38 @@ export function registerTelegramAuthRoutes(app: Express): void {
         return;
       }
 
-      const token = randomUUID();
-      const user = await db.query(
-        `INSERT INTO customer_users (phone, telegram_id, first_name, last_name, auth_token)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (phone) DO UPDATE
-         SET telegram_id = EXCLUDED.telegram_id,
-             first_name = EXCLUDED.first_name,
-             last_name = EXCLUDED.last_name,
-             auth_token = EXCLUDED.auth_token,
-             updated_at = NOW()
-         RETURNING id, phone, first_name, last_name`,
-        [row.phone, row.telegram_id, firstName, lastName, token],
+      const existingUser = await db.query(
+        `SELECT id, phone, first_name, last_name
+         FROM customer_users
+         WHERE phone = $1
+         LIMIT 1`,
+        [row.phone],
       );
+
+      const token = randomUUID();
+      let user;
+      if (existingUser.rowCount) {
+        user = await db.query(
+          `UPDATE customer_users
+           SET telegram_id = $2,
+               auth_token = $3,
+               updated_at = NOW()
+           WHERE phone = $1
+           RETURNING id, phone, first_name, last_name`,
+          [row.phone, row.telegram_id, token],
+        );
+      } else {
+        if (!firstName) {
+          res.status(400).json({ message: "Yangi akkaunt uchun ism kerak." });
+          return;
+        }
+        user = await db.query(
+          `INSERT INTO customer_users (phone, telegram_id, first_name, last_name, auth_token)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING id, phone, first_name, last_name`,
+          [row.phone, row.telegram_id, firstName, lastName, token],
+        );
+      }
 
       await db.query(
         `UPDATE telegram_auth_sessions
