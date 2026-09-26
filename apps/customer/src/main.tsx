@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
@@ -254,8 +254,8 @@ export default function App(){
     try{
       if(chatId){
         const r=await fetch(apiBase+"/api/v1/chats/"+chatId+"/messages",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({message:body})});
-        const d=await r.json() as {message?:{id:number;senderRole:"customer"|"seller";body:string;createdAt:string};message?:string};
-        if(!r.ok||!d.message)throw new Error((d as any).message||"Xabar yuborilmadi.");
+        const d=await r.json() as {message?:{id:number;senderRole:"customer"|"seller";body:string;createdAt:string}|string};
+        if(!r.ok||!d.message||typeof d.message==="string")throw new Error(typeof d.message==="string"?d.message:"Xabar yuborilmadi.");
         setChatMessages(x=>[...x,d.message!]);
       }else{
         const r=await fetch(apiBase+"/api/v1/chats",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({customerName:authUser.name||"Mijoz",customerUserId:null,productId:chatProduct.id,message:body})});
@@ -271,7 +271,7 @@ export default function App(){
     if(!cartItems.length)return;
     setCheckoutName(authUser.name||"");setCheckoutPhone(authUser.phone||"");setCheckoutError("");setCheckoutOpen(true);setPanel(null);
   }
-  async function submitCheckout(e:React.FormEvent){
+  async function submitCheckout(e:FormEvent){
     e.preventDefault();
     if(!checkoutName.trim()||!checkoutPhone.trim()||!cartItems.length)return;
     setCheckoutLoading(true);setCheckoutError("");
