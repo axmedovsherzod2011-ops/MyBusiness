@@ -1620,3 +1620,70 @@ body{min-width:320px!important}
 @media(min-width:701px){
   .drawer{padding-bottom:92px!important}
 }
+
+
+/* Telegram authentication flow */
+.telegram-auth-modal{
+  width:min(440px,calc(100% - 24px))!important;
+}
+.telegram-auth-button{
+  width:100%!important;
+  min-height:52px!important;
+  border:0!important;
+  border-radius:14px!important;
+  background:#229ed9!important;
+  color:#fff!important;
+  font:inherit!important;
+  font-weight:850!important;
+  font-size:14px!important;
+  cursor:pointer!important;
+  box-shadow:0 8px 22px rgba(34,158,217,.2)!important;
+}
+.telegram-auth-button:active{transform:scale(.985)!important}
+.auth-flow-note{
+  margin-top:12px!important;
+  padding:12px 13px!important;
+  border:1px solid #e7e7ed!important;
+  border-radius:13px!important;
+  background:#f8f8fa!important;
+  color:#777780!important;
+  font-size:11px!important;
+  line-height:1.5!important;
+  font-weight:650!important;
+}
+.auth-name-fields{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:9px!important;
+  margin:14px 0 10px!important;
+}
+.auth-name-fields input{
+  width:100%!important;
+  min-height:50px!important;
+  box-sizing:border-box!important;
+  border:1px solid #dedee6!important;
+  border-radius:13px!important;
+  padding:0 13px!important;
+  background:#fafafd!important;
+  color:#24242a!important;
+  font:inherit!important;
+  font-size:14px!important;
+  outline:0!important;
+}
+.auth-name-fields input:focus{
+  border-color:#7000ff!important;
+  background:#fff!important;
+  box-shadow:0 0 0 4px rgba(112,0,255,.08)!important;
+}
+.auth-error{
+  margin-top:10px!important;
+  padding:10px 12px!important;
+  border-radius:11px!important;
+  background:#fff1f1!important;
+  color:#c62828!important;
+  font-size:11px!important;
+  font-weight:750!important;
+}
+@media(max-width:520px){
+  .auth-name-fields{grid-template-columns:1fr!important}
+}
