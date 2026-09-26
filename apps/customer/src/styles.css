@@ -1687,3 +1687,5 @@ body{min-width:320px!important}
 @media(max-width:520px){
   .auth-name-fields{grid-template-columns:1fr!important}
 }
+
+.chat-bubble.customer{align-self:flex-end!important;background:#171917!important;color:#fff!important;border-radius:15px 15px 5px 15px!important}.chat-bubble.seller{align-self:flex-start!important}.chat-bubble small{display:block!important;margin-top:4px!important;font-size:9px!important;opacity:.55!important}.checkout-modal{max-width:520px!important}.checkout-modal>p{color:#777!important;font-size:12px!important}.checkout-modal form{display:grid!important;gap:10px!important}.checkout-modal .auth-name-fields{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important}.checkout-modal input{min-width:0!important}@media(max-width:520px){.checkout-modal .auth-name-fields{grid-template-columns:1fr!important}}
