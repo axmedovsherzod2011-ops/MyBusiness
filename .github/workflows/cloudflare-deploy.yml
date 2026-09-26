@@ -1,4 +1,4 @@
-name: Cloudflare Deploy
+name: Cloudflare Build
 
 on:
   push:
@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cloudflare-${{ github.ref }}
+  group: cloudflare-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -27,34 +27,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
       - name: Install pnpm
         run: |
           npm install --global pnpm@10.15.0
           pnpm --version
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+
       - name: Build seller
         run: pnpm --filter @marketplace/seller build
+
       - name: Verify seller build
         run: test -f apps/seller/dist/index.html
-      - name: Check Cloudflare secrets
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          test -n "$CLOUDFLARE_API_TOKEN"
-          test -n "$CLOUDFLARE_ACCOUNT_ID"
-          echo "Cloudflare credentials are present."
-      - name: Deploy seller Worker
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: apps/seller
-          command: deploy --config wrangler.jsonc --name mybusiness
-      - name: Verify live seller version
-        run: |
-          set -e
-          body="$(curl -fsSL "https://mybusiness.axmedovsherzod2011.workers.dev/?v=$GITHUB_SHA")"
-          echo "$body" | grep -q "SELLER CENTER · LIVE v2"
-          echo "Live Seller Worker is serving the current Seller build."
+
+      - name: Verify Worker assets
+        run: test -f apps/seller/index.html
