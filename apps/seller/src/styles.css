@@ -44,3 +44,8 @@
 
 /* Seller Center LIVE v3 */
 .top-actions{gap:12px}.notice{cursor:pointer}.status{white-space:nowrap}.selected-order{outline:2px solid rgba(112,0,255,.18);outline-offset:2px}.order-details{display:grid;grid-template-columns:minmax(180px,.7fr) minmax(260px,1.3fr);gap:16px;margin:14px 0;padding:14px;border:1px solid #ececf1;border-radius:14px;background:#fafafd}.customer-box,.item-list{display:grid;gap:7px}.customer-box>a{font-weight:800}.item-line{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #eee}.bubble.customer{margin-left:auto;background:#171917;color:#fff}.bubble.seller{margin-right:auto;background:#fff}@media(max-width:760px){.order-details{grid-template-columns:1fr}.top-actions{flex-wrap:wrap}}
+
+/* Seller Center order controls */
+.order-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}.filter-tabs{display:flex;gap:4px;padding:3px;border:1px solid #e1e4df;border-radius:10px;background:#f7f8f6}.filter-tabs button{border:0;background:transparent;color:#737a73;border-radius:7px;padding:7px 9px;font-size:10px;font-weight:850;cursor:pointer}.filter-tabs button:hover,.filter-tabs button.active{background:#171917;color:#fff}.order-card{transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}.order-card:hover{transform:translateY(-1px)}
+@media(max-width:900px){.order-toolbar{width:100%;justify-content:stretch}.filter-tabs{flex:1;overflow:auto}.filter-tabs button{white-space:nowrap}.order-toolbar>.small{flex:0 0 auto}}
+@media(max-width:600px){.filter-tabs{width:100%;flex:1}.filter-tabs button{flex:1}.order-toolbar>.small{width:100%!important}}
