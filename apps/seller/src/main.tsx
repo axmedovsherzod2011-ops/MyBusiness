@@ -91,7 +91,7 @@ export default function App(){
   const newOrders=orders.filter(o=>o.status==="new").length;
   const openChats=chats.filter(c=>c.status==="open").length;
   const selected=selectedOrder===null?null:orders.find(o=>o.id===selectedOrder)||null;
-  const nav=[["overview","Dashboard"],["products","Mahsulotlar"],["orders","Buyurtmalar"],["chats","Chatlar"],["inventory","Ombor"],["marketing","Marketing"],["analytics","Analitika"]];
+  const nav: Array<[string,string]> = [["overview","Dashboard"],["products","Mahsulotlar"],["orders","Buyurtmalar"],["chats","Chatlar"],["inventory","Ombor"],["marketing","Marketing"],["analytics","Analitika"]];
 
   return <main className="seller-shell">
     <aside className="sidebar">
