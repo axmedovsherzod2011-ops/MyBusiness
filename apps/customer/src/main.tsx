@@ -147,8 +147,13 @@ export default function App(){
   const [panel,setPanel]=useState<"cart"|"favorites"|"menu"|"profile"|"filters"|"search"|null>(null);
   const [quick,setQuick]=useState<Product|null>(null);
   const [toast,setToast]=useState("");
-  const [authUser,setAuthUser]=useState<{name:string}|null>(()=>{try{return JSON.parse(localStorage.getItem("mybusiness:customer-auth")||"null")}catch{return null}});
+  const [authUser,setAuthUser]=useState<{name:string;phone?:string;token?:string}|null>(()=>{try{return JSON.parse(localStorage.getItem("mybusiness:customer-auth")||"null")}catch{return null}});
   const [authOpen,setAuthOpen]=useState(false);
+  const [authSession,setAuthSession]=useState("");
+  const [authStatus,setAuthStatus]=useState<"idle"|"waiting"|"verified"|"expired"|"error">("idle");
+  const [authFirstName,setAuthFirstName]=useState("");
+  const [authLastName,setAuthLastName]=useState("");
+  const [authError,setAuthError]=useState("");
   const [chatProduct,setChatProduct]=useState<Product|null>(null);
 
   useEffect(()=>{
@@ -160,6 +165,21 @@ export default function App(){
   useEffect(()=>localStorage.setItem("mybusiness:favorites",JSON.stringify(favs)),[favs]);
   useEffect(()=>localStorage.setItem("mybusiness:cart",JSON.stringify(cart)),[cart]);
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2200);return()=>clearTimeout(t)},[toast]);
+  useEffect(()=>{if(!authSession||authStatus!=="waiting")return;
+    let stopped=false;
+    const check=async()=>{
+      try{
+        const r=await fetch(apiBase+"/api/v1/auth/telegram/session/"+encodeURIComponent(authSession),{headers:{Accept:"application/json"}});
+        const d=await r.json() as {status?:string;phone?:string;message?:string};
+        if(stopped)return;
+        if(d.status==="verified"){setAuthStatus("verified");if(d.phone)setAuthFirstName(prev=>prev);return;}
+        if(d.status==="expired")setAuthStatus("expired");
+      }catch{if(!stopped)setAuthStatus("error")}
+    };
+    void check();
+    const timer=window.setInterval(check,1500);
+    return()=>{stopped=true;window.clearInterval(timer)};
+  },[authSession,authStatus]);
 
   const visible=useMemo(()=>{
     const q=query.toLowerCase().trim();
@@ -203,8 +223,39 @@ export default function App(){
   function openSearch(nextQuery=query){setQuery(nextQuery.trim());setPanel("search");}
   function toggleFav(id:number){setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);}
   function askSeller(p:Product){if(!authUser){setAuthOpen(true);return}setPanel(null);setChatProduct(p);}
-  function finishAuth(name:string){const user={name:name.trim()||"Xaridor"};localStorage.setItem("mybusiness:customer-auth",JSON.stringify(user));setAuthUser(user);setAuthOpen(false);setToast("Kirish muvaffaqiyatli");}
-  function signOut(){localStorage.removeItem("mybusiness:customer-auth");setAuthUser(null);setToast("Profil chiqildi");}
+  async function startTelegramAuth(){
+    setAuthError("");
+    setAuthStatus("idle");
+    try{
+      const r=await fetch(apiBase+"/api/v1/auth/telegram/session",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"}});
+      const d=await r.json() as {sessionId?:string;telegramUrl?:string;message?:string};
+      if(!r.ok||!d.sessionId||!d.telegramUrl)throw new Error(d.message||"Telegram ulanishini boshlashda xatolik.");
+      setAuthSession(d.sessionId);
+      setAuthStatus("waiting");
+      window.location.href=d.telegramUrl;
+    }catch(e){setAuthStatus("error");setAuthError(e instanceof Error?e.message:"Telegram ulanishida xatolik.");}
+  }
+  async function completeTelegramAuth(){
+    const firstName=authFirstName.trim();
+    const lastName=authLastName.trim();
+    if(!firstName){setAuthError("Ismingizni kiriting.");return}
+    setAuthError("");
+    try{
+      const r=await fetch(apiBase+"/api/v1/auth/telegram/complete",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({sessionId:authSession,firstName,lastName})});
+      const d=await r.json() as {token?:string;user?:{first_name:string;last_name:string;phone:string};message?:string};
+      if(!r.ok||!d.token||!d.user)throw new Error(d.message||"Hisobni yaratib bo'lmadi.");
+      const user={name:[d.user.first_name,d.user.last_name].filter(Boolean).join(" "),phone:d.user.phone,token:d.token};
+      localStorage.setItem("mybusiness:customer-auth",JSON.stringify(user));
+      setAuthUser(user);
+      setAuthOpen(false);
+      setAuthSession("");
+      setAuthStatus("idle");
+      setAuthFirstName("");
+      setAuthLastName("");
+      setToast("Kirish muvaffaqiyatli");
+    }catch(e){setAuthError(e instanceof Error?e.message:"Hisobni yaratib bo'lmadi.");}
+  }
+  function signOut(){localStorage.removeItem("mybusiness:customer-auth");setAuthUser(null);setAuthSession("");setAuthStatus("idle");setAuthFirstName("");setAuthLastName("");}
 
   return <main className="market">
     {panel===null&&<header className="app-header">
@@ -254,7 +305,7 @@ export default function App(){
     </aside></div>}
 
     {quick&&<div className="product-detail-screen"><div className="product-detail-head"><button className="detail-back" onClick={()=>setQuick(null)} aria-label="Orqaga"><Icon name="back" size={22}/></button><span>Mahsulot</span><button className={"detail-fav "+(favs.includes(quick!.id)?"liked":"")} onClick={()=>toggleFav(quick!.id)} aria-label="Sevimliga qo'shish">{favs.includes(quick!.id)?"♥":"♡"}</button></div><section className="product-detail"><div className="detail-gallery"><div className={"detail-image-track "+(productImages(quick).length>1?"has-gallery":"single-image")}>{productImages(quick).length?productImages(quick).map((src,i)=><img key={src+i} src={src} alt={i===0?quick!.name:""} />):<span>MYBUSINESS</span>}</div></div><div className="detail-info"><div className="detail-category">{label(cat(quick))}</div><h1>{quick!.name}</h1><div className="detail-meta"><span className="detail-stock">{quick!.stock>0?"Sotuvda":"Tugagan"}</span><span>Mahsulot ID: {quick!.id}</span></div><div className="detail-price">{money(quick!.price)}</div><p className="detail-description">{quick!.description||"Mahsulot tavsifi kiritilmagan."}</p><div className="detail-block"><b>Mahsulot haqida</b><span>Kategoriya: {label(cat(quick))}</span><span>{quick!.stock>0?"Omborda "+quick!.stock+" dona mavjud":"Hozircha mavjud emas"}</span></div><div className="detail-actions"><div className="detail-purchase-row"><button className="detail-ask" onClick={()=>askSeller(quick)}>Sotuvchidan so'rash</button>{cart[quick!.id]?<div className="detail-qty"><button onClick={()=>qty(quick!.id,-1)} aria-label="Kamaytirish">−</button><b>{cart[quick!.id]}</b><button onClick={()=>qty(quick!.id,1)} disabled={!(quick!.stock>0)||((cart[quick!.id]||0)>=quick!.stock)} aria-label="Ko'paytirish">+</button></div>:<button className="detail-add" disabled={!quick!.stock} onClick={()=>add(quick)}><Icon name="cart" size={19}/><span>{quick!.stock?"Savatga qo'shish":"Tugagan"}</span></button>}</div></div></div></section></div>}
-    {authOpen&&<div className="auth-overlay" onClick={()=>setAuthOpen(false)}><section className="auth-modal" onClick={e=>e.stopPropagation()}><button className="auth-close" onClick={()=>setAuthOpen(false)} aria-label="Yopish"><Icon name="close" size={20}/></button><span className="eyebrow">MYBUSINESS MARKET</span><h2>Kirish yoki ro'yxatdan o'tish</h2><p>Sotuvchiga yozish uchun hisob kerak.</p><form onSubmit={e=>{e.preventDefault();const data=new FormData(e.currentTarget);finishAuth(String(data.get("name")||""))}}><input name="name" required placeholder="Ismingiz" autoComplete="name"/><input name="contact" required placeholder="Telefon yoki email" autoComplete="email"/><button className="primary full" type="submit">Davom etish</button></form><small>Hozircha autentifikatsiya demo rejimida ishlaydi; seller chat backendi keyingi bosqichda ulanadi.</small></section></div>}
+    {authOpen&&<div className="auth-overlay" onClick={()=>setAuthOpen(false)}><section className="auth-modal telegram-auth-modal" onClick={e=>e.stopPropagation()}><button className="auth-close" onClick={()=>setAuthOpen(false)} aria-label="Yopish"><Icon name="close" size={20}/></button><span className="eyebrow">MYBUSINESS MARKET</span>{authStatus==="verified"?<><h2>Telefon tasdiqlandi</h2><p>Endi ismingizni kiriting. Shu ma'lumot bilan MyBusiness akkauntingiz yaratiladi yoki mavjud akkauntingizga kirasiz.</p><div className="auth-name-fields"><input value={authFirstName} onChange={e=>setAuthFirstName(e.target.value)} placeholder="Ism" autoComplete="given-name"/><input value={authLastName} onChange={e=>setAuthLastName(e.target.value)} placeholder="Familiya" autoComplete="family-name"/></div><button className="primary full" onClick={completeTelegramAuth}>Kirish / ro'yxatdan o'tish</button></>:authStatus==="expired"?<><h2>Sessiya tugadi</h2><p>Telegram ulanish sessiyasi 10 daqiqadan keyin tugaydi.</p><button className="primary full" onClick={startTelegramAuth}>Telegram orqali qayta ulash</button></>:<><h2>Kirish yoki ro'yxatdan o'tish</h2><p>Telefon raqamingizni xavfsiz tasdiqlash uchun Telegram orqali ulaning.</p><button className="telegram-auth-button" onClick={startTelegramAuth}>Telegram orqali ulash</button><div className="auth-flow-note">{authStatus==="waiting"?"Telegram ochiladi. Botda Start → Raqamni yuborish tugmalarini bosing, so'ng MyBusiness'ga qayting.":"Telegram bot orqali raqamingizni tasdiqlash uchun davom eting."}</div></>}{authError&&<div className="auth-error">{authError}</div>}</section></div>}
     {chatProduct&&<div className="chat-overlay"><section className="chat-screen"><header className="chat-head"><button onClick={()=>setChatProduct(null)} aria-label="Orqaga"><Icon name="back" size={22}/></button><div><b>{chatProduct.name}</b><span>Sotuvchi bilan chat</span></div><span className="chat-online">●</span></header><div className="chat-messages"><div className="chat-empty-product"><div>{productImages(chatProduct)[0]?<img src={productImages(chatProduct)[0]} alt=""/>:<span>MB</span>}</div><b>{chatProduct.name}</b><span>{money(chatProduct.price)}</span></div><div className="chat-bubble system">Siz sotuvchiga mahsulot haqida savol berishingiz mumkin.</div><div className="chat-bubble muted">Yozishmalar seller ilovasi bilan ulanishdan keyin yuboriladi.</div></div><div className="chat-composer"><input disabled placeholder="Xabar yozish hozircha o'chirilgan"/><button disabled aria-label="Yuborish">➤</button></div></section></div>}
     {toast&&<div className="toast">✓ {toast}</div>}
   </main>;
