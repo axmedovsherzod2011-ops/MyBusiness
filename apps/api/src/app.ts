@@ -2,6 +2,7 @@ import cors from "cors";
 import express, { type Express, type NextFunction, type Request, type Response } from "express";
 import { checkDatabaseConnection, initializeDatabase } from "./db.js";
 import { productsRouter } from "./products.js";
+import { registerTelegramAuthRoutes } from "./telegram-auth.js";
 
 const appVersion = process.env.APP_VERSION ?? "0.1.0";
 const corsOrigins = (process.env.CORS_ORIGIN ?? "")
@@ -64,6 +65,8 @@ app.get("/api/v1", (_req: Request, res: Response) => {
     status: "marketplace-ready",
   });
 });
+
+registerTelegramAuthRoutes(app);
 
 app.use("/api/v1/products", productsRouter);
 
