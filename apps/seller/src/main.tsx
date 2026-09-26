@@ -108,17 +108,27 @@ export default function App(){
 
       {tab==="overview"&&<>
         <div className="stats">
-          <div><span>Mahsulotlar</span><b>{products.length}</b></div><div><span>Ombordagi dona</span><b>{totalStock}</b></div>
-          <div><span>Yangi buyurtmalar</span><b>{newOrders}</b></div><div><span>Ochiq chatlar</span><b>{openChats}</b></div>
+          <div><span>Mahsulotlar</span><b>{products.length}</b><small>Real katalog</small></div>
+          <div><span>Ombordagi dona</span><b>{totalStock}</b><small>{products.filter(p=>p.stock===0).length} ta tugagan</small></div>
+          <div className={newOrders?"stat-alert":""}><span>Yangi buyurtmalar</span><b>{newOrders}</b><small>{orders.length} ta jami buyurtma</small></div>
+          <div className={openChats?"stat-alert":""}><span>Ochiq chatlar</span><b>{openChats}</b><small>{chats.length} ta suhbat</small></div>
         </div>
         <div className="dashboard-grid">
-          <section className="panel"><div className="panel-head"><h2>Tezkor amallar</h2></div>
-            <button className="primary" onClick={()=>setTab("add")}>+ Yangi mahsulot</button>
-            <button className="secondary" onClick={()=>setTab("orders")}>Buyurtmalarni ko'rish</button>
-            <button className="secondary" onClick={()=>setTab("chats")}>Mijozlar chatini ochish</button>
+          <section className="panel">
+            <div className="panel-head"><div><h2>So'nggi buyurtmalar</h2><span className="muted">Customer saytidan real kelganlar</span></div><button className="secondary small" onClick={()=>setTab("orders")}>Barchasi</button></div>
+            {orders.length ? <div className="recent-orders">{orders.slice(0,5).map(o=><button className="recent-order" key={o.id} onClick={()=>{setSelectedOrder(o.id);setTab("orders")}}>
+              <span><b>#{o.id} · {o.customerName}</b><small>{o.customerPhone} · {o.items?.length||0} ta mahsulot</small></span>
+              <span><strong>{formatPrice(o.total)}</strong><i className={"status-pill "+o.status}>{statusLabels[o.status]||o.status}</i></span>
+            </button>)}</div> : <div className="empty compact-empty"><b>Buyurtmalar hali yo'q</b><span>Customer checkout qilganda shu yerda ko'rinadi.</span></div>}
           </section>
-          <section className="panel"><div className="panel-head"><h2>Bugungi holat</h2><span className="ai">LIVE</span></div>
-            <div className="overview-list"><div><span>Ombor qiymati</span><b>{formatPrice(catalogValue)}</b></div><div><span>Tugagan mahsulotlar</span><b>{products.filter(p=>p.stock===0).length}</b></div><div><span>Jami buyurtmalar</span><b>{orders.length}</b></div></div>
+          <section className="panel">
+            <div className="panel-head"><div><h2>Tezkor boshqaruv</h2><span className="muted">Bugungi asosiy ko'rsatkichlar</span></div><span className="ai">LIVE</span></div>
+            <div className="overview-list">
+              <div><span>Ombor qiymati</span><b>{formatPrice(catalogValue)}</b></div>
+              <div><span>Yakunlangan buyurtmalar</span><b>{orders.filter(o=>o.status==="completed").length}</b></div>
+              <div><span>Bekor qilingan</span><b>{orders.filter(o=>o.status==="cancelled").length}</b></div>
+            </div>
+            <div className="quick-actions"><button className="primary" onClick={()=>setTab("add")}>+ Yangi mahsulot</button><button className="secondary" onClick={()=>setTab("chats")}>Mijozlar chatini ochish</button></div>
           </section>
         </div>
       </>}
