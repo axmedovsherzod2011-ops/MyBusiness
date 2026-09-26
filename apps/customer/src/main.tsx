@@ -256,11 +256,13 @@ export default function App(){
         const r=await fetch(apiBase+"/api/v1/chats/"+chatId+"/messages",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({message:body})});
         const d=await r.json() as {message?:{id:number;senderRole:"customer"|"seller";body:string;createdAt:string}|string};
         if(!r.ok||!d.message||typeof d.message==="string")throw new Error(typeof d.message==="string"?d.message:"Xabar yuborilmadi.");
-        setChatMessages(x=>[...x,d.message!]);
+        const sentMessage = d.message;
+        if (!sentMessage || typeof sentMessage === "string") throw new Error("Xabar yuborilmadi.");
+        setChatMessages(x=>[...x, sentMessage]);
       }else{
         const r=await fetch(apiBase+"/api/v1/chats",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({customerName:authUser.name||"Mijoz",customerUserId:null,productId:chatProduct.id,message:body})});
         const d=await r.json() as {chatId?:number;message?:{id:number;senderRole:"customer"|"seller";body:string;createdAt:string};message?:string};
-        if(!r.ok||!d.chatId||!d.message)throw new Error((d as any).message||"Chat ochilmadi.");
+        if(!r.ok||!d.chatId||!d.message)throw new Error(d.error||"Chat ochilmadi.");
         setChatId(d.chatId);setChatMessages([d.message]);
       }
       setChatInput("");
