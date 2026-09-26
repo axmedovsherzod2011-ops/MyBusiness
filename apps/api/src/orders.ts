@@ -8,10 +8,17 @@ export function registerOrderRoutes(app: Express): void {
     try {
       const db = requireDatabase();
       const result = await db.query(
-        `SELECT id, customer_user_id AS "customerUserId", customer_name AS "customerName",
-                customer_phone AS "customerPhone", status, total,
-                created_at AS "createdAt", updated_at AS "updatedAt"
-         FROM marketplace_orders ORDER BY created_at DESC LIMIT 200`,
+        `SELECT o.id, o.customer_user_id AS "customerUserId", o.customer_name AS "customerName",
+                o.customer_phone AS "customerPhone", o.status, o.total,
+                o.created_at AS "createdAt", o.updated_at AS "updatedAt",
+                COALESCE(json_agg(json_build_object(
+                  'id', i.id, 'productId', i.product_id, 'productName', i.product_name,
+                  'price', i.price, 'quantity', i.quantity
+                ) ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
+         FROM marketplace_orders o
+         LEFT JOIN marketplace_order_items i ON i.order_id=o.id
+         GROUP BY o.id
+         ORDER BY o.created_at DESC LIMIT 200`,
       );
       res.json({ orders: result.rows });
     } catch (error) {
