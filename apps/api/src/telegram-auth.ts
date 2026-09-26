@@ -6,7 +6,14 @@ const botToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
 const botUsername = (process.env.TELEGRAM_BOT_USERNAME ?? "").replace(/^@/, "");
 const publicApiUrl = (process.env.PUBLIC_API_URL ?? "").replace(/\/$/, "");
 const customerAppUrl = process.env.CUSTOMER_APP_URL ?? "https://mybusiness-9h9.pages.dev/";
-const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET ?? "";
+const configuredWebhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET ?? "";
+// Telegram accepts only A-Z, a-z, 0-9, _ and - for webhook secret tokens.
+const webhookSecret = /^[A-Za-z0-9_-]{1,256}$/.test(configuredWebhookSecret)
+  ? configuredWebhookSecret
+  : "";
+if (configuredWebhookSecret && !webhookSecret) {
+  console.warn("TELEGRAM_WEBHOOK_SECRET is invalid for Telegram; webhook secret protection is disabled until it is replaced with A-Z/a-z/0-9/_/- characters.");
+}
 
 type TelegramUpdate = {
   message?: {
