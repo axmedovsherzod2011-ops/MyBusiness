@@ -51,6 +51,7 @@ export async function initializeDatabase(): Promise<void> {
         id BIGSERIAL PRIMARY KEY,
         phone VARCHAR(32) NOT NULL UNIQUE,
         telegram_id BIGINT UNIQUE,
+        auth_token UUID UNIQUE,
         first_name VARCHAR(100) NOT NULL,
         last_name VARCHAR(100) NOT NULL DEFAULT '',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
