@@ -72,6 +72,11 @@ export async function initializeDatabase(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS telegram_auth_sessions_expires_at_idx
         ON telegram_auth_sessions (expires_at);
+
+      ALTER TABLE customer_users
+        ADD COLUMN IF NOT EXISTS auth_token UUID;
+      CREATE UNIQUE INDEX IF NOT EXISTS customer_users_auth_token_idx
+        ON customer_users (auth_token);
     `).then(() => undefined).catch((error) => {
       initializationPromise = null;
       throw error;
