@@ -42,8 +42,15 @@ jobs:
       - name: Verify seller build
         run: test -f apps/seller/dist/index.html
       - name: Deploy seller Worker
-        working-directory: apps/seller
-        run: pnpm exec wrangler deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/seller
+          command: deploy --config wrangler.jsonc
+      - name: Verify live seller version
+        run: |
+          set -e
+          body="$(curl -fsSL "https://mybusiness.axmedovsherzod2011.workers.dev/?v=$GITHUB_SHA")"
+          echo "$body" | grep -q "SELLER CENTER"
+          echo "Live Seller Worker responded with the newly built HTML."
