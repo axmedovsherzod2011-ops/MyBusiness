@@ -73,6 +73,55 @@ export async function initializeDatabase(): Promise<void> {
       CREATE INDEX IF NOT EXISTS telegram_auth_sessions_expires_at_idx
         ON telegram_auth_sessions (expires_at);
 
+
+
+      CREATE TABLE IF NOT EXISTS marketplace_orders (
+        id BIGSERIAL PRIMARY KEY,
+        customer_user_id BIGINT REFERENCES customer_users(id) ON DELETE SET NULL,
+        customer_name VARCHAR(200) NOT NULL DEFAULT '',
+        customer_phone VARCHAR(32) NOT NULL DEFAULT '',
+        status VARCHAR(30) NOT NULL DEFAULT 'new',
+        total NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (total >= 0),
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS marketplace_orders_status_idx
+        ON marketplace_orders (status, created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS marketplace_order_items (
+        id BIGSERIAL PRIMARY KEY,
+        order_id BIGINT NOT NULL REFERENCES marketplace_orders(id) ON DELETE CASCADE,
+        product_id BIGINT REFERENCES marketplace_products(id) ON DELETE SET NULL,
+        product_name VARCHAR(180) NOT NULL,
+        price NUMERIC(14,2) NOT NULL CHECK (price >= 0),
+        quantity INTEGER NOT NULL CHECK (quantity > 0)
+      );
+
+      CREATE TABLE IF NOT EXISTS seller_chats (
+        id BIGSERIAL PRIMARY KEY,
+        customer_user_id BIGINT REFERENCES customer_users(id) ON DELETE SET NULL,
+        product_id BIGINT REFERENCES marketplace_products(id) ON DELETE SET NULL,
+        customer_name VARCHAR(200) NOT NULL DEFAULT '',
+        status VARCHAR(20) NOT NULL DEFAULT 'open',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS seller_chat_messages (
+        id BIGSERIAL PRIMARY KEY,
+        chat_id BIGINT NOT NULL REFERENCES seller_chats(id) ON DELETE CASCADE,
+        sender_role VARCHAR(20) NOT NULL,
+        body TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS seller_chats_updated_at_idx
+        ON seller_chats (updated_at DESC);
+
+      CREATE INDEX IF NOT EXISTS seller_chat_messages_chat_id_idx
+        ON seller_chat_messages (chat_id, created_at ASC);
+
       ALTER TABLE customer_users
         ADD COLUMN IF NOT EXISTS auth_token UUID;
       CREATE UNIQUE INDEX IF NOT EXISTS customer_users_auth_token_idx
