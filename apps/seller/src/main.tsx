@@ -13,7 +13,7 @@ type Order = {
 };
 type Chat = {
   id:number; customerUserId:number|null; customerName:string; productId:number|null; status:string;
-  lastMessage:string; messageCount:number; updatedAt:string;
+  productName?:string; productImageUrl?:string; lastMessage:string; messageCount:number; updatedAt:string;
 };
 type ChatMessage = { id:number; senderRole:"customer"|"seller"; body:string; createdAt:string };
 const statusLabels:Record<string,string> = {
