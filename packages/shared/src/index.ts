@@ -15,6 +15,8 @@ export interface Product {
   imageUrl: string;
   stock: number;
   createdAt: string;
+  promoDiscountPercent?: number | null;
+  promoPrice?: number | null;
 }
 
 export interface CreateProductInput {
