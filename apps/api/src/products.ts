@@ -8,6 +8,7 @@ function toProduct(row: Record<string, unknown>) {
   return {
     id: Number(row.id),
     name: String(row.name),
+    sku: String(row.sku ?? ""),
     description: String(row.description ?? ""),
     price: Number(row.price),
     imageUrl: String(row.image_url ?? ""),
@@ -25,18 +26,22 @@ function readProductInput(body: unknown) {
 
   const value = body as Record<string, unknown>;
   const name = typeof value.name === "string" ? value.name.trim() : "";
+  const sku = typeof value.sku === "string" ? value.sku.trim().toUpperCase() : "";
   const description = typeof value.description === "string" ? value.description.trim() : "";
   const imageUrl = typeof value.imageUrl === "string" ? value.imageUrl.trim() : "";
   const price = typeof value.price === "number" ? value.price : Number(value.price);
   const stock = typeof value.stock === "number" ? value.stock : Number(value.stock);
 
   if (!name) return { error: "Product name is required." as const };
+  if (!sku) return { error: "SKU is required." as const };
+  if (sku.length > 40) return { error: "SKU is too long." as const };
+  if (!/^[A-Z0-9._-]+$/.test(sku)) return { error: "SKU faqat harf, raqam, -, _, . belgilaridan iborat bo'lishi mumkin." as const };
   if (name.length > 180) return { error: "Product name is too long." as const };
   if (!Number.isFinite(price) || price < 0) return { error: "Price must be a non-negative number." as const };
   if (!Number.isInteger(stock) || stock < 0) return { error: "Stock must be a non-negative integer." as const };
   if (imageUrl && imageUrl.length > 2_000) return { error: "Image URL is too long." as const };
 
-  return { name, description, price, stock, imageUrl };
+  return { name, sku, description, price, stock, imageUrl };
 }
 
 router.get("/", async (_req: Request, res: Response) => {
@@ -44,7 +49,7 @@ router.get("/", async (_req: Request, res: Response) => {
     await initializeDatabase();
     const db = requireDatabase();
     const result = await db.query(
-      `SELECT p.id, p.name, p.description, p.price, p.image_url, p.stock, p.created_at,
+      `SELECT p.id, p.name, p.sku, p.description, p.price, p.image_url, p.stock, p.created_at,
               pr.discount_percent AS promo_discount_percent
        FROM marketplace_products p
        LEFT JOIN LATERAL (
@@ -73,10 +78,10 @@ router.post("/", async (req: Request, res: Response) => {
     await initializeDatabase();
     const db = requireDatabase();
     const result = await db.query(
-      `INSERT INTO marketplace_products (name, description, price, image_url, stock)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, description, price, image_url, stock, created_at`,
-      [input.name, input.description, input.price, input.imageUrl, input.stock],
+      `INSERT INTO marketplace_products (name, sku, description, price, image_url, stock)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id, name, sku, description, price, image_url, stock, created_at`,
+      [input.name, input.sku, input.description, input.price, input.imageUrl, input.stock],
     );
     res.status(201).json({ product: toProduct(result.rows[0]) });
   } catch (error) {
@@ -94,9 +99,9 @@ router.patch("/:id", async (req: Request, res: Response) => {
   try {
     const db = requireDatabase();
     const result = await db.query(
-      `UPDATE marketplace_products SET name=$1, description=$2, price=$3, image_url=$4, stock=$5
-       WHERE id=$6 RETURNING id, name, description, price, image_url, stock, created_at`,
-      [input.name, input.description, input.price, input.imageUrl, input.stock, req.params.id],
+      `UPDATE marketplace_products SET name=$1, sku=$2, description=$3, price=$4, image_url=$5, stock=$6
+       WHERE id=$7 RETURNING id, name, sku, description, price, image_url, stock, created_at`,
+      [input.name, input.sku, input.description, input.price, input.imageUrl, input.stock, req.params.id],
     );
     if (!result.rowCount) { res.status(404).json({ message: "Mahsulot topilmadi." }); return; }
     res.json({ product: toProduct(result.rows[0]) });
