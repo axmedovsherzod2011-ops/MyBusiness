@@ -94,7 +94,7 @@ export function registerOrderRoutes(app: Express): void {
         normalized.push({ productId: Number(product.id), name: product.name, price: Math.round(unitPrice * 100) / 100, quantity });
       }
       const order = await client.query(
-        `INSERT INTO marketplace_orders (customer_user_id, customer_name, customer_phone, status, total)
+        `INSERT INTO marketplace_orders (customer_user_id, customer_name, customer_phone, status, total, payment_method, delivery_address)
          VALUES ($1,$2,$3,'new',$4,$5,$6) RETURNING id, customer_name AS "customerName",
          customer_phone AS "customerPhone", status, total, payment_method AS "paymentMethod", delivery_address AS "deliveryAddress", created_at AS "createdAt"`,
         [customerUserId, customerName, customerPhone, total, paymentMethod, deliveryAddress],
