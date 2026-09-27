@@ -43,6 +43,12 @@ export default function App(){
   const [liveTick,setLiveTick]=useState(0);
   const [orderFilter,setOrderFilter]=useState<"all"|"new"|"active"|"completed">("all");
   const [lastSync,setLastSync]=useState<Date|null>(null);
+  const [editing,setEditing]=useState<Product|null>(null);
+  const [stockDraft,setStockDraft]=useState<Record<number,string>>({});
+  const [analytics,setAnalytics]=useState<any|null>(null);
+  const [promoProduct,setPromoProduct]=useState<Product|null>(null);
+  const [promoDiscount,setPromoDiscount]=useState("10");
+  const [promoEndsAt,setPromoEndsAt]=useState("");
 
   async function api(path:string, options:RequestInit={}) {
     const r=await fetch(apiBase+path,{...options,headers:{"Accept":"application/json","Content-Type":"application/json",...(options.headers||{})}});
@@ -89,6 +95,45 @@ export default function App(){
     setTab("chats");
   }
   async function changeStatus(order:Order,status:string){try{const d=await api("/api/v1/orders/"+order.id+"/status",{method:"PATCH",body:JSON.stringify({status})});setOrders(x=>x.map(o=>o.id===order.id?d.order:o))}catch(e){setMessage(e instanceof Error?e.message:"Holatni o'zgartirib bo'lmadi.")}}
+
+  async function saveProduct(product:Product){
+    try{
+      const d=await api("/api/v1/products/"+product.id,{method:"PATCH",body:JSON.stringify({
+        name:product.name,description:product.description,price:product.price,stock:product.stock,imageUrl:product.imageUrl
+      })});
+      setProducts(x=>x.map(p=>p.id===product.id?d.product:p)); setEditing(null); setMessage("Mahsulot yangilandi.");
+    }catch(e){setMessage(e instanceof Error?e.message:"Mahsulotni yangilab bo'lmadi.")}
+  }
+  async function deleteProduct(id:number){
+    if(!window.confirm("Bu mahsulotni o'chirishni tasdiqlaysizmi?"))return;
+    try{await api("/api/v1/products/"+id,{method:"DELETE"});setProducts(x=>x.filter(p=>p.id!==id));setMessage("Mahsulot o'chirildi.");}
+    catch(e){setMessage(e instanceof Error?e.message:"Mahsulotni o'chirib bo'lmadi.")}
+  }
+  async function saveStock(p:Product){
+    const value=Math.max(0,Math.floor(Number(stockDraft[p.id] ?? p.stock)));
+    if(!Number.isFinite(value))return;
+    try{
+      const d=await api("/api/v1/products/"+p.id,{method:"PATCH",body:JSON.stringify({...p,stock:value})});
+      setProducts(x=>x.map(item=>item.id===p.id?d.product:item));setMessage(p.name+" qoldig'i yangilandi.");
+    }catch(e){setMessage(e instanceof Error?e.message:"Qoldiqni yangilab bo'lmadi.")}
+  }
+  async function loadAnalytics(){
+    try{const d=await api("/api/v1/analytics/summary?days=30");setAnalytics(d);}
+    catch(e){setMessage(e instanceof Error?e.message:"Analitikani yuklab bo'lmadi.")}
+  }
+  async function savePromotion(){
+    if(!promoProduct)return;
+    try{
+      await api("/api/v1/products/"+promoProduct.id+"/promotion",{method:"PUT",body:JSON.stringify({
+        discountPercent:Number(promoDiscount),endsAt:promoEndsAt?new Date(promoEndsAt).toISOString():null
+      })});
+      await loadProducts();setPromoProduct(null);setMessage("Aksiya real bazaga saqlandi.");
+    }catch(e){setMessage(e instanceof Error?e.message:"Aksiyani saqlab bo'lmadi.")}
+  }
+  async function stopPromotion(id:number){
+    try{await api("/api/v1/products/"+id+"/promotion",{method:"DELETE"});await loadProducts();setMessage("Aksiya to'xtatildi.");}
+    catch(e){setMessage(e instanceof Error?e.message:"Aksiyani to'xtatib bo'lmadi.")}
+  }
 
   async function submit(e:FormEvent<HTMLFormElement>){
     e.preventDefault();setSaving(true);setMessage("");
@@ -221,11 +266,24 @@ export default function App(){
         <div className="chat-window">{activeChat?<><div className="chat-window-head"><div><b>{chats.find(c=>c.id===activeChat)?.customerName||"Mijoz"}</b><span>Suhbat</span></div><button onClick={()=>setActiveChat(null)}>×</button></div><div className="messages">{messages.map(m=><div key={m.id} className={"bubble "+m.senderRole}><span>{m.body}</span><small>{formatDate(m.createdAt)}</small></div>)}</div><form className="chat-compose" onSubmit={sendChat}><input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Mijozga javob yozing..." /><button className="primary" disabled={!chatText.trim()}>Yuborish</button></form></>:<div className="chat-placeholder"><b>Chatni tanlang</b><span>Mijoz bilan yozishmalar shu yerda ko'rinadi.</span></div>}</div>
       </section>}
 
-      {(tab==="products"||tab==="inventory")&&<section className="panel"><div className="panel-head"><div><h2>{tab==="inventory"?"Ombor":"Mahsulotlar"}</h2><span className="muted">{filtered.length} ta natija</span></div><input className="mini-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Qidirish..." /></div>{loading?<div className="empty">Yuklanmoqda...</div>:filtered.length?<div className="table">{filtered.map(p=><div className="row" key={p.id}><div className="thumb">{p.imageUrl?<img src={p.imageUrl.split(/[\n|,]+/)[0]} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{formatPrice(p.price)}</span></div><strong className={p.stock===0?"out":""}>{p.stock} dona</strong></div>)}</div>:<div className="empty"><b>Mahsulot topilmadi.</b><span>Qidiruvni o'zgartiring yoki yangi mahsulot qo'shing.</span></div>}</section>}
+      {(tab==="products"||tab==="inventory")&&<section className="panel">
+        <div className="panel-head"><div><h2>{tab==="inventory"?"Ombor nazorati":"Mahsulotlar"}</h2><span className="muted">{filtered.length} ta natija · real Neon katalog</span></div><input className="mini-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Qidirish..." /></div>
+        {loading?<div className="empty">Yuklanmoqda...</div>:filtered.length?<div className="table">
+          {filtered.map(p=><div className="row seller-product-row" key={p.id}>
+            <div className="thumb">{p.imageUrl?<img src={p.imageUrl.split(/[\n|,]+/)[0]} alt=""/>:"NO IMAGE"}</div>
+            <div className="product-row-main"><b>{p.name}</b><span>{p.promoPrice!=null?<><s>{formatPrice(p.price)}</s> {formatPrice(p.promoPrice)} · {p.promoDiscountPercent}% chegirma</>:formatPrice(p.price)}</span></div>
+            {tab==="inventory"?<div className="stock-editor"><input type="number" min="0" value={stockDraft[p.id] ?? String(p.stock)} onChange={e=>setStockDraft(x=>({...x,[p.id]:e.target.value}))}/><button className="secondary small" onClick={()=>void saveStock(p)}>Saqlash</button></div>:<strong className={p.stock===0?"out":p.stock<=5?"low":""}>{p.stock} dona</strong>}
+            {tab==="products"&&<div className="row-actions"><button className="secondary small" onClick={()=>setEditing(p)}>Tahrirlash</button><button className="secondary small" onClick={()=>setPromoProduct(p)}>Aksiya</button><button className="secondary small" onClick={()=>void deleteProduct(p.id)}>O'chirish</button></div>}
+          </div>)}
+        </div>:<div className="empty"><b>Mahsulot topilmadi.</b><span>Qidiruvni o'zgartiring yoki yangi mahsulot qo'shing.</span></div>}
+      </section>}
 
       {tab==="add"&&<section className="panel form-panel"><div className="panel-head"><div><h2>Yangi mahsulot</h2><span className="muted">Customer ko'radigan asosiy ma'lumotlar</span></div><span className="ai">AI READY</span></div><form onSubmit={submit}><label>Mahsulot nomi<input required maxLength={180} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Masalan: Yuz kremi"/></label><label>Tavsif<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Mahsulot tavsifi..." rows={5}/></label><div className="two"><label>Narx<input required min="0" step="0.01" type="number" value={form.price} onChange={e=>setForm({...form,price:e.target.value})}/></label><label>Qoldiq<input required min="0" step="1" type="number" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})}/></label></div><label>Rasm URLlari<input value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})} placeholder="Bir nechta URL: yangi qator, | yoki vergul"/></label><button className="primary full" disabled={saving}>{saving?"Saqlanmoqda...":"Mahsulotni bazaga qo'shish"}</button>{message&&<div className="message">{message}</div>}</form></section>}
 
-      {["marketing","analytics"].includes(tab)&&<section className="panel empty-panel"><span className="eyebrow">KEYINGI BOSQICH</span><h2>{nav.find(x=>x[0]===tab)?.[1]}</h2><p>Buyurtma va chatlar endi real API bilan ishlaydi. Bu bo'limlarni keyin Customer tajribasiga mos marketing va analitika bilan to'ldiramiz.</p></section>}
+      {tab==="analytics"&&<section className="panel analytics-panel">{!analytics?<div className="empty"><b>Real analytics</b><span>Neondan 30 kunlik ma'lumotni yuklash uchun bosing.</span><button className="primary small" onClick={()=>void loadAnalytics()}>Analitikani yuklash</button></div>:<><div className="stats"><div><span>30 kunlik tushum</span><b>{formatPrice(Number(analytics.summary.revenue))}</b><small>Faqat yakunlangan buyurtmalar</small></div><div><span>Buyurtmalar</span><b>{analytics.summary.totalOrders}</b><small>{analytics.summary.completedOrders} tasi yakunlangan</small></div><div><span>O'rtacha chek</span><b>{formatPrice(Number(analytics.summary.averageOrder))}</b><small>Yakunlangan buyurtmalar</small></div><div><span>Past qoldiq</span><b>{analytics.stock.lowStock}</b><small>{analytics.stock.outOfStock} ta tugagan</small></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><h2>Eng ko'p tushum bergan mahsulotlar</h2><button className="secondary small" onClick={()=>void loadAnalytics()}>Yangilash</button></div>{analytics.topProducts.map((x:any)=><div className="overview-list" key={x.productId}><div><span>{x.productName}</span><b>{formatPrice(Number(x.revenue))}</b></div></div>)}</section><section className="panel"><div className="panel-head"><h2>Kundalik savdo</h2></div>{analytics.daily.map((x:any)=><div className="overview-list" key={String(x.day)}><div><span>{String(x.day).slice(5)}</span><b>{formatPrice(Number(x.revenue))} · {x.orders} buyurtma</b></div></div>)}</section></div></>}</section>}
+      {tab==="marketing"&&<section className="panel"><div className="panel-head"><div><h2>Marketing & Aksiyalar</h2><span className="muted">Aksiyalar real katalogga saqlanadi va customer API orqali chegirmali narx sifatida qaytadi.</span></div></div><div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{p.imageUrl?<img src={p.imageUrl.split(/[\n|,]+/)[0]} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>setPromoProduct(p)}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div></section>}
+      {editing&&<div className="modal-backdrop"><form className="modal form-panel" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}><div className="panel-head"><h2>Mahsulotni tahrirlash</h2><button type="button" className="secondary small" onClick={()=>setEditing(null)}>Yopish</button></div><label>Nomi<input value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})}/></label><label>Tavsif<textarea rows={5} value={editing.description} onChange={e=>setEditing({...editing,description:e.target.value})}/></label><div className="two"><label>Narx<input type="number" min="0" value={editing.price} onChange={e=>setEditing({...editing,price:Number(e.target.value)})}/></label><label>Qoldiq<input type="number" min="0" value={editing.stock} onChange={e=>setEditing({...editing,stock:Number(e.target.value)})}/></label></div><label>Rasm URLlari<input value={editing.imageUrl} onChange={e=>setEditing({...editing,imageUrl:e.target.value})}/></label><button className="primary full">O'zgarishlarni saqlash</button></form></div>}
+      {promoProduct&&<div className="modal-backdrop"><div className="modal form-panel"><div className="panel-head"><h2>Aksiya: {promoProduct.name}</h2><button className="secondary small" onClick={()=>setPromoProduct(null)}>Yopish</button></div><label>Chegirma foizi<input type="number" min="1" max="99" value={promoDiscount} onChange={e=>setPromoDiscount(e.target.value)}/></label><label>Tugash vaqti<input type="datetime-local" value={promoEndsAt} onChange={e=>setPromoEndsAt(e.target.value)}/></label><button className="primary full" onClick={()=>void savePromotion()}>Aksiyani saqlash</button></div></div>}
     </section>
   </main>;
 }
