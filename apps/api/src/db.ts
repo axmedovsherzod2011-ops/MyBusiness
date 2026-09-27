@@ -138,6 +138,10 @@ export async function initializeDatabase(): Promise<void> {
         ADD COLUMN IF NOT EXISTS auth_token UUID;
       CREATE UNIQUE INDEX IF NOT EXISTS customer_users_auth_token_idx
         ON customer_users (auth_token);
+
+      ALTER TABLE marketplace_orders
+        ADD COLUMN IF NOT EXISTS payment_method VARCHAR(20) NOT NULL DEFAULT 'cash',
+        ADD COLUMN IF NOT EXISTS delivery_address TEXT NOT NULL DEFAULT '';
     `).then(() => undefined).catch((error) => {
       initializationPromise = null;
       throw error;
