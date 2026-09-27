@@ -91,14 +91,15 @@ export function registerChatRoutes(app: Express): void {
 
   app.post("/api/v1/chats/:id/messages", async (req: Request, res: Response) => {
     const message = String(req.body?.message ?? "").trim();
+    const senderRole = req.body?.senderRole === "seller" ? "seller" : "customer";
     if (!message) { res.status(400).json({ message: "Xabar bo'sh bo'lmasligi kerak." }); return; }
     try {
       const db = requireDatabase();
       const msg = await db.query(
         `INSERT INTO seller_chat_messages (chat_id, sender_role, body)
-         VALUES ($1,'customer',$2) RETURNING id, chat_id AS "chatId", sender_role AS "senderRole",
+         VALUES ($1,$2,$3) RETURNING id, chat_id AS "chatId", sender_role AS "senderRole",
          body, created_at AS "createdAt"`,
-        [req.params.id, message],
+        [req.params.id, senderRole, message],
       );
       await db.query("UPDATE seller_chats SET updated_at=NOW() WHERE id=$1", [req.params.id]);
       res.status(201).json({ message: msg.rows[0] });
