@@ -190,7 +190,7 @@ export default function App(){
     e.preventDefault();setSaving(true);setMessage("");
     try{
       const d=await api("/api/v1/products",{method:"POST",body:JSON.stringify({
-        name:form.name.trim(),description:form.description.trim(),price:Number(form.price),
+        name:form.name.trim(),sku:form.sku.trim().toUpperCase(),description:form.description.trim(),price:Number(form.price),
         stock:Number(form.stock),imageUrl:form.imageUrl.trim()
       })});
       if(d.product)setProducts(x=>[d.product,...x]);setForm(emptyForm);setMessage("Mahsulot bazaga saqlandi.");setTab("products");
