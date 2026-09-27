@@ -49,3 +49,17 @@
 .order-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}.filter-tabs{display:flex;gap:4px;padding:3px;border:1px solid #e1e4df;border-radius:10px;background:#f7f8f6}.filter-tabs button{border:0;background:transparent;color:#737a73;border-radius:7px;padding:7px 9px;font-size:10px;font-weight:850;cursor:pointer}.filter-tabs button:hover,.filter-tabs button.active{background:#171917;color:#fff}.order-card{transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}.order-card:hover{transform:translateY(-1px)}
 @media(max-width:900px){.order-toolbar{width:100%;justify-content:stretch}.filter-tabs{flex:1;overflow:auto}.filter-tabs button{white-space:nowrap}.order-toolbar>.small{flex:0 0 auto}}
 @media(max-width:600px){.filter-tabs{width:100%;flex:1}.filter-tabs button{flex:1}.order-toolbar>.small{width:100%!important}}
+
+.seller-product-row{grid-template-columns:52px minmax(160px,1fr) auto auto;align-items:center}
+.product-row-main{display:grid;gap:4px;min-width:0}
+.product-row-main s,.old-price{color:#9aa19a;font-weight:500}
+.row-actions,.stock-editor{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.stock-editor input{width:90px;border:1px solid #dfe2dd;border-radius:8px;padding:8px}
+.low{color:#a66b00!important}
+.analytics-panel>.dashboard-grid{margin-top:18px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.38);display:grid;place-items:center;padding:18px;z-index:100}
+.modal{width:min(680px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 70px rgba(0,0,0,.18)}
+.modal .panel-head{display:flex;justify-content:space-between;align-items:center}
+.promo-price{display:block;font-size:1.05em}
+.old-price{font-size:.75em;color:#8d948d;font-weight:500}
+@media(max-width:900px){.seller-product-row{grid-template-columns:46px 1fr}.seller-product-row>strong,.seller-product-row>.stock-editor,.seller-product-row>.row-actions{grid-column:2}.row-actions{width:100%}.row-actions button{flex:1}.stock-editor{width:100%}.stock-editor input{flex:1}}
