@@ -6,9 +6,25 @@
     <meta name="theme-color" content="#111827" />
     <meta name="description" content="MyBusiness Seller Center — mahsulotlar, buyurtmalar, chatlar, ombor va marketing boshqaruvi." />
     <title>MyBusiness Seller Center</title>
+    <style>
+      html,body{margin:0;min-height:100%;background:#f5f6f7;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+      #root:empty{min-height:100vh;display:grid;place-items:center}
+      #root:empty:before{content:"MyBusiness Seller yuklanmoqda…";padding:16px 20px;border:1px solid #e1e4df;border-radius:12px;background:#fff;color:#555d55;font-weight:700}
+      .boot-error{min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box}
+      .boot-error>div{max-width:520px;padding:24px;border:1px solid #e1e4df;border-radius:18px;background:#fff;box-shadow:0 12px 35px rgba(25,30,25,.06)}
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <noscript><div class="boot-error"><div>MyBusiness Seller ishlashi uchun JavaScript yoqilgan bo‘lishi kerak.</div></div></noscript>
+    <script>
+      window.setTimeout(function(){
+        var root=document.getElementById("root");
+        if(root && root.children.length===0){
+          root.innerHTML='<div class="boot-error"><div><h2 style="margin-top:0">Seller yuklanmadi</h2><p>Frontend JavaScript fayli ishga tushmadi. Sahifani Ctrl+Shift+R bilan yangilang.</p></div></div>';
+        }
+      },5000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
