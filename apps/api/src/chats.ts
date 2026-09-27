@@ -86,7 +86,7 @@ export function registerChatRoutes(app: Express): void {
     } catch { res.status(500).json({ message: "Chat holatini o'zgartirib bo'lmadi." }); }
   });
 
-  app.post("/api/v1/chats/:id/messages", async (req: Request, res: Response) =>
+  app.post("/api/v1/chats/:id/messages", async (req: Request, res: Response) => {
     const message = String(req.body?.message ?? "").trim();
     if (!message) { res.status(400).json({ message: "Xabar bo'sh bo'lmasligi kerak." }); return; }
     try {
