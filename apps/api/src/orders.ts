@@ -10,6 +10,7 @@ export function registerOrderRoutes(app: Express): void {
       const result = await db.query(
         `SELECT o.id, o.customer_user_id AS "customerUserId", o.customer_name AS "customerName",
                 o.customer_phone AS "customerPhone", o.status, o.total,
+                o.payment_method AS "paymentMethod", o.delivery_address AS "deliveryAddress",
                 o.created_at AS "createdAt", o.updated_at AS "updatedAt",
                 COALESCE(json_agg(json_build_object(
                   'id', i.id, 'productId', i.product_id, 'productName', i.product_name,
@@ -58,7 +59,9 @@ export function registerOrderRoutes(app: Express): void {
     const customerName = String(body.customerName ?? "").trim();
     const customerPhone = String(body.customerPhone ?? "").trim();
     const customerUserId = body.customerUserId ? Number(body.customerUserId) : null;
-    if (!items.length || !customerName || !customerPhone) {
+    const paymentMethod = String(body.paymentMethod ?? "cash").trim() || "cash";
+    const deliveryAddress = String(body.deliveryAddress ?? "").trim();
+    if (!items.length || !customerName || !customerPhone || !["cash","card","debt"].includes(paymentMethod)) {
       res.status(400).json({ message: "Mijoz va buyurtma mahsulotlari kerak." });
       return;
     }
@@ -92,9 +95,9 @@ export function registerOrderRoutes(app: Express): void {
       }
       const order = await client.query(
         `INSERT INTO marketplace_orders (customer_user_id, customer_name, customer_phone, status, total)
-         VALUES ($1,$2,$3,'new',$4) RETURNING id, customer_name AS "customerName",
-         customer_phone AS "customerPhone", status, total, created_at AS "createdAt"`,
-        [customerUserId, customerName, customerPhone, total],
+         VALUES ($1,$2,$3,'new',$4,$5,$6) RETURNING id, customer_name AS "customerName",
+         customer_phone AS "customerPhone", status, total, payment_method AS "paymentMethod", delivery_address AS "deliveryAddress", created_at AS "createdAt"`,
+        [customerUserId, customerName, customerPhone, total, paymentMethod, deliveryAddress],
       );
       for (const item of normalized) {
         await client.query(
