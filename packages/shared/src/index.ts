@@ -10,6 +10,7 @@ export type SiteRole = "seller" | "customer";
 export interface Product {
   id: number;
   name: string;
+  sku: string;
   description: string;
   price: number;
   imageUrl: string;
@@ -21,6 +22,7 @@ export interface Product {
 
 export interface CreateProductInput {
   name: string;
+  sku: string;
   description: string;
   price: number;
   imageUrl: string;
