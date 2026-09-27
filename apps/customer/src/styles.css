@@ -1804,3 +1804,10 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 .chat-message-row.mine .chat-sender{text-align:right}
 .chat-message-row.theirs .chat-sender{text-align:left}
 @media(max-width:600px){.chat-message-row{max-width:94%}.chat-message-row .chat-bubble{max-width:calc(100vw - 75px)!important}}
+
+/* Product media uses a 1080x1440 (3:4) safe frame. Images are contained, never cropped. */
+.product-image,.quick-image,.detail-image{aspect-ratio:3/4!important;background:#fff!important}
+.product-image img,.quick-image img,.detail-image img{object-fit:contain!important;background:#fff}
+.mini-image{aspect-ratio:3/4;height:auto!important;background:#fff!important}
+.mini-image img{object-fit:contain!important;background:#fff}
+.profile-chat-image img{object-fit:contain!important;background:#fff}
