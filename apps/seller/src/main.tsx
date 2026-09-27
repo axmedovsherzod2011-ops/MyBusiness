@@ -8,7 +8,7 @@ const emptyForm = { name: "", sku: "", description: "", price: "", stock: "0", i
 
 type OrderItem = { id:number; productId:number|null; productName:string; sku?:string; imageUrl?:string; price:number; quantity:number };
 type Order = {
-  id:number; customerUserId:number|null; customerName:string; customerPhone:string; status:string; total:number;
+  id:number; customerUserId:number|null; customerName:string; customerPhone:string; status:string; total:number; paymentMethod?:string; deliveryAddress?:string;
   createdAt:string; updatedAt:string; items:OrderItem[];
 };
 type Chat = {
@@ -255,6 +255,10 @@ export default function App(){
                         <b>Mijoz</b><span>{o.customerName}</span>
                         <a href={"tel:"+o.customerPhone}>{o.customerPhone}</a>
                         {o.customerUserId && <small>Customer ID: {o.customerUserId}</small>}
+                      </div>
+                      <div className="customer-meta">
+                        <span><b>To'lov</b>{o.paymentMethod==="cash"?"Naqd":o.paymentMethod==="card"?"Karta":"Qarz"}</span>
+                        <span><b>Yetkazib berish</b>{o.deliveryAddress||"Manzil kiritilmagan"}</span>
                       </div>
                       <div className="item-list">
                         {(o.items||[]).map(i=>(
