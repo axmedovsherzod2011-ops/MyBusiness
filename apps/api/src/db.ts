@@ -116,6 +116,18 @@ export async function initializeDatabase(): Promise<void> {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS marketplace_promotions (
+        id BIGSERIAL PRIMARY KEY,
+        product_id BIGINT NOT NULL REFERENCES marketplace_products(id) ON DELETE CASCADE,
+        discount_percent NUMERIC(5,2) NOT NULL CHECK (discount_percent > 0 AND discount_percent < 100),
+        starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        ends_at TIMESTAMPTZ,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS marketplace_promotions_product_idx
+        ON marketplace_promotions (product_id, active, starts_at, ends_at);
+
       CREATE INDEX IF NOT EXISTS seller_chats_updated_at_idx
         ON seller_chats (updated_at DESC);
 
