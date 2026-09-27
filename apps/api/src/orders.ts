@@ -14,10 +14,12 @@ export function registerOrderRoutes(app: Express): void {
                 o.created_at AS "createdAt", o.updated_at AS "updatedAt",
                 COALESCE(json_agg(json_build_object(
                   'id', i.id, 'productId', i.product_id, 'productName', i.product_name,
+                  'sku', i.sku, 'imageUrl', COALESCE(NULLIF(i.image_url,''), p.image_url, ''),
                   'price', i.price, 'quantity', i.quantity
                 ) ORDER BY i.id) FILTER (WHERE i.id IS NOT NULL), '[]') AS items
          FROM marketplace_orders o
          LEFT JOIN marketplace_order_items i ON i.order_id=o.id
+         LEFT JOIN marketplace_products p ON p.id=i.product_id
          GROUP BY o.id
          ORDER BY o.created_at DESC LIMIT 200`,
       );
@@ -71,7 +73,7 @@ export function registerOrderRoutes(app: Express): void {
       await client.query("BEGIN");
       const ids = items.map((x: any) => Number(x.productId)).filter(Number.isInteger);
       const products = await client.query(
-        `SELECT p.id, p.name, p.price, p.stock,
+        `SELECT p.id, p.name, p.sku, p.image_url, p.price, p.stock,
            (SELECT discount_percent FROM marketplace_promotions
             WHERE product_id=p.id AND active=TRUE AND starts_at <= NOW()
               AND (ends_at IS NULL OR ends_at > NOW())
@@ -82,7 +84,7 @@ export function registerOrderRoutes(app: Express): void {
       );
       const byId = new Map(products.rows.map((p: any) => [Number(p.id), p]));
       let total = 0;
-      const normalized: Array<{productId:number;name:string;price:number;quantity:number}> = [];
+      const normalized: Array<{productId:number;name:string;sku:string;imageUrl:string;price:number;quantity:number}> = [];
       for (const item of items) {
         const product = byId.get(Number(item.productId));
         const quantity = Math.floor(Number(item.quantity));
@@ -91,7 +93,7 @@ export function registerOrderRoutes(app: Express): void {
         }
         const unitPrice = Number(product.price) * (product.promo_discount_percent == null ? 1 : 1 - Number(product.promo_discount_percent) / 100);
         total += unitPrice * quantity;
-        normalized.push({ productId: Number(product.id), name: product.name, price: Math.round(unitPrice * 100) / 100, quantity });
+        normalized.push({ productId: Number(product.id), name: product.name, sku: String(product.sku ?? ""), imageUrl: String(product.image_url ?? ""), price: Math.round(unitPrice * 100) / 100, quantity });
       }
       const order = await client.query(
         `INSERT INTO marketplace_orders (customer_user_id, customer_name, customer_phone, status, total, payment_method, delivery_address)
@@ -101,9 +103,9 @@ export function registerOrderRoutes(app: Express): void {
       );
       for (const item of normalized) {
         await client.query(
-          `INSERT INTO marketplace_order_items (order_id, product_id, product_name, price, quantity)
-           VALUES ($1,$2,$3,$4,$5)`,
-          [order.rows[0].id, item.productId, item.name, item.price, item.quantity],
+          `INSERT INTO marketplace_order_items (order_id, product_id, product_name, sku, image_url, price, quantity)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [order.rows[0].id, item.productId, item.name, item.sku, item.imageUrl, item.price, item.quantity],
         );
         await client.query(`UPDATE marketplace_products SET stock = stock - $1 WHERE id = $2`, [item.quantity, item.productId]);
       }
