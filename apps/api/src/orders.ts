@@ -68,14 +68,12 @@ export function registerOrderRoutes(app: Express): void {
       await client.query("BEGIN");
       const ids = items.map((x: any) => Number(x.productId)).filter(Number.isInteger);
       const products = await client.query(
-        `SELECT p.id, p.name, p.price, p.stock, pr.discount_percent AS promo_discount_percent
+        `SELECT p.id, p.name, p.price, p.stock,
+           (SELECT discount_percent FROM marketplace_promotions
+            WHERE product_id=p.id AND active=TRUE AND starts_at <= NOW()
+              AND (ends_at IS NULL OR ends_at > NOW())
+            ORDER BY created_at DESC LIMIT 1) AS promo_discount_percent
          FROM marketplace_products p
-         LEFT JOIN LATERAL (
-           SELECT discount_percent FROM marketplace_promotions
-           WHERE product_id=p.id AND active=TRUE AND starts_at <= NOW()
-             AND (ends_at IS NULL OR ends_at > NOW())
-           ORDER BY created_at DESC LIMIT 1
-         ) pr ON TRUE
          WHERE p.id = ANY($1::bigint[]) FOR UPDATE`,
         [ids],
       );
