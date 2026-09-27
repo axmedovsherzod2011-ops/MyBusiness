@@ -57,6 +57,7 @@ function Icon({name,size=20}:{name:"home"|"grid"|"search"|"bag"|"cart"|"user"|"h
 }
 
 function money(n:number){ return new Intl.NumberFormat("uz-UZ").format(n)+" so'm"; }
+function effectivePrice(p:Product){ return p.promoPrice!=null ? p.promoPrice : p.price; }
 function isNew(p:Product){ const t=Date.parse(p.createdAt); return Number.isFinite(t) && Date.now()-t <= 30*24*60*60*1000; }
 function cat(p:Product){
   const t=p.name+" "+p.description;
@@ -213,7 +214,7 @@ export default function App(){
       const categoryMatch=category==="all"||(category==="new"?isNew(p):category==="sale"?p.stock>0:cat(p)===category);
       const min=minPrice?Number(minPrice):0;
       const max=maxPrice?Number(maxPrice):Infinity;
-      const priceMatch=p.price>=min&&p.price<=max;
+      const priceMatch=effectivePrice(p)>=min&&effectivePrice(p)<=max;
       return (!q||text.includes(q))&&subMatch&&categoryMatch&&(availability==="all"||p.stock>0)&&priceMatch;
     });
     return [...filtered].sort((a,b)=>sort==="price-low"?a.price-b.price:sort==="price-high"?b.price-a.price:sort==="name"?a.name.localeCompare(b.name):Date.parse(b.createdAt)-Date.parse(a.createdAt));
@@ -232,7 +233,7 @@ export default function App(){
 
   const cartItems=Object.entries(cart).map(([id,q])=>({p:products.find(x=>x.id===Number(id)),q})).filter(x=>x.p) as {p:Product;q:number}[];
   const cartCount=cartItems.reduce((s,x)=>s+x.q,0);
-  const cartTotal=cartItems.reduce((s,x)=>s+x.p.price*x.q,0);
+  const cartTotal=cartItems.reduce((s,x)=>s+x.effectivePrice(p)*x.q,0);
   const newProducts=[...products].filter(isNew).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt)).slice(0,8);
   const popular=[...products].filter(p=>p.stock>0).sort((a,b)=>b.stock-a.stock).slice(0,8);
   const categoryCounts=products.reduce<Record<string,number>>((acc,p)=>{const k=cat(p);acc[k]=(acc[k]||0)+1;return acc},{}); 
