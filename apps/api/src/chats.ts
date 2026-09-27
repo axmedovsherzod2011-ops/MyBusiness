@@ -8,12 +8,15 @@ export function registerChatRoutes(app: Express): void {
       const result = await db.query(
         `SELECT c.id, c.customer_user_id AS "customerUserId", c.product_id AS "productId",
                 c.customer_name AS "customerName", c.status,
+                p.name AS "productName", p.image_url AS "productImageUrl",
                 c.created_at AS "createdAt", c.updated_at AS "updatedAt",
                 COALESCE((SELECT body FROM seller_chat_messages m WHERE m.chat_id=c.id
                   ORDER BY m.created_at DESC LIMIT 1), '') AS "lastMessage",
                 (SELECT COUNT(*) FROM seller_chat_messages m WHERE m.chat_id=c.id
                   AND m.sender_role='customer')::int AS "messageCount"
-         FROM seller_chats c ORDER BY c.updated_at DESC LIMIT 200`,
+         FROM seller_chats c
+         LEFT JOIN marketplace_products p ON p.id=c.product_id
+         ORDER BY c.updated_at DESC LIMIT 200`,
       );
       res.json({ chats: result.rows });
     } catch (error) {
@@ -93,7 +96,7 @@ export function registerChatRoutes(app: Express): void {
       const db = requireDatabase();
       const msg = await db.query(
         `INSERT INTO seller_chat_messages (chat_id, sender_role, body)
-         VALUES ($1,'seller',$2) RETURNING id, chat_id AS "chatId", sender_role AS "senderRole",
+         VALUES ($1,'customer',$2) RETURNING id, chat_id AS "chatId", sender_role AS "senderRole",
          body, created_at AS "createdAt"`,
         [req.params.id, message],
       );
