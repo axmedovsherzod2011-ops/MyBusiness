@@ -13,7 +13,13 @@ export function registerChatRoutes(app: Express): void {
                 COALESCE((SELECT body FROM seller_chat_messages m WHERE m.chat_id=c.id
                   ORDER BY m.created_at DESC LIMIT 1), '') AS "lastMessage",
                 (SELECT COUNT(*) FROM seller_chat_messages m WHERE m.chat_id=c.id
-                  AND m.sender_role='customer')::int AS "messageCount"
+                  AND m.sender_role='customer')::int AS "messageCount",
+                c.seller_last_read_at AS "sellerLastReadAt",
+                CASE WHEN EXISTS (
+                  SELECT 1 FROM seller_chat_messages m
+                  WHERE m.chat_id=c.id AND m.sender_role='customer'
+                    AND (c.seller_last_read_at IS NULL OR m.created_at > c.seller_last_read_at)
+                ) THEN TRUE ELSE FALSE END AS "hasUnreadForSeller"
          FROM seller_chats c
          LEFT JOIN marketplace_products p ON p.id=c.product_id
          ORDER BY c.updated_at DESC LIMIT 200`,
@@ -22,6 +28,22 @@ export function registerChatRoutes(app: Express): void {
     } catch (error) {
       console.error("Chats list failed", error);
       res.status(500).json({ message: "Chatlarni yuklab bo'lmadi." });
+    }
+  });
+
+  app.post("/api/v1/chats/:id/read", async (req: Request, res: Response) => {
+    try {
+      const db = requireDatabase();
+      const result = await db.query(
+        `UPDATE seller_chats SET seller_last_read_at=NOW() WHERE id=$1
+         RETURNING id, seller_last_read_at AS "sellerLastReadAt"`,
+        [req.params.id],
+      );
+      if (!result.rowCount) { res.status(404).json({ message: "Chat topilmadi." }); return; }
+      res.json({ chat: result.rows[0] });
+    } catch (error) {
+      console.error("Chat read state failed", error);
+      res.status(500).json({ message: "Chat o'qilgan holatini saqlab bo'lmadi." });
     }
   });
 
