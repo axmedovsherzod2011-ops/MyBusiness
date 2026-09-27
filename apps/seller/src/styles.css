@@ -89,3 +89,23 @@ html,body,#root{width:100%;min-width:0;overflow-x:hidden}
   .panel{width:100%;max-width:100%}
   .row{grid-template-columns:46px minmax(0,1fr) auto}
 }
+
+
+/* Telegram-like seller chat */
+.seller-chat-title{display:flex!important;align-items:center;gap:10px!important;min-width:0}
+.seller-chat-title>img,.seller-chat-product-fallback{width:42px;height:42px;flex:0 0 42px;border-radius:11px;object-fit:cover;background:#eef0ec;display:grid;place-items:center;font-size:10px;font-weight:900;color:#747b74}
+.seller-chat-title>span:last-child{display:grid;gap:3px;min-width:0}
+.seller-chat-title b,.seller-chat-title small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seller-chat-title small{font-size:10px;color:#899089}
+.chat-message-row{display:flex;align-items:flex-end;gap:7px;max-width:88%}
+.chat-message-row.mine{align-self:flex-end;flex-direction:row-reverse}
+.chat-message-row.theirs{align-self:flex-start}
+.message-avatar{width:27px;height:27px;flex:0 0 27px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:900}
+.message-avatar.seller{background:#171917;color:#fff}
+.message-avatar.customer{background:#e8eaec;color:#4d5358}
+.chat-message-row .bubble{max-width:min(520px,72vw)}
+.message-sender{display:block;font-size:9px!important;font-weight:850!important;opacity:.65!important;margin-bottom:2px}
+.chat-message-row.theirs .bubble.customer{align-self:auto;background:#fff;border:1px solid #e0e3e5;color:#171717;border-radius:15px 15px 15px 5px}
+.chat-message-row.mine .bubble.seller{align-self:auto;background:#171917;color:#fff;border:0;border-radius:15px 15px 5px 15px}
+.chat-message-row.mine .message-sender{text-align:right}
+@media(max-width:600px){.chat-message-row{max-width:94%}.chat-message-row .bubble{max-width:calc(100vw - 75px)}}
