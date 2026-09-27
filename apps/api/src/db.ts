@@ -104,6 +104,7 @@ export async function initializeDatabase(): Promise<void> {
         product_id BIGINT REFERENCES marketplace_products(id) ON DELETE SET NULL,
         customer_name VARCHAR(200) NOT NULL DEFAULT '',
         status VARCHAR(20) NOT NULL DEFAULT 'open',
+        seller_last_read_at TIMESTAMPTZ,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
@@ -133,6 +134,9 @@ export async function initializeDatabase(): Promise<void> {
 
       CREATE INDEX IF NOT EXISTS seller_chat_messages_chat_id_idx
         ON seller_chat_messages (chat_id, created_at ASC);
+
+      ALTER TABLE seller_chats
+        ADD COLUMN IF NOT EXISTS seller_last_read_at TIMESTAMPTZ;
 
       ALTER TABLE customer_users
         ADD COLUMN IF NOT EXISTS auth_token UUID;
