@@ -108,16 +108,33 @@ export default function App(){
   function firstImage(value:string){return value.trim();}
   async function handleImageFile(file:File){
     if(!file.type.startsWith("image/")){setMessage("Faqat rasm fayli tanlang.");return;}
-    if(file.size>8*1024*1024){setMessage("Rasm 8 MB dan kichik bo'lishi kerak.");return;}
+    if(file.size>12*1024*1024){setMessage("Rasm 12 MB dan kichik bo'lishi kerak.");return;}
     try{
-      const dataUrl=await new Promise<string>((resolve,reject)=>{
+      const source=await new Promise<string>((resolve,reject)=>{
         const reader=new FileReader();
         reader.onload=()=>resolve(String(reader.result||""));
         reader.onerror=()=>reject(new Error("Rasmni o'qib bo'lmadi."));
         reader.readAsDataURL(file);
       });
-      setForm(x=>({...x,imageUrl:dataUrl}));
-      setMessage("Rasm tanlandi. 1080×1440 preview tayyor.");
+      const normalized=await new Promise<string>((resolve,reject)=>{
+        const img=new Image();
+        img.onload=()=>{
+          const canvas=document.createElement("canvas");
+          canvas.width=1080; canvas.height=1440;
+          const ctx=canvas.getContext("2d");
+          if(!ctx){reject(new Error("Rasm canvas tayyorlanmadi."));return;}
+          ctx.fillStyle="#fff"; ctx.fillRect(0,0,1080,1440);
+          const scale=Math.min(1080/img.naturalWidth,1440/img.naturalHeight);
+          const width=img.naturalWidth*scale;
+          const height=img.naturalHeight*scale;
+          ctx.drawImage(img,(1080-width)/2,(1440-height)/2,width,height);
+          resolve(canvas.toDataURL("image/jpeg",0.9));
+        };
+        img.onerror=()=>reject(new Error("Rasmni ochib bo'lmadi."));
+        img.src=source;
+      });
+      setForm(x=>({...x,imageUrl:normalized}));
+      setMessage("Rasm 1080×1440 oq fonli formatga tayyorlandi — kesilmadi.");
     }catch(e){setMessage(e instanceof Error?e.message:"Rasmni yuklab bo'lmadi.");}
   }
   function onImageDrop(e:DragEvent<HTMLDivElement>){
