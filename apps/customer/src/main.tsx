@@ -66,7 +66,7 @@ function cat(p:Product){
 }
 function label(k:string){ return categories.find(c=>c[0]===k)?.[1] || "Boshqa"; }
 
-function productImages(p:Product){return (p.imageUrl||"").split(/[\n|,]+/).map(x=>x.trim()).filter(Boolean);}
+function productImages(p:Product){return (p.imageUrl||"").split(/[\n|]+/).map(x=>x.trim()).filter(Boolean);}
 
 function productTokens(value:string){
   return value.toLowerCase().replace(/[^a-z0-9а-яё'’]+/gi," ").split(/\s+/).filter(x=>x.length>2);
