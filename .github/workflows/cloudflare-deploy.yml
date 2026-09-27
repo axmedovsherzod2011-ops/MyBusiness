@@ -43,7 +43,7 @@ jobs:
         run: test -f apps/seller/dist/index.html
 
       - name: Verify Worker assets
-        run: test -f apps/seller/index.html
+        run: test -f apps/seller/dist/index.html
 
       - name: Deploy Seller Worker
         env:
@@ -56,4 +56,6 @@ jobs:
           set -e
           body="$(curl -fsSL "https://mybusiness.axmedovsherzod2011.workers.dev/?v=${GITHUB_SHA}")"
           echo "$body" | grep -q "SELLER CENTER"
-          echo "Live Seller Worker is serving the deployed build."
+          echo "$body" | grep -q "LIVE v3"
+          echo "$body" | grep -q "Buyurtmalar"
+          echo "Live Seller Worker is serving the Vite dist build."
