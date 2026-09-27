@@ -1,12 +1,12 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState, type DragEvent } from "react";
 import { createRoot } from "react-dom/client";
 import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
 const apiBase = "https://mybusiness-api-e6dk.onrender.com";
-const emptyForm = { name: "", description: "", price: "", stock: "0", imageUrl: "" };
+const emptyForm = { name: "", sku: "", description: "", price: "", stock: "0", imageUrl: "" };
 
-type OrderItem = { id:number; productId:number|null; productName:string; price:number; quantity:number };
+type OrderItem = { id:number; productId:number|null; productName:string; sku?:string; imageUrl?:string; price:number; quantity:number };
 type Order = {
   id:number; customerUserId:number|null; customerName:string; customerPhone:string; status:string; total:number;
   createdAt:string; updatedAt:string; items:OrderItem[];
@@ -105,10 +105,31 @@ export default function App(){
   }
   async function changeStatus(order:Order,status:string){try{const d=await api("/api/v1/orders/"+order.id+"/status",{method:"PATCH",body:JSON.stringify({status})});setOrders(x=>x.map(o=>o.id===order.id?d.order:o))}catch(e){setMessage(e instanceof Error?e.message:"Holatni o'zgartirib bo'lmadi.")}}
 
+  function firstImage(value:string){return value.trim();}
+  async function handleImageFile(file:File){
+    if(!file.type.startsWith("image/")){setMessage("Faqat rasm fayli tanlang.");return;}
+    if(file.size>8*1024*1024){setMessage("Rasm 8 MB dan kichik bo'lishi kerak.");return;}
+    try{
+      const dataUrl=await new Promise<string>((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(String(reader.result||""));
+        reader.onerror=()=>reject(new Error("Rasmni o'qib bo'lmadi."));
+        reader.readAsDataURL(file);
+      });
+      setForm(x=>({...x,imageUrl:dataUrl}));
+      setMessage("Rasm tanlandi. 1080×1440 preview tayyor.");
+    }catch(e){setMessage(e instanceof Error?e.message:"Rasmni yuklab bo'lmadi.");}
+  }
+  function onImageDrop(e:DragEvent<HTMLDivElement>){
+    e.preventDefault();
+    const file=e.dataTransfer.files?.[0];
+    if(file) void handleImageFile(file);
+  }
+
   async function saveProduct(product:Product){
     try{
       const d=await api("/api/v1/products/"+product.id,{method:"PATCH",body:JSON.stringify({
-        name:product.name,description:product.description,price:product.price,stock:product.stock,imageUrl:product.imageUrl
+        name:product.name,sku:product.sku,description:product.description,price:product.price,stock:product.stock,imageUrl:product.imageUrl
       })});
       setProducts(x=>x.map(p=>p.id===product.id?d.product:p)); setEditing(null); setMessage("Mahsulot yangilandi.");
     }catch(e){setMessage(e instanceof Error?e.message:"Mahsulotni yangilab bo'lmadi.")}
@@ -155,7 +176,7 @@ export default function App(){
     }catch(err){setMessage(err instanceof Error?err.message:"Saqlashda xatolik.")}finally{setSaving(false)}
   }
 
-  const filtered=useMemo(()=>products.filter(p=>`${p.name} ${p.description}`.toLowerCase().includes(query.toLowerCase())),[products,query]);
+  const filtered=useMemo(()=>products.filter(p=>(p.name+" "+p.sku+" "+p.description).toLowerCase().includes(query.toLowerCase())),[products,query]);
   const totalStock=products.reduce((s,p)=>s+p.stock,0);
   const catalogValue=products.reduce((s,p)=>s+p.price*p.stock,0);
   const newOrders=orders.filter(o=>o.status==="new").length;
@@ -237,9 +258,14 @@ export default function App(){
                       </div>
                       <div className="item-list">
                         {(o.items||[]).map(i=>(
-                          <div className="item-line" key={i.id}>
-                            <span>{i.productName} × {i.quantity}</span>
-                            <b>{formatPrice(Number(i.price)*i.quantity)}</b>
+                          <div className="order-item-detail" key={i.id}>
+                            <div className="order-item-image">{i.imageUrl?<img src={firstImage(i.imageUrl)} alt=""/>:<span>NO IMAGE</span>}</div>
+                            <div className="order-item-info">
+                              <b>{i.productName}</b>
+                              {i.sku&&<small>SKU · {i.sku}</small>}
+                              <span>{i.quantity} × {formatPrice(Number(i.price))}</span>
+                            </div>
+                            <strong>{formatPrice(Number(i.price)*i.quantity)}</strong>
                           </div>
                         ))}
                       </div>
@@ -280,19 +306,27 @@ export default function App(){
         <div className="panel-head"><div><h2>{tab==="inventory"?"Ombor nazorati":"Mahsulotlar"}</h2><span className="muted">{filtered.length} ta natija · real Neon katalog</span></div><input className="mini-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Qidirish..." /></div>
         {loading?<div className="empty">Yuklanmoqda...</div>:filtered.length?<div className="table">
           {filtered.map(p=><div className="row seller-product-row" key={p.id}>
-            <div className="thumb">{p.imageUrl?<img src={p.imageUrl.split(/[\n|,]+/)[0]} alt=""/>:"NO IMAGE"}</div>
-            <div className="product-row-main"><b>{p.name}</b><span>{p.promoPrice!=null?<><s>{formatPrice(p.price)}</s> {formatPrice(p.promoPrice)} · {p.promoDiscountPercent}% chegirma</>:formatPrice(p.price)}</span></div>
+            <div className="thumb product-thumb">{p.imageUrl?<img src={firstImage(p.imageUrl)} alt=""/>:"NO IMAGE"}</div>
+            <div className="product-row-main"><b>{p.name}</b><span>SKU · {p.sku} · {p.promoPrice!=null?<><s>{formatPrice(p.price)}</s> {formatPrice(p.promoPrice)} · {p.promoDiscountPercent}% chegirma</>:formatPrice(p.price)}</span></div>
             {tab==="inventory"?<div className="stock-editor"><input type="number" min="0" value={stockDraft[p.id] ?? String(p.stock)} onChange={e=>setStockDraft(x=>({...x,[p.id]:e.target.value}))}/><button className="secondary small" onClick={()=>void saveStock(p)}>Saqlash</button></div>:<strong className={p.stock===0?"out":p.stock<=5?"low":""}>{p.stock} dona</strong>}
             {tab==="products"&&<div className="row-actions"><button className="secondary small" onClick={()=>setEditing(p)}>Tahrirlash</button><button className="secondary small" onClick={()=>setPromoProduct(p)}>Aksiya</button><button className="secondary small" onClick={()=>void deleteProduct(p.id)}>O'chirish</button></div>}
           </div>)}
         </div>:<div className="empty"><b>Mahsulot topilmadi.</b><span>Qidiruvni o'zgartiring yoki yangi mahsulot qo'shing.</span></div>}
       </section>}
 
-      {tab==="add"&&<section className="panel form-panel"><div className="panel-head"><div><h2>Yangi mahsulot</h2><span className="muted">Customer ko'radigan asosiy ma'lumotlar</span></div><span className="ai">AI READY</span></div><form onSubmit={submit}><label>Mahsulot nomi<input required maxLength={180} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Masalan: Yuz kremi"/></label><label>Tavsif<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Mahsulot tavsifi..." rows={5}/></label><div className="two"><label>Narx<input required min="0" step="0.01" type="number" value={form.price} onChange={e=>setForm({...form,price:e.target.value})}/></label><label>Qoldiq<input required min="0" step="1" type="number" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})}/></label></div><label>Rasm URLlari<input value={form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})} placeholder="Bir nechta URL: yangi qator, | yoki vergul"/></label><button className="primary full" disabled={saving}>{saving?"Saqlanmoqda...":"Mahsulotni bazaga qo'shish"}</button>{message&&<div className="message">{message}</div>}</form></section>}
+      {tab==="add"&&<section className="panel form-panel"><div className="panel-head"><div><h2>Yangi mahsulot</h2><span className="muted">Customer ko'radigan asosiy ma'lumotlar</span></div><span className="ai">AI READY</span></div><form onSubmit={submit}><label>Mahsulot nomi<input required maxLength={180} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Masalan: Yuz kremi"/></label><label>Qisqa SKU<input required maxLength={40} value={form.sku} onChange={e=>setForm({...form,sku:e.target.value.toUpperCase()})} placeholder="Masalan: CREAM-01"/><small className="field-help">SKU faqat seller panelida ko'rinadi.</small></label><label>Tavsif<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Mahsulot tavsifi..." rows={5}/></label><div className="two"><label>Narx<input required min="0" step="0.01" type="number" value={form.price} onChange={e=>setForm({...form,price:e.target.value})}/></label><label>Qoldiq<input required min="0" step="1" type="number" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})}/></label></div><div className="image-uploader" onDragOver={e=>e.preventDefault()} onDrop={onImageDrop}>
+  <label>Mahsulot rasmi <span>Drag & drop yoki fayl tanlang</span>
+    <input type="file" accept="image/*" onChange={e=>{const f=e.target.files?.[0];if(f) void handleImageFile(f)}} />
+  </label>
+  <div className="image-uploader-divider"><span>yoki rasm URL</span></div>
+  <input value={form.imageUrl.startsWith("data:image/")?"":form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})} placeholder="https://.../image.jpg" />
+  {form.imageUrl&&<div className="image-frame"><img src={firstImage(form.imageUrl)} alt="Preview"/></div>}
+  <small>Saytda rasm 1080×1440 nisbatida ko'rsatiladi. Katta rasm kesilmaydi — oq fon ichiga sig'diriladi.</small>
+</div><button className="primary full" disabled={saving}>{saving?"Saqlanmoqda...":"Mahsulotni bazaga qo'shish"}</button>{message&&<div className="message">{message}</div>}</form></section>}
 
       {tab==="analytics"&&<section className="panel analytics-panel">{!analytics?<div className="empty"><b>Real analytics</b><span>Neondan 30 kunlik ma'lumotni yuklash uchun bosing.</span><button className="primary small" onClick={()=>void loadAnalytics()}>Analitikani yuklash</button></div>:<><div className="stats"><div><span>30 kunlik tushum</span><b>{formatPrice(Number(analytics.summary.revenue))}</b><small>Faqat yakunlangan buyurtmalar</small></div><div><span>Buyurtmalar</span><b>{analytics.summary.totalOrders}</b><small>{analytics.summary.completedOrders} tasi yakunlangan</small></div><div><span>O'rtacha chek</span><b>{formatPrice(Number(analytics.summary.averageOrder))}</b><small>Yakunlangan buyurtmalar</small></div><div><span>Past qoldiq</span><b>{analytics.stock.lowStock}</b><small>{analytics.stock.outOfStock} ta tugagan</small></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><h2>Eng ko'p tushum bergan mahsulotlar</h2><button className="secondary small" onClick={()=>void loadAnalytics()}>Yangilash</button></div>{analytics.topProducts.map((x:any)=><div className="overview-list" key={x.productId}><div><span>{x.productName}</span><b>{formatPrice(Number(x.revenue))}</b></div></div>)}</section><section className="panel"><div className="panel-head"><h2>Kundalik savdo</h2></div>{analytics.daily.map((x:any)=><div className="overview-list" key={String(x.day)}><div><span>{String(x.day).slice(5)}</span><b>{formatPrice(Number(x.revenue))} · {x.orders} buyurtma</b></div></div>)}</section></div></>}</section>}
       {tab==="marketing"&&<section className="panel"><div className="panel-head"><div><h2>Marketing & Aksiyalar</h2><span className="muted">Aksiyalar real katalogga saqlanadi va customer API orqali chegirmali narx sifatida qaytadi.</span></div></div><div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{p.imageUrl?<img src={p.imageUrl.split(/[\n|,]+/)[0]} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>setPromoProduct(p)}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div></section>}
-      {editing&&<div className="modal-backdrop"><form className="modal form-panel" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}><div className="panel-head"><h2>Mahsulotni tahrirlash</h2><button type="button" className="secondary small" onClick={()=>setEditing(null)}>Yopish</button></div><label>Nomi<input value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})}/></label><label>Tavsif<textarea rows={5} value={editing.description} onChange={e=>setEditing({...editing,description:e.target.value})}/></label><div className="two"><label>Narx<input type="number" min="0" value={editing.price} onChange={e=>setEditing({...editing,price:Number(e.target.value)})}/></label><label>Qoldiq<input type="number" min="0" value={editing.stock} onChange={e=>setEditing({...editing,stock:Number(e.target.value)})}/></label></div><label>Rasm URLlari<input value={editing.imageUrl} onChange={e=>setEditing({...editing,imageUrl:e.target.value})}/></label><button className="primary full">O'zgarishlarni saqlash</button></form></div>}
+      {editing&&<div className="modal-backdrop"><form className="modal form-panel" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}><div className="panel-head"><h2>Mahsulotni tahrirlash</h2><button type="button" className="secondary small" onClick={()=>setEditing(null)}>Yopish</button></div><label>Nomi<input value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})}/></label><label>SKU<input value={editing.sku} onChange={e=>setEditing({...editing,sku:e.target.value.toUpperCase()})}/></label><label>Tavsif<textarea rows={5} value={editing.description} onChange={e=>setEditing({...editing,description:e.target.value})}/></label><div className="two"><label>Narx<input type="number" min="0" value={editing.price} onChange={e=>setEditing({...editing,price:Number(e.target.value)})}/></label><label>Qoldiq<input type="number" min="0" value={editing.stock} onChange={e=>setEditing({...editing,stock:Number(e.target.value)})}/></label></div><label>Rasm URLlari<input value={editing.imageUrl} onChange={e=>setEditing({...editing,imageUrl:e.target.value})}/></label><button className="primary full">O'zgarishlarni saqlash</button></form></div>}
       {promoProduct&&<div className="modal-backdrop"><div className="modal form-panel"><div className="panel-head"><h2>Aksiya: {promoProduct.name}</h2><button className="secondary small" onClick={()=>setPromoProduct(null)}>Yopish</button></div><label>Chegirma foizi<input type="number" min="1" max="99" value={promoDiscount} onChange={e=>setPromoDiscount(e.target.value)}/></label><label>Tugash vaqti<input type="datetime-local" value={promoEndsAt} onChange={e=>setPromoEndsAt(e.target.value)}/></label><button className="primary full" onClick={()=>void savePromotion()}>Aksiyani saqlash</button></div></div>}
     </section>
   </main>;
