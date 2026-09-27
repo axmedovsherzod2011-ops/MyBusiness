@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { createRoot } from "react-dom/client";
 import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
@@ -287,3 +288,8 @@ export default function App(){
     </section>
   </main>;
 }
+
+
+const root = document.getElementById("root");
+if (!root) throw new Error("Seller root element not found.");
+createRoot(root).render(<App />);
