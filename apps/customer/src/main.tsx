@@ -233,7 +233,7 @@ export default function App(){
 
   const cartItems=Object.entries(cart).map(([id,q])=>({p:products.find(x=>x.id===Number(id)),q})).filter(x=>x.p) as {p:Product;q:number}[];
   const cartCount=cartItems.reduce((s,x)=>s+x.q,0);
-  const cartTotal=cartItems.reduce((s,x)=>s+x.effectivePrice(p)*x.q,0);
+  const cartTotal=cartItems.reduce((s,x)=>s+effectivePrice(x.p)*x.q,0);
   const newProducts=[...products].filter(isNew).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt)).slice(0,8);
   const popular=[...products].filter(p=>p.stock>0).sort((a,b)=>b.stock-a.stock).slice(0,8);
   const categoryCounts=products.reduce<Record<string,number>>((acc,p)=>{const k=cat(p);acc[k]=(acc[k]||0)+1;return acc},{}); 
