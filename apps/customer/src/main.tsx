@@ -295,7 +295,11 @@ export default function App(){
       if(!r.ok||!d.sessionId||!d.telegramUrl)throw new Error(d.message||"Telegram ulanishini boshlashda xatolik.");
       setAuthSession(d.sessionId);
       setAuthStatus("waiting");
-      if(window.matchMedia("(min-width: 768px)").matches){\n        window.open(d.telegramUrl,"_blank","noopener,noreferrer");\n      }else{\n        window.location.href=d.telegramUrl;\n      }
+      if(window.matchMedia("(min-width: 768px)").matches){
+        window.open(d.telegramUrl,"_blank","noopener,noreferrer");
+      }else{
+        window.location.href=d.telegramUrl;
+      }
     }catch(e){setAuthStatus("error");setAuthError(e instanceof Error?e.message:"Telegram ulanishida xatolik.");}
   }
   async function completeTelegramAuth(){
