@@ -37,6 +37,7 @@ export async function initializeDatabase(): Promise<void> {
       CREATE TABLE IF NOT EXISTS marketplace_products (
         id BIGSERIAL PRIMARY KEY,
         name VARCHAR(180) NOT NULL,
+        sku VARCHAR(40) NOT NULL DEFAULT '',
         description TEXT NOT NULL DEFAULT '',
         price NUMERIC(14, 2) NOT NULL CHECK (price >= 0),
         image_url TEXT NOT NULL DEFAULT '',
@@ -94,6 +95,8 @@ export async function initializeDatabase(): Promise<void> {
         order_id BIGINT NOT NULL REFERENCES marketplace_orders(id) ON DELETE CASCADE,
         product_id BIGINT REFERENCES marketplace_products(id) ON DELETE SET NULL,
         product_name VARCHAR(180) NOT NULL,
+        sku VARCHAR(40) NOT NULL DEFAULT '',
+        image_url TEXT NOT NULL DEFAULT '',
         price NUMERIC(14,2) NOT NULL CHECK (price >= 0),
         quantity INTEGER NOT NULL CHECK (quantity > 0)
       );
@@ -142,6 +145,16 @@ export async function initializeDatabase(): Promise<void> {
         ADD COLUMN IF NOT EXISTS auth_token UUID;
       CREATE UNIQUE INDEX IF NOT EXISTS customer_users_auth_token_idx
         ON customer_users (auth_token);
+
+      ALTER TABLE marketplace_products
+        ADD COLUMN IF NOT EXISTS sku VARCHAR(40) NOT NULL DEFAULT '';
+
+      UPDATE marketplace_products SET sku = 'MB-' || LPAD(id::text, 6, '0') WHERE sku = '';
+      CREATE UNIQUE INDEX IF NOT EXISTS marketplace_products_sku_idx ON marketplace_products (sku);
+
+      ALTER TABLE marketplace_order_items
+        ADD COLUMN IF NOT EXISTS sku VARCHAR(40) NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS image_url TEXT NOT NULL DEFAULT '';
 
       ALTER TABLE marketplace_orders
         ADD COLUMN IF NOT EXISTS payment_method VARCHAR(20) NOT NULL DEFAULT 'cash',
