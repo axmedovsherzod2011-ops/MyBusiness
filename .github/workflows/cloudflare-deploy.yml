@@ -55,7 +55,6 @@ jobs:
         run: |
           set -e
           body="$(curl -fsSL "https://mybusiness.axmedovsherzod2011.workers.dev/?v=${GITHUB_SHA}")"
-          echo "$body" | grep -q "SELLER CENTER"
-          echo "$body" | grep -q "LIVE v3"
-          echo "$body" | grep -q "Buyurtmalar"
-          echo "Live Seller Worker is serving the Vite dist build."
+          echo "$body" | grep -q 'id="root"'
+          echo "$body" | grep -q 'assets/'
+          echo "Live Seller Worker is serving the React Vite build."
