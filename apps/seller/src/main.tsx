@@ -14,6 +14,7 @@ type Order = {
 type Chat = {
   id:number; customerUserId:number|null; customerName:string; productId:number|null; status:string;
   productName?:string; productImageUrl?:string; lastMessage:string; messageCount:number; updatedAt:string;
+  hasUnreadForSeller?:boolean; sellerLastReadAt?:string|null;
 };
 type ChatMessage = { id:number; senderRole:"customer"|"seller"; body:string; createdAt:string };
 const statusLabels:Record<string,string> = {
@@ -80,7 +81,14 @@ export default function App(){
     return()=>window.clearInterval(timer);
   },[]);
 
-  async function openChat(id:number){setActiveChat(id);setTab("chats");try{const d=await api("/api/v1/chats/"+id+"/messages");setMessages(d.messages||[])}catch(e){setMessage(e instanceof Error?e.message:"Xabarlarni yuklab bo'lmadi.")}}
+  async function openChat(id:number){
+    setActiveChat(id);setTab("chats");
+    try{
+      await api("/api/v1/chats/"+id+"/read",{method:"POST"});
+      setChats(x=>x.map(c=>c.id===id?{...c,hasUnreadForSeller:false,sellerLastReadAt:new Date().toISOString()}:c));
+      const d=await api("/api/v1/chats/"+id+"/messages");setMessages(d.messages||[]);
+    }catch(e){setMessage(e instanceof Error?e.message:"Xabarlarni yuklab bo'lmadi.")}
+  }
   useEffect(()=>{
     if(!activeChat)return;
     const timer=window.setInterval(async()=>{try{const d=await api("/api/v1/chats/"+activeChat+"/messages");setMessages(d.messages||[])}catch{}},3000);
@@ -151,6 +159,7 @@ export default function App(){
   const totalStock=products.reduce((s,p)=>s+p.stock,0);
   const catalogValue=products.reduce((s,p)=>s+p.price*p.stock,0);
   const newOrders=orders.filter(o=>o.status==="new").length;
+  const unreadChats=chats.filter(c=>c.status==="open"&&c.hasUnreadForSeller).length;
   const openChats=chats.filter(c=>c.status==="open").length;
   const filteredOrders=orders.filter(o=>orderFilter==="all"?true:orderFilter==="new"?o.status==="new":orderFilter==="active"?["confirmed","preparing","shipping"].includes(o.status):["completed","cancelled"].includes(o.status));
   const selected=selectedOrder===null?null:orders.find(o=>o.id===selectedOrder)||null;
@@ -159,7 +168,7 @@ export default function App(){
   return <main className="seller-shell">
     <aside className="sidebar">
       <a className="brand" href="/">MYBUSINESS <span>SELLER</span></a>
-      <nav>{nav.map(([id,label])=><button key={id} className={tab===id?"active":""} onClick={()=>setTab(id)}>{label}{id==="orders"&&newOrders>0?<i className="nav-count">{newOrders}</i>:id==="chats"&&openChats>0?<i className="nav-count">{openChats}</i>:null}</button>)}</nav>
+      <nav>{nav.map(([id,label])=><button key={id} className={tab===id?"active":""} onClick={()=>setTab(id)}>{label}{id==="orders"&&newOrders>0?<i className="nav-count">{newOrders}</i>:id==="chats"&&unreadChats>0?<i className="nav-count">{unreadChats}</i>:null}</button>)}</nav>
       <div className="side-note"><b>Live boshqaruv</b><span>Buyurtmalar, chatlar, mahsulotlar va ombor shu paneldan boshqariladi.</span></div>
     </aside>
 
@@ -250,7 +259,7 @@ export default function App(){
                       {o.status!=="completed" && o.status!=="cancelled" && (
                         <button className="secondary small" onClick={()=>changeStatus(o,"cancelled")}>Bekor qilish</button>
                       )}
-                      <button className="secondary small" onClick={()=>void openOrderChat(o)}>Chat</button>
+                      
                     </div>
                   </div>
                 </article>
