@@ -116,15 +116,31 @@ export function registerOrderRoutes(app: Express): void {
     }
     try {
       const db = requireDatabase();
-      const result = await db.query(
-        `UPDATE marketplace_orders SET status=$1, updated_at=NOW()
-         WHERE id=$2
-         RETURNING id, customer_name AS "customerName", customer_phone AS "customerPhone",
-                   status, total, created_at AS "createdAt", updated_at AS "updatedAt"`,
-        [status, req.params.id],
-      );
-      if (!result.rowCount) { res.status(404).json({ message: "Buyurtma topilmadi." }); return; }
-      res.json({ order: result.rows[0] });
+      const client = await db.connect();
+      try {
+        await client.query("BEGIN");
+        const current = await client.query(`SELECT id, status FROM marketplace_orders WHERE id=$1 FOR UPDATE`, [req.params.id]);
+        if (!current.rowCount) { await client.query("ROLLBACK"); res.status(404).json({ message: "Buyurtma topilmadi." }); return; }
+        const from = String(current.rows[0].status);
+        const transitions: Record<string,string[]> = {
+          new:["confirmed","cancelled"], confirmed:["preparing","cancelled"], preparing:["shipping","cancelled"],
+          shipping:["completed","cancelled"], completed:[], cancelled:[]
+        };
+        if (!(transitions[from] ?? []).includes(status)) {
+          await client.query("ROLLBACK"); res.status(409).json({ message: `Holatni ${from} dan ${status} ga o'zgartirib bo'lmaydi.` }); return;
+        }
+        if (status === "cancelled") {
+          await client.query(`UPDATE marketplace_products p SET stock=p.stock+i.quantity FROM marketplace_order_items i WHERE i.order_id=$1 AND i.product_id=p.id`, [req.params.id]);
+        }
+        const result = await client.query(
+          `UPDATE marketplace_orders SET status=$1, updated_at=NOW() WHERE id=$2
+           RETURNING id, customer_user_id AS "customerUserId", customer_name AS "customerName", customer_phone AS "customerPhone",
+                     status, total, created_at AS "createdAt", updated_at AS "updatedAt"`,
+          [status, req.params.id],
+        );
+        await client.query("COMMIT");
+        res.json({ order: result.rows[0] });
+      } finally { client.release(); }
     } catch (error) {
       console.error("Order status update failed", error);
       res.status(500).json({ message: "Buyurtma holatini o'zgartirib bo'lmadi." });
