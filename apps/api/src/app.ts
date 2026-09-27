@@ -5,6 +5,7 @@ import { productsRouter } from "./products.js";
 import { registerTelegramAuthRoutes } from "./telegram-auth.js";
 import { registerOrderRoutes } from "./orders.js";
 import { registerChatRoutes } from "./chats.js";
+import { registerAnalyticsRoutes } from "./analytics.js";
 
 const appVersion = process.env.APP_VERSION ?? "0.1.0";
 const corsOrigins = (process.env.CORS_ORIGIN ?? "")
@@ -71,6 +72,7 @@ app.get("/api/v1", (_req: Request, res: Response) => {
 registerTelegramAuthRoutes(app);
 registerOrderRoutes(app);
 registerChatRoutes(app);
+registerAnalyticsRoutes(app);
 
 app.use("/api/v1/products", productsRouter);
 
