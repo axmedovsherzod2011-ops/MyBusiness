@@ -75,7 +75,18 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  app.post("/api/v1/chats/:id/messages", async (req: Request, res: Response) => {
+  app.patch("/api/v1/chats/:id/status", async (req: Request, res: Response) => {
+    const status = String(req.body?.status ?? "").trim();
+    if (!["open","closed"].includes(status)) { res.status(400).json({ message: "Noto'g'ri chat holati." }); return; }
+    try {
+      const db = requireDatabase();
+      const result = await db.query(`UPDATE seller_chats SET status=$1, updated_at=NOW() WHERE id=$2 RETURNING id,status,updated_at AS "updatedAt"`, [status, req.params.id]);
+      if (!result.rowCount) { res.status(404).json({ message: "Chat topilmadi." }); return; }
+      res.json({ chat: result.rows[0] });
+    } catch { res.status(500).json({ message: "Chat holatini o'zgartirib bo'lmadi." }); }
+  });
+
+  app.post("/api/v1/chats/:id/messages", async (req: Request, res: Response) =>
     const message = String(req.body?.message ?? "").trim();
     if (!message) { res.status(400).json({ message: "Xabar bo'sh bo'lmasligi kerak." }); return; }
     try {
