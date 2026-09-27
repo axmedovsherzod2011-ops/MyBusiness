@@ -68,7 +68,15 @@ export function registerOrderRoutes(app: Express): void {
       await client.query("BEGIN");
       const ids = items.map((x: any) => Number(x.productId)).filter(Number.isInteger);
       const products = await client.query(
-        `SELECT id, name, price, stock FROM marketplace_products WHERE id = ANY($1::bigint[]) FOR UPDATE`,
+        `SELECT p.id, p.name, p.price, p.stock, pr.discount_percent AS promo_discount_percent
+         FROM marketplace_products p
+         LEFT JOIN LATERAL (
+           SELECT discount_percent FROM marketplace_promotions
+           WHERE product_id=p.id AND active=TRUE AND starts_at <= NOW()
+             AND (ends_at IS NULL OR ends_at > NOW())
+           ORDER BY created_at DESC LIMIT 1
+         ) pr ON TRUE
+         WHERE p.id = ANY($1::bigint[]) FOR UPDATE`,
         [ids],
       );
       const byId = new Map(products.rows.map((p: any) => [Number(p.id), p]));
@@ -80,8 +88,9 @@ export function registerOrderRoutes(app: Express): void {
         if (!product || !Number.isFinite(quantity) || quantity < 1 || quantity > Number(product.stock)) {
           throw new Error("Mahsulot qoldig'i yetarli emas yoki mahsulot topilmadi.");
         }
-        total += Number(product.price) * quantity;
-        normalized.push({ productId: Number(product.id), name: product.name, price: Number(product.price), quantity });
+        const unitPrice = Number(product.price) * (product.promo_discount_percent == null ? 1 : 1 - Number(product.promo_discount_percent) / 100);
+        total += unitPrice * quantity;
+        normalized.push({ productId: Number(product.id), name: product.name, price: Math.round(unitPrice * 100) / 100, quantity });
       }
       const order = await client.query(
         `INSERT INTO marketplace_orders (customer_user_id, customer_name, customer_phone, status, total)
