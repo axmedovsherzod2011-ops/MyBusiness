@@ -144,6 +144,10 @@ export default function App(){
   }
 
   async function saveProduct(product:Product){
+    const normalizedSku=String(product.sku??"").trim().toUpperCase();
+    if(!normalizedSku){setMessage("SKU kiriting.");return;}
+    if(!/^[A-Z0-9._-]+$/.test(normalizedSku)){setMessage("SKU faqat harf, raqam, -, _, . belgilaridan iborat bo'lishi mumkin.");return;}
+    product={...product,sku:normalizedSku};
     try{
       const d=await api("/api/v1/products/"+product.id,{method:"PATCH",body:JSON.stringify({
         name:product.name,sku:product.sku,description:product.description,price:product.price,stock:product.stock,imageUrl:product.imageUrl
