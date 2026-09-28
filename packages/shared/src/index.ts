@@ -14,6 +14,7 @@ export interface Product {
   description: string;
   price: number;
   imageUrl: string;
+  imageUrls?: string[];
   stock: number;
   createdAt: string;
   promoDiscountPercent?: number | null;
@@ -26,6 +27,7 @@ export interface CreateProductInput {
   description: string;
   price: number;
   imageUrl: string;
+  imageUrls?: string[];
   stock: number;
 }
 
