@@ -495,24 +495,79 @@ export default function App(){
 
     {panel&&<div className="drawer-backdrop" onClick={goBack}><aside className="drawer" onClick={e=>e.stopPropagation()}>
       <div className="drawer-head"><h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":panel==="profile"?"Profil":panel==="filters"?"Filtrlar":panel==="search"?"Qidirish":"Katalog"}</h2></div>
-      {panel==="profile"&&<div className="profile-panel">
-        {!authUser?<div className="profile-login-card"><div className="profile-icon"><Icon name="user" size={28}/></div><h3>MyBusiness akkaunti</h3><p>Buyurtmalar, chatlar, sevimlilar va shaxsiy sozlamalarni bir joydan boshqaring.</p><button className="primary full" onClick={()=>setAuthOpen(true)}>Kirish / ro'yxatdan o'tish</button></div>:
+      {panel==="profile"&&<div className="profile-panel profile-v2">
+        {!authUser?<div className="profile-login-card profile-login-v2">
+          <div className="profile-login-art"><Icon name="user" size={30}/></div>
+          <span className="profile-kicker">MYBUSINESS ACCOUNT</span>
+          <h3>Xaridlaringizni bir joydan boshqaring</h3>
+          <p>Buyurtmalar, chatlar, sevimlilar va manzillarni bitta professional kabinetdan boshqaring.</p>
+          <button className="primary full" onClick={()=>setAuthOpen(true)}>Kirish / ro'yxatdan o'tish</button>
+          <small className="profile-login-note">Telegram orqali tez va xavfsiz kirish</small>
+        </div>:
         <>
-          {profileView!=="home"&&<button className="profile-back" onClick={goBack}><Icon name="back" size={18}/> Profil</button>}
-          {profileView==="home"&&<div className="profile-hero-card"><div className="profile-avatar">{authUser.name?.slice(0,1).toUpperCase()||"M"}</div><div><h3>{authUser.name}</h3><p>{authUser.phone||"Telegram akkaunti"}</p></div></div>}
-          {profileView==="home"&&<div className="profile-menu-list">
-            <button onClick={()=>openProfileView("orders")}><span className="profile-menu-icon">▣</span><div><b>Buyurtmalarim</b><small>Buyurtma holati va tarixi</small></div><strong>›</strong></button>
-            <button onClick={()=>openProfileView("chats")}><span className="profile-menu-icon">◌</span><div><b>Chatlar</b><small>Sotuvchilar bilan yozishmalar</small></div><strong>›</strong></button>
-            <button onClick={()=>setPanel("favorites")}><span className="profile-menu-icon">♡</span><div><b>Sevimlilar</b><small>{favs.length} ta saqlangan mahsulot</small></div><strong>›</strong></button>
-            <button onClick={()=>openProfileView("addresses")}><span className="profile-menu-icon">⌖</span><div><b>Manzillarim</b><small>Yetkazib berish manzillari</small></div><strong>›</strong></button>
-            <button onClick={()=>openProfileView("settings")}><span className="profile-menu-icon">⚙</span><div><b>Sozlamalar</b><small>Akkaunt va ilova</small></div><strong>›</strong></button>
-            <button onClick={()=>openProfileView("help")}><span className="profile-menu-icon">?</span><div><b>Yordam</b><small>Qo'llab-quvvatlash va savollar</small></div><strong>›</strong></button>
+          {profileView!=="home"&&<button className="profile-back profile-back-v2" onClick={goBack}><Icon name="back" size={18}/> Profil</button>}
+          {profileView==="home"&&<>
+            <div className="profile-account-card">
+              <div className="profile-account-main">
+                <div className="profile-avatar profile-avatar-v2">{authUser.name?.slice(0,1).toUpperCase()||"M"}</div>
+                <div className="profile-account-copy"><span>MyBusiness akkaunti</span><h2>{authUser.name||"Mijoz"}</h2><p>{authUser.phone||"Telegram akkaunti"}</p></div>
+              </div>
+              <button className="profile-account-action" onClick={()=>openProfileView("settings")} aria-label="Sozlamalar">⚙</button>
+            </div>
+
+            <div className="profile-quick-grid">
+              <button onClick={()=>openProfileView("orders")}><span className="profile-quick-icon">▣</span><b>Buyurtmalar</b><small>{myOrders.length?myOrders.length+" ta":"Tarixni ko'rish"}</small></button>
+              <button onClick={()=>openProfileView("chats")}><span className="profile-quick-icon">◌</span><b>Chatlar</b><small>{myChats.length?myChats.length+" ta":"Sotuvchilar bilan"}</small></button>
+              <button onClick={()=>setPanel("favorites")}><span className="profile-quick-icon">♡</span><b>Sevimlilar</b><small>{favs.length} ta mahsulot</small></button>
+            </div>
+
+            <div className="profile-section-card">
+              <div className="profile-section-head"><div><span>BUYURTMALAR</span><h3>Buyurtmalarim</h3></div><button onClick={()=>openProfileView("orders")}>Barchasi <b>›</b></button></div>
+              <div className="profile-order-stages">
+                <button onClick={()=>openProfileView("orders")}><span>○</span><b>Yangi</b><small>Qabul qilindi</small></button>
+                <button onClick={()=>openProfileView("orders")}><span>◔</span><b>Tayyorlanmoqda</b><small>Jarayonda</small></button>
+                <button onClick={()=>openProfileView("orders")}><span>⌁</span><b>Yetkazilmoqda</b><small>Yo'lda</small></button>
+                <button onClick={()=>openProfileView("orders")}><span>✓</span><b>Yetkazildi</b><small>Tugallangan</small></button>
+              </div>
+            </div>
+
+            <div className="profile-section-title">Kabinet</div>
+            <div className="profile-menu-list profile-menu-list-v2">
+              <button onClick={()=>openProfileView("addresses")}><span className="profile-menu-icon">⌖</span><div><b>Manzillarim</b><small>Yetkazib berish manzillarini boshqarish</small></div><strong>›</strong></button>
+              <button onClick={()=>openProfileView("chats")}><span className="profile-menu-icon">◌</span><div><b>Sotuvchilar bilan chat</b><small>Mahsulot bo'yicha savollar va javoblar</small></div><strong>›</strong></button>
+              <button onClick={()=>openProfileView("settings")}><span className="profile-menu-icon">⚙</span><div><b>Sozlamalar</b><small>Akkaunt va ilova sozlamalari</small></div><strong>›</strong></button>
+            </div>
+
+            <div className="profile-section-title">Yordam va ma'lumot</div>
+            <div className="profile-menu-list profile-menu-list-v2">
+              <button onClick={()=>openProfileView("help")}><span className="profile-menu-icon">?</span><div><b>Yordam markazi</b><small>Buyurtma, to'lov va mahsulotlar bo'yicha yordam</small></div><strong>›</strong></button>
+              <button onClick={()=>setPanel("favorites")}><span className="profile-menu-icon">♡</span><div><b>Sevimlilar</b><small>Saqlangan mahsulotlar: {favs.length} ta</small></div><strong>›</strong></button>
+            </div>
+            <button className="profile-logout-link" onClick={signOut}>Akkauntdan chiqish</button>
+          </>}
+
+          {profileView==="orders"&&<div className="profile-content profile-subview">
+            <div className="profile-subview-heading"><span>BUYURTMALAR</span><h3>Buyurtmalarim</h3><p>Barcha xaridlaringiz va ularning joriy holati.</p></div>
+            {profileLoading?<div className="state">Yuklanmoqda...</div>:myOrders.length?myOrders.map(o=><div className="profile-order-card profile-order-v2" key={o.id}>
+              <div className="profile-order-top"><div><span>BUYURTMA #{o.id}</span><b>{new Date(o.createdAt).toLocaleDateString("uz-UZ")}</b></div><strong>{money(Number(o.total))}</strong></div>
+              <em className={"order-status status-"+o.status}>{({new:"Yangi",confirmed:"Tasdiqlangan",preparing:"Tayyorlanmoqda",shipping:"Yetkazilmoqda",completed:"Yetkazildi",cancelled:"Bekor qilingan"} as any)[o.status]||o.status}</em>
+              <small>{(o.items||[]).map((i:any)=>i.productName+" × "+i.quantity).join(" · ")}</small>
+            </div>):<div className="drawer-empty">Hali buyurtmalar yo'q.</div>}
           </div>}
-          {profileView==="orders"&&<div className="profile-content"><h3>Buyurtmalarim</h3>{profileLoading?<div className="state">Yuklanmoqda...</div>:myOrders.length?myOrders.map(o=><div className="profile-order-card" key={o.id}><div><b>Buyurtma #{o.id}</b><span>{new Date(o.createdAt).toLocaleDateString("uz-UZ")}</span></div><strong>{money(Number(o.total))}</strong><em className={"order-status status-"+o.status}>{({new:"Yangi",confirmed:"Tasdiqlangan",preparing:"Tayyorlanmoqda",shipping:"Yetkazilmoqda",completed:"Yetkazildi",cancelled:"Bekor qilingan"} as any)[o.status]||o.status}</em><small>{(o.items||[]).map((i:any)=>i.productName+" × "+i.quantity).join(" · ")}</small></div>):<div className="drawer-empty">Hali buyurtmalar yo'q.</div>}</div>}
-          {profileView==="chats"&&<div className="profile-content"><h3>Chatlar</h3>{profileLoading?<div className="state">Yuklanmoqda...</div>:myChats.length?myChats.map(x=>{const p=products.find(p=>p.id===Number(x.productId));return <button className="profile-chat-row" key={x.id} onClick={async()=>{const fallback = p;const chatProductData=p||{id:Number(x.productId),name:x.productName||"Mahsulot",description:"",price:0,stock:0,createdAt:"",imageUrl:x.productImageUrl||""};setChatProduct(chatProductData as Product);setChatId(Number(x.id));setChatMessages([]);setChatInput("");setPanel(null);try{const r=await fetch(apiBase+"/api/v1/chats/"+x.id+"/messages",{headers:{Accept:"application/json"}});const d=await r.json() as {messages?:Array<{id:number;senderRole:"customer"|"seller";body:string;createdAt:string}>};if(r.ok)setChatMessages(d.messages||[]);}catch{setToast("Xabarlarni yuklab bo'lmadi.")}}}><span className="profile-chat-image">{(p?.imageUrl||x.productImageUrl)?<img src={p?.imageUrl||x.productImageUrl} alt="" />:<span>MB</span>}</span><div><b>{p?.name||x.productName||"Mahsulot"}</b><small>{x.lastMessage||"Yangi chat"} · {x.status==="open"?"Ochiq":"Yopiq"}</small></div><strong>›</strong></button>;}):<div className="drawer-empty">Hali chatlar yo'q.</div>}</div>}
-          {profileView==="addresses"&&<div className="profile-content"><h3>Manzillarim</h3><div className="coming-card"><span>⌖</span><b>Yetkazib berish manzili</b><p>Checkout vaqtida manzilni kiritishingiz mumkin. Saqlangan manzillar funksiyasi keyingi bosqichda ulanadi.</p></div></div>}
-          {profileView==="settings"&&<div className="profile-content"><h3>Sozlamalar</h3><div className="setting-row"><div><b>Til</b><small>O'zbekcha</small></div><span>›</span></div><div className="setting-row"><div><b>Bildirishnomalar</b><small>Buyurtma yangiliklari</small></div><span>Tez orada</span></div><button className="secondary full" onClick={signOut}>Chiqish</button></div>}
-          {profileView==="help"&&<div className="profile-content"><h3>Yordam</h3><div className="help-card"><b>Buyurtma bo'yicha savol</b><p>Buyurtma yoki mahsulot haqida sotuvchiga chat orqali yozishingiz mumkin.</p></div><div className="help-card"><b>To'lov</b><p>Hozircha naqd to'lov faol. Karta va qarz to'lovi tez orada ulanadi.</p></div></div>}
+
+          {profileView==="chats"&&<div className="profile-content profile-subview">
+            <div className="profile-subview-heading"><span>ALOQA</span><h3>Chatlar</h3><p>Mahsulot rasmi va nomi bilan barcha suhbatlaringiz.</p></div>
+            {profileLoading?<div className="state">Yuklanmoqda...</div>:myChats.length?myChats.map(x=>{const p=products.find(p=>p.id===Number(x.productId));const chatProductData=p||{id:Number(x.productId),name:x.productName||"Mahsulot",description:"",price:0,stock:0,createdAt:"",imageUrl:x.productImageUrl||""};return <button className="profile-chat-row profile-chat-row-v2" key={x.id} onClick={async()=>{setChatProduct(chatProductData as Product);setChatId(Number(x.id));setChatMessages([]);setChatInput("");setPanel(null);try{const r=await fetch(apiBase+"/api/v1/chats/"+x.id+"/messages",{headers:{Accept:"application/json"}});const d=await r.json() as {messages?:Array<{id:number;senderRole:"customer"|"seller";body:string;createdAt:string}>};if(r.ok)setChatMessages(d.messages||[]);}catch{setToast("Xabarlarni yuklab bo'lmadi.")}}}>
+              <span className="profile-chat-image profile-chat-image-v2">{(p?.imageUrl||x.productImageUrl)?<img src={p?.imageUrl||x.productImageUrl} alt="" />:<span>MB</span>}</span>
+              <div><span className="profile-chat-label">MAHSULOT</span><b>{p?.name||x.productName||"Mahsulot"}</b><small>{x.lastMessage||"Yangi chat"} · {x.status==="open"?"Ochiq":"Yopiq"}</small></div><strong>›</strong>
+            </button>}):<div className="drawer-empty">Hali chatlar yo'q.</div>}
+          </div>}
+
+          {profileView==="addresses"&&<div className="profile-content profile-subview"><div className="profile-subview-heading"><span>YETKAZIB BERISH</span><h3>Manzillarim</h3><p>Buyurtma rasmiylashtirishda foydalaniladigan manzillar.</p></div><div className="coming-card profile-empty-feature"><span>⌖</span><b>Saqlangan manzillar</b><p>Hozircha checkout vaqtida manzil kiritish faol. Saqlangan manzillar keyingi bosqichda ulanadi.</p></div></div>}
+
+          {profileView==="settings"&&<div className="profile-content profile-subview"><div className="profile-subview-heading"><span>AKKAUNT</span><h3>Sozlamalar</h3><p>MyBusiness ilovasi va akkauntingizni boshqaring.</p></div><div className="profile-settings-card"><div className="setting-row"><div><b>Til</b><small>O'zbekcha</small></div><span>›</span></div><div className="setting-row"><div><b>Bildirishnomalar</b><small>Buyurtma yangiliklari</small></div><span>Tez orada</span></div><div className="setting-row"><div><b>Telefon</b><small>{authUser.phone||"Telegram orqali tasdiqlangan"}</small></div><span>✓</span></div></div><button className="profile-danger-button" onClick={signOut}>Akkauntdan chiqish</button></div>}
+
+          {profileView==="help"&&<div className="profile-content profile-subview"><div className="profile-subview-heading"><span>YORDAM</span><h3>Yordam markazi</h3><p>Eng ko'p kerak bo'ladigan savollar va qo'llab-quvvatlash.</p></div><div className="help-card profile-help-v2"><b>Buyurtma bo'yicha savol</b><p>Buyurtma yoki mahsulot haqida sotuvchiga mahsulot sahifasidan chat orqali yozishingiz mumkin.</p><span>›</span></div><div className="help-card profile-help-v2"><b>To'lov</b><p>Hozircha naqd to'lov faol. Karta va qarz to'lovi keyinroq ulanadi.</p><span>›</span></div></div>}
         </>}
       </div>}
       {panel==="menu"&&<div className="menu-products-screen"><div className="menu-promo"><span>MYBUSINESS MARKET</span><b>Bugungi mahsulotlarni bir joyda toping</b><button onClick={()=>{setCategory("all");setPanel("menu")}}>Barchasini ko'rish →</button></div><div className="menu-products-title"><h3>Barcha mahsulotlar</h3><span>{visible.length} ta mahsulot</span></div>{visible.length?<Grid items={visible} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick}/>:<div className="state">Mahsulot topilmadi.</div>}</div>}
