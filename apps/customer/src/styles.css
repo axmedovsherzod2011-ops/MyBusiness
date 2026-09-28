@@ -2312,9 +2312,9 @@ html{
 
 /* Favorites: profile back link sits below the title, aligned to the drawer edge */
 .drawer-profile-back{
-  display:inline-flex;align-items:center;gap:3px;
+  display:inline-flex;align-items:center;gap:4px;
   border:0;background:transparent;color:#25292c;
-  padding:0;margin:2px 0 8px;cursor:pointer;
-  font:600 12px/1 inherit;white-space:nowrap;
+  padding:0;margin:2px 0 10px 2px;cursor:pointer;
+  font:700 13px/1 inherit;white-space:nowrap;
 }
 .drawer-profile-back svg{flex:0 0 auto}
