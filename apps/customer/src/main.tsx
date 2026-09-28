@@ -39,7 +39,7 @@ const rules: Record<string,RegExp> = {
 };
 
 
-function Icon({name,size=20}:{name:"home"|"grid"|"search"|"bag"|"cart"|"user"|"heart"|"menu"|"close"|"back";size?:number}){
+function Icon({name,size=20}:{name:"home"|"grid"|"search"|"bag"|"cart"|"user"|"heart"|"menu"|"close"|"trash"|"back";size?:number}){
   const common={width:size,height:size,viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:1.8,strokeLinecap:"round" as const,strokeLinejoin:"round" as const,ariaHidden:true};
   const paths={
     home:<><path d="m3 10 9-7 9 7"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-7h6v7"/></>,
