@@ -147,7 +147,6 @@ export default function App(){
   }
   async function removeImage(url:string){
     setForm(x=>({...x,imageUrls:x.imageUrls.filter(v=>v!==url),imageUrl:x.imageUrls.filter(v=>v!==url)[0]||""}));
-    if(url.startsWith(apiBase)) return;
     try{await api("/api/v1/uploads/product-image",{method:"DELETE",body:JSON.stringify({url})});}catch{}
   }
   function addImageUrl(){
