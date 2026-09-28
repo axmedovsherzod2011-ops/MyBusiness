@@ -4,7 +4,7 @@ import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
 const apiBase = "https://mybusiness-api-e6dk.onrender.com";
-const emptyForm = { name: "", sku: "", description: "", price: "", stock: "0", imageUrl: "" };
+const emptyForm = { name: "", sku: "", description: "", price: "", stock: "0", imageUrl: "", imageUrls: [] as string[] };
 
 type OrderItem = { id:number; productId:number|null; productName:string; sku?:string; imageUrl?:string; price:number; quantity:number };
 type Order = {
@@ -51,6 +51,7 @@ export default function App(){
   const [promoProduct,setPromoProduct]=useState<Product|null>(null);
   const [promoDiscount,setPromoDiscount]=useState("10");
   const [promoEndsAt,setPromoEndsAt]=useState("");
+  const [imageUrlInput,setImageUrlInput]=useState("");
 
   async function api(path:string, options:RequestInit={}) {
     const r=await fetch(apiBase+path,{...options,headers:{"Accept":"application/json","Content-Type":"application/json",...(options.headers||{})}});
@@ -105,42 +106,57 @@ export default function App(){
   }
   async function changeStatus(order:Order,status:string){try{const d=await api("/api/v1/orders/"+order.id+"/status",{method:"PATCH",body:JSON.stringify({status})});setOrders(x=>x.map(o=>o.id===order.id?d.order:o))}catch(e){setMessage(e instanceof Error?e.message:"Holatni o'zgartirib bo'lmadi.")}}
 
-  function firstImage(value:string){return value.trim();}
+  function firstImage(value:string){return value.split(/[\\n|,]+/).map(x=>x.trim()).filter(Boolean)[0]||"";}
+  async function uploadImage(file:File):Promise<string>{
+    const r=await fetch(apiBase+"/api/v1/uploads/product-image",{method:"POST",headers:{"Content-Type":file.type},body:file});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.message||"Rasmni storage'ga yuklab bo'lmadi.");
+    return String(d.image?.url||"");
+  }
   async function handleImageFile(file:File){
     if(!file.type.startsWith("image/")){setMessage("Faqat rasm fayli tanlang.");return;}
     if(file.size>12*1024*1024){setMessage("Rasm 12 MB dan kichik bo'lishi kerak.");return;}
     try{
-      const source=await new Promise<string>((resolve,reject)=>{
-        const reader=new FileReader();
-        reader.onload=()=>resolve(String(reader.result||""));
-        reader.onerror=()=>reject(new Error("Rasmni o'qib bo'lmadi."));
-        reader.readAsDataURL(file);
-      });
-      const normalized=await new Promise<string>((resolve,reject)=>{
+      const normalized=await new Promise<Blob>((resolve,reject)=>{
+        const source=URL.createObjectURL(file);
         const img=new Image();
         img.onload=()=>{
+          URL.revokeObjectURL(source);
           const canvas=document.createElement("canvas");
           canvas.width=1080; canvas.height=1440;
           const ctx=canvas.getContext("2d");
           if(!ctx){reject(new Error("Rasm canvas tayyorlanmadi."));return;}
-          ctx.fillStyle="#fff"; ctx.fillRect(0,0,1080,1440);
+          ctx.fillStyle="#fff";ctx.fillRect(0,0,1080,1440);
           const scale=Math.min(1080/img.naturalWidth,1440/img.naturalHeight);
-          const width=img.naturalWidth*scale;
-          const height=img.naturalHeight*scale;
+          const width=img.naturalWidth*scale,height=img.naturalHeight*scale;
           ctx.drawImage(img,(1080-width)/2,(1440-height)/2,width,height);
-          resolve(canvas.toDataURL("image/jpeg",0.9));
+          canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("Rasmni tayyorlab bo'lmadi.")),"image/jpeg",0.9);
         };
-        img.onerror=()=>reject(new Error("Rasmni ochib bo'lmadi."));
+        img.onerror=()=>{URL.revokeObjectURL(source);reject(new Error("Rasmni ochib bo'lmadi."));};
         img.src=source;
       });
-      setForm(x=>({...x,imageUrl:normalized}));
-      setMessage("Rasm 1080×1440 oq fonli formatga tayyorlandi — kesilmadi.");
+      const storedUrl=await uploadImage(new File([normalized],file.name.replace(/\\.[^.]+$/,"")+".jpg",{type:"image/jpeg"}));
+      setForm(x=>({...x,imageUrl:x.imageUrls[0]||storedUrl,imageUrls:[...x.imageUrls,storedUrl]}));
+      setMessage("Rasm yuklandi. Yana bir nechta rasm qo'shishingiz mumkin.");
     }catch(e){setMessage(e instanceof Error?e.message:"Rasmni yuklab bo'lmadi.");}
   }
   function onImageDrop(e:DragEvent<HTMLDivElement>){
     e.preventDefault();
-    const file=e.dataTransfer.files?.[0];
-    if(file) void handleImageFile(file);
+    const files=Array.from(e.dataTransfer.files||[]);
+    void Promise.all(files.map(handleImageFile));
+  }
+  async function removeImage(url:string){
+    setForm(x=>({...x,imageUrls:x.imageUrls.filter(v=>v!==url),imageUrl:x.imageUrls.filter(v=>v!==url)[0]||""}));
+    if(url.startsWith(apiBase)) return;
+    try{await api("/api/v1/uploads/product-image",{method:"DELETE",body:JSON.stringify({url})});}catch{}
+  }
+  function addImageUrl(){
+    const url=imageUrlInput.trim();
+    if(!/^https?:\\/\\//i.test(url)){setMessage("Rasm URL'i http:// yoki https:// bilan boshlanishi kerak.");return;}
+    if(form.imageUrls.includes(url)){setImageUrlInput("");return;}
+    if(form.imageUrls.length>=12){setMessage("Ko'pi bilan 12 ta rasm qo'shish mumkin.");return;}
+    setForm(x=>({...x,imageUrl:x.imageUrls[0]||url,imageUrls:[...x.imageUrls,url]}));
+    setImageUrlInput("");
   }
 
   async function saveProduct(product:Product){
@@ -150,7 +166,7 @@ export default function App(){
     product={...product,sku:normalizedSku};
     try{
       const d=await api("/api/v1/products/"+product.id,{method:"PATCH",body:JSON.stringify({
-        name:product.name,sku:product.sku,description:product.description,price:product.price,stock:product.stock,imageUrl:product.imageUrl
+        name:product.name,sku:product.sku,description:product.description,price:product.price,stock:product.stock,imageUrl:product.imageUrls?.[0]||product.imageUrl,imageUrls:product.imageUrls||[]
       })});
       setProducts(x=>x.map(p=>p.id===product.id?d.product:p)); setEditing(null); setMessage("Mahsulot yangilandi.");
     }catch(e){setMessage(e instanceof Error?e.message:"Mahsulotni yangilab bo'lmadi.")}
@@ -191,7 +207,7 @@ export default function App(){
     try{
       const d=await api("/api/v1/products",{method:"POST",body:JSON.stringify({
         name:form.name.trim(),sku:form.sku.trim().toUpperCase(),description:form.description.trim(),price:Number(form.price),
-        stock:Number(form.stock),imageUrl:form.imageUrl.trim()
+        stock:Number(form.stock),imageUrl:form.imageUrls[0]||"",imageUrls:form.imageUrls
       })});
       if(d.product)setProducts(x=>[d.product,...x]);setForm(emptyForm);setMessage("Mahsulot bazaga saqlandi.");setTab("products");
     }catch(err){setMessage(err instanceof Error?err.message:"Saqlashda xatolik.")}finally{setSaving(false)}
@@ -331,7 +347,7 @@ export default function App(){
         <div className="panel-head"><div><h2>{tab==="inventory"?"Ombor nazorati":"Mahsulotlar"}</h2><span className="muted">{filtered.length} ta natija · real Neon katalog</span></div><input className="mini-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Qidirish..." /></div>
         {loading?<div className="empty">Yuklanmoqda...</div>:filtered.length?<div className="table">
           {filtered.map(p=><div className="row seller-product-row" key={p.id}>
-            <div className="thumb product-thumb">{p.imageUrl?<img src={firstImage(p.imageUrl)} alt=""/>:"NO IMAGE"}</div>
+            <div className="thumb product-thumb">{(p.imageUrls?.[0]||firstImage(p.imageUrl))?<img src={p.imageUrls?.[0]||firstImage(p.imageUrl)} alt=""/>:"NO IMAGE"}</div>
             <div className="product-row-main"><b>{p.name}</b><span>SKU · {p.sku} · {p.promoPrice!=null?<><s>{formatPrice(p.price)}</s> {formatPrice(p.promoPrice)} · {p.promoDiscountPercent}% chegirma</>:formatPrice(p.price)}</span></div>
             {tab==="inventory"?<div className="stock-editor"><input type="number" min="0" value={stockDraft[p.id] ?? String(p.stock)} onChange={e=>setStockDraft(x=>({...x,[p.id]:e.target.value}))}/><button className="secondary small" onClick={()=>void saveStock(p)}>Saqlash</button></div>:<strong className={p.stock===0?"out":p.stock<=5?"low":""}>{p.stock} dona</strong>}
             {tab==="products"&&<div className="row-actions"><button className="secondary small" onClick={()=>setEditing(p)}>Tahrirlash</button><button className="secondary small" onClick={()=>setPromoProduct(p)}>Aksiya</button><button className="secondary small" onClick={()=>void deleteProduct(p.id)}>O'chirish</button></div>}
@@ -340,17 +356,17 @@ export default function App(){
       </section>}
 
       {tab==="add"&&<section className="panel form-panel"><div className="panel-head"><div><h2>Yangi mahsulot</h2><span className="muted">Customer ko'radigan asosiy ma'lumotlar</span></div><span className="ai">AI READY</span></div><form onSubmit={submit}><label>Mahsulot nomi<input required maxLength={180} value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Masalan: Yuz kremi"/></label><label>Qisqa SKU<input required maxLength={40} value={form.sku} onChange={e=>setForm({...form,sku:e.target.value.toUpperCase()})} placeholder="Masalan: CREAM-01" autoComplete="off"/><small className="field-help">SKU faqat seller panelida ko'rinadi. Harf, raqam, -, _, . ishlatiladi.</small></label><label>Tavsif<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Mahsulot tavsifi..." rows={5}/></label><div className="two"><label>Narx<input required min="0" step="0.01" type="number" value={form.price} onChange={e=>setForm({...form,price:e.target.value})}/></label><label>Qoldiq<input required min="0" step="1" type="number" value={form.stock} onChange={e=>setForm({...form,stock:e.target.value})}/></label></div><div className="image-uploader" onDragOver={e=>e.preventDefault()} onDrop={onImageDrop}>
-  <label>Mahsulot rasmi <span>Drag & drop yoki fayl tanlang</span>
-    <input type="file" accept="image/*" onChange={e=>{const f=e.target.files?.[0];if(f) void handleImageFile(f)}} />
+  <label>Mahsulot rasmlari <span>Bir nechta faylni tanlang yoki drag & drop qiling</span>
+    <input type="file" accept="image/*" multiple onChange={e=>{const files=Array.from(e.target.files||[]);void Promise.all(files.map(handleImageFile));e.currentTarget.value="";}} />
   </label>
-  <div className="image-uploader-divider"><span>yoki rasm URL</span></div>
-  <input value={form.imageUrl.startsWith("data:image/")?"":form.imageUrl} onChange={e=>setForm({...form,imageUrl:e.target.value})} placeholder="https://.../image.jpg" />
-  {form.imageUrl&&<div className="image-frame"><img src={firstImage(form.imageUrl)} alt="Preview"/></div>}
-  <small>Saytda rasm 1080×1440 nisbatida ko'rsatiladi. Katta rasm kesilmaydi — oq fon ichiga sig'diriladi.</small>
+  <div className="image-uploader-divider"><span>yoki rasm URL qo'shing</span></div>
+  <div className="image-url-add"><input value={imageUrlInput} onChange={e=>setImageUrlInput(e.target.value)} placeholder="https://.../image.jpg" onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addImageUrl();}}}/><button type="button" className="secondary small" onClick={addImageUrl}>Qo'shish</button></div>
+  {form.imageUrls.length>0&&<div className="image-gallery-preview">{form.imageUrls.map((url,i)=><div className="image-preview-card" key={url}><img src={url} alt={"Preview "+(i+1)}/><span>{i===0?"Asosiy":i+1}</span><button type="button" onClick={()=>void removeImage(url)} aria-label="Rasmni o'chirish">×</button></div>)}</div>}
+  <small>Har bir rasm 1080×1440 oq fonli formatga tayyorlanadi. Katta rasm kesilmaydi. DB'ga rasmning o'zi emas, faqat URL saqlanadi.</small>
 </div><button className="primary full" disabled={saving}>{saving?"Saqlanmoqda...":"Mahsulotni bazaga qo'shish"}</button>{message&&<div className="message">{message}</div>}</form></section>}
 
       {tab==="analytics"&&<section className="panel analytics-panel">{!analytics?<div className="empty"><b>Real analytics</b><span>Neondan 30 kunlik ma'lumotni yuklash uchun bosing.</span><button className="primary small" onClick={()=>void loadAnalytics()}>Analitikani yuklash</button></div>:<><div className="stats"><div><span>30 kunlik tushum</span><b>{formatPrice(Number(analytics.summary.revenue))}</b><small>Faqat yakunlangan buyurtmalar</small></div><div><span>Buyurtmalar</span><b>{analytics.summary.totalOrders}</b><small>{analytics.summary.completedOrders} tasi yakunlangan</small></div><div><span>O'rtacha chek</span><b>{formatPrice(Number(analytics.summary.averageOrder))}</b><small>Yakunlangan buyurtmalar</small></div><div><span>Past qoldiq</span><b>{analytics.stock.lowStock}</b><small>{analytics.stock.outOfStock} ta tugagan</small></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><h2>Eng ko'p tushum bergan mahsulotlar</h2><button className="secondary small" onClick={()=>void loadAnalytics()}>Yangilash</button></div>{analytics.topProducts.map((x:any)=><div className="overview-list" key={x.productId}><div><span>{x.productName}</span><b>{formatPrice(Number(x.revenue))}</b></div></div>)}</section><section className="panel"><div className="panel-head"><h2>Kundalik savdo</h2></div>{analytics.daily.map((x:any)=><div className="overview-list" key={String(x.day)}><div><span>{String(x.day).slice(5)}</span><b>{formatPrice(Number(x.revenue))} · {x.orders} buyurtma</b></div></div>)}</section></div></>}</section>}
-      {tab==="marketing"&&<section className="panel"><div className="panel-head"><div><h2>Marketing & Aksiyalar</h2><span className="muted">Aksiyalar real katalogga saqlanadi va customer API orqali chegirmali narx sifatida qaytadi.</span></div></div><div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{p.imageUrl?<img src={p.imageUrl.split(/[\n|,]+/)[0]} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>setPromoProduct(p)}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div></section>}
+      {tab==="marketing"&&<section className="panel"><div className="panel-head"><div><h2>Marketing & Aksiyalar</h2><span className="muted">Aksiyalar real katalogga saqlanadi va customer API orqali chegirmali narx sifatida qaytadi.</span></div></div><div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{(p.imageUrls?.[0]||p.imageUrl)?<img src={p.imageUrls?.[0]||p.imageUrl} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>setPromoProduct(p)}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div></section>}
       {editing&&<div className="modal-backdrop"><form className="modal form-panel" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}><div className="panel-head"><h2>Mahsulotni tahrirlash</h2><button type="button" className="secondary small" onClick={()=>setEditing(null)}>Yopish</button></div><label>Nomi<input value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})}/></label><label>SKU<input value={editing.sku} onChange={e=>setEditing({...editing,sku:e.target.value.toUpperCase()})}/></label><label>Tavsif<textarea rows={5} value={editing.description} onChange={e=>setEditing({...editing,description:e.target.value})}/></label><div className="two"><label>Narx<input type="number" min="0" value={editing.price} onChange={e=>setEditing({...editing,price:Number(e.target.value)})}/></label><label>Qoldiq<input type="number" min="0" value={editing.stock} onChange={e=>setEditing({...editing,stock:Number(e.target.value)})}/></label></div><label>Rasm URLlari<input value={editing.imageUrl} onChange={e=>setEditing({...editing,imageUrl:e.target.value})}/></label><button className="primary full">O'zgarishlarni saqlash</button></form></div>}
       {promoProduct&&<div className="modal-backdrop"><div className="modal form-panel"><div className="panel-head"><h2>Aksiya: {promoProduct.name}</h2><button className="secondary small" onClick={()=>setPromoProduct(null)}>Yopish</button></div><label>Chegirma foizi<input type="number" min="1" max="99" value={promoDiscount} onChange={e=>setPromoDiscount(e.target.value)}/></label><label>Tugash vaqti<input type="datetime-local" value={promoEndsAt} onChange={e=>setPromoEndsAt(e.target.value)}/></label><button className="primary full" onClick={()=>void savePromotion()}>Aksiyani saqlash</button></div></div>}
     </section>
