@@ -139,6 +139,15 @@ export async function initializeDatabase(): Promise<void> {
       CREATE INDEX IF NOT EXISTS seller_chat_messages_chat_id_idx
         ON seller_chat_messages (chat_id, created_at ASC);
 
+      CREATE TABLE IF NOT EXISTS customer_favorites (
+        customer_user_id BIGINT NOT NULL REFERENCES customer_users(id) ON DELETE CASCADE,
+        product_id BIGINT NOT NULL REFERENCES marketplace_products(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (customer_user_id, product_id)
+      );
+      CREATE INDEX IF NOT EXISTS customer_favorites_user_idx
+        ON customer_favorites (customer_user_id, created_at DESC);
+
       ALTER TABLE seller_chats
         ADD COLUMN IF NOT EXISTS seller_last_read_at TIMESTAMPTZ;
 
