@@ -27,7 +27,8 @@ export function registerUploadRoutes(app: Express): void {
   );
 
   app.delete("/api/v1/uploads/product-image", express.json({ limit: "16kb" }), async (req: Request, res: Response) => {
-    const url = typeof req.body?.url === "string" ? req.body.url.trim() : "";
+    const deleteBody = (req.body ?? {}) as Record<string, unknown>;
+    const url = typeof deleteBody.url === "string" ? deleteBody.url.trim() : "";
     if (!url) {
       res.status(400).json({ message: "Rasm URL kerak." });
       return;
