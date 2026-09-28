@@ -158,6 +158,40 @@ export default function App(){
     setImageUrlInput("");
   }
 
+  async function uploadEditingImage(file:File){
+    if(!editing)return;
+    if(!file.type.startsWith("image/")){setMessage("Faqat rasm fayli tanlang.");return;}
+    if(file.size>12*1024*1024){setMessage("Rasm 12 MB dan kichik bo'lishi kerak.");return;}
+    try{
+      const normalized=await new Promise<Blob>((resolve,reject)=>{
+        const source=URL.createObjectURL(file); const img=new Image();
+        img.onload=()=>{URL.revokeObjectURL(source);const canvas=document.createElement("canvas");canvas.width=1080;canvas.height=1440;
+          const ctx=canvas.getContext("2d"); if(!ctx){reject(new Error("Rasm canvas tayyorlanmadi."));return;}
+          ctx.fillStyle="#fff";ctx.fillRect(0,0,1080,1440);const scale=Math.min(1080/img.naturalWidth,1440/img.naturalHeight);
+          const w=img.naturalWidth*scale,h=img.naturalHeight*scale;ctx.drawImage(img,(1080-w)/2,(1440-h)/2,w,h);
+          canvas.toBlob(b=>b?resolve(b):reject(new Error("Rasmni tayyorlab bo'lmadi.")),"image/jpeg",0.9);
+        }; img.onerror=()=>{URL.revokeObjectURL(source);reject(new Error("Rasmni ochib bo'lmadi."));}; img.src=source;
+      });
+      const url=await uploadImage(new File([normalized],file.name.replace(/\.[^.]+$/,"")+".jpg",{type:"image/jpeg"}));
+      setEditing(p=>p?{...p,imageUrl:p.imageUrls?.[0]||url,imageUrls:[...(p.imageUrls||[]),url]}:p);
+    }catch(e){setMessage(e instanceof Error?e.message:"Rasmni yuklab bo'lmadi.");}
+  }
+  function removeEditingImage(url:string){
+    setEditing(p=>{if(!p)return p;const urls=(p.imageUrls||[]).filter(x=>x!==url);return {...p,imageUrls:urls,imageUrl:urls[0]||""};});
+    void api("/api/v1/uploads/product-image",{method:"DELETE",body:JSON.stringify({url})}).catch(()=>{});
+  }
+  function reorderEditingImage(from:number,to:number){
+    setEditing(p=>{if(!p)return p;const urls=[...(p.imageUrls||[])];if(from===to||!urls[from]||to<0||to>=urls.length)return p;
+      const [moved]=urls.splice(from,1);urls.splice(to,0,moved);return {...p,imageUrls:urls,imageUrl:urls[0]||""};});
+  }
+  function addEditingImageUrl(){
+    const url=imageUrlInput.trim(); if(!editing)return;
+    if(!/^https?:\/\//i.test(url)){setMessage("Rasm URL'i http:// yoki https:// bilan boshlanishi kerak.");return;}
+    const urls=editing.imageUrls||[]; if(urls.includes(url)){setImageUrlInput("");return;}
+    if(urls.length>=12){setMessage("Ko'pi bilan 12 ta rasm qo'shish mumkin.");return;}
+    setEditing({...editing,imageUrls:[...urls,url],imageUrl:urls[0]||url});setImageUrlInput("");
+  }
+
   async function saveProduct(product:Product){
     const normalizedSku=String(product.sku??"").trim().toUpperCase();
     if(!normalizedSku){setMessage("SKU kiriting.");return;}
@@ -366,7 +400,28 @@ export default function App(){
 
       {tab==="analytics"&&<section className="panel analytics-panel">{!analytics?<div className="empty"><b>Real analytics</b><span>Neondan 30 kunlik ma'lumotni yuklash uchun bosing.</span><button className="primary small" onClick={()=>void loadAnalytics()}>Analitikani yuklash</button></div>:<><div className="stats"><div><span>30 kunlik tushum</span><b>{formatPrice(Number(analytics.summary.revenue))}</b><small>Faqat yakunlangan buyurtmalar</small></div><div><span>Buyurtmalar</span><b>{analytics.summary.totalOrders}</b><small>{analytics.summary.completedOrders} tasi yakunlangan</small></div><div><span>O'rtacha chek</span><b>{formatPrice(Number(analytics.summary.averageOrder))}</b><small>Yakunlangan buyurtmalar</small></div><div><span>Past qoldiq</span><b>{analytics.stock.lowStock}</b><small>{analytics.stock.outOfStock} ta tugagan</small></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><h2>Eng ko'p tushum bergan mahsulotlar</h2><button className="secondary small" onClick={()=>void loadAnalytics()}>Yangilash</button></div>{analytics.topProducts.map((x:any)=><div className="overview-list" key={x.productId}><div><span>{x.productName}</span><b>{formatPrice(Number(x.revenue))}</b></div></div>)}</section><section className="panel"><div className="panel-head"><h2>Kundalik savdo</h2></div>{analytics.daily.map((x:any)=><div className="overview-list" key={String(x.day)}><div><span>{String(x.day).slice(5)}</span><b>{formatPrice(Number(x.revenue))} · {x.orders} buyurtma</b></div></div>)}</section></div></>}</section>}
       {tab==="marketing"&&<section className="panel"><div className="panel-head"><div><h2>Marketing & Aksiyalar</h2><span className="muted">Aksiyalar real katalogga saqlanadi va customer API orqali chegirmali narx sifatida qaytadi.</span></div></div><div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{(p.imageUrls?.[0]||p.imageUrl)?<img src={p.imageUrls?.[0]||p.imageUrl} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>setPromoProduct(p)}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div></section>}
-      {editing&&<div className="modal-backdrop"><form className="modal form-panel" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}><div className="panel-head"><h2>Mahsulotni tahrirlash</h2><button type="button" className="secondary small" onClick={()=>setEditing(null)}>Yopish</button></div><label>Nomi<input value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})}/></label><label>SKU<input value={editing.sku} onChange={e=>setEditing({...editing,sku:e.target.value.toUpperCase()})}/></label><label>Tavsif<textarea rows={5} value={editing.description} onChange={e=>setEditing({...editing,description:e.target.value})}/></label><div className="two"><label>Narx<input type="number" min="0" value={editing.price} onChange={e=>setEditing({...editing,price:Number(e.target.value)})}/></label><label>Qoldiq<input type="number" min="0" value={editing.stock} onChange={e=>setEditing({...editing,stock:Number(e.target.value)})}/></label></div><label>Rasm URLlari<input value={editing.imageUrl} onChange={e=>setEditing({...editing,imageUrl:e.target.value})}/></label><button className="primary full">O'zgarishlarni saqlash</button></form></div>}
+      {editing&&<div className="modal-backdrop editor-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(null)}}><form className="modal product-editor-modal" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}>
+  <div className="panel-head editor-head"><div><span className="eyebrow">PRODUCT EDITOR</span><h2>Mahsulotni tahrirlash</h2><span className="muted">Barcha ma'lumotlar va rasmlar shu oynadan boshqariladi.</span></div><button type="button" className="secondary small" onClick={()=>setEditing(null)}>Yopish</button></div>
+  <div className="editor-grid"><div className="editor-fields">
+    <label>Nomi<input required maxLength={180} value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})}/></label>
+    <label>Qisqa SKU<input required maxLength={40} value={editing.sku} onChange={e=>setEditing({...editing,sku:e.target.value.toUpperCase()})} autoComplete="off"/><small className="field-help">SKU faqat seller panelida ishlatiladi.</small></label>
+    <label>Tavsif<textarea rows={7} value={editing.description} onChange={e=>setEditing({...editing,description:e.target.value})}/></label>
+    <div className="two"><label>Narx<input required type="number" min="0" step="0.01" value={editing.price} onChange={e=>setEditing({...editing,price:Number(e.target.value)})}/></label><label>Qoldiq<input required type="number" min="0" step="1" value={editing.stock} onChange={e=>setEditing({...editing,stock:Number(e.target.value)})}/></label></div>
+  </div><div className="editor-media">
+    <div className="editor-media-head"><div><b>Mahsulot rasmlari</b><small>Surib tartibni o'zgartiring. 1-rasm — asosiy.</small></div><span>{(editing.imageUrls||[]).length}/12</span></div>
+    <div className="editor-image-drop" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();void Promise.all(Array.from(e.dataTransfer.files||[]).map(uploadEditingImage))}}>
+      <input type="file" accept="image/*" multiple onChange={e=>{const files=Array.from(e.target.files||[]);void Promise.all(files.map(uploadEditingImage));e.currentTarget.value=""}}/>
+      <b>Rasm qo'shish</b><span>Drag & drop yoki fayl tanlang</span>
+    </div>
+    <div className="image-url-add"><input value={imageUrlInput} onChange={e=>setImageUrlInput(e.target.value)} placeholder="https://.../image.jpg" onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addEditingImageUrl()}}}/><button type="button" className="secondary small" onClick={addEditingImageUrl}>Qo'shish</button></div>
+    <div className="editor-image-grid">{(editing.imageUrls||[]).map((url,i)=><div className={"editor-image-card "+(i===0?"primary-image":"")} key={url} draggable onDragStart={e=>e.dataTransfer.setData("text/plain",String(i))} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const from=Number(e.dataTransfer.getData("text/plain"));reorderEditingImage(from,i)}}>
+      <img src={url} alt={editing.name+" "+(i+1)}/><span className="editor-image-index">{i===0?"ASOSIY":i+1}</span><button type="button" className="editor-image-delete" onClick={()=>removeEditingImage(url)} aria-label="Rasmni o'chirish">×</button>
+      <div className="editor-image-actions"><button type="button" disabled={i===0} onClick={()=>reorderEditingImage(i,0)}>Asosiy</button><button type="button" disabled={i===0} onClick={()=>reorderEditingImage(i,i-1)}>←</button><button type="button" disabled={i===(editing.imageUrls||[]).length-1} onClick={()=>reorderEditingImage(i,i+1)}>→</button></div>
+    </div>)}</div>
+    {!editing.imageUrls?.length&&<div className="editor-no-images">Hali rasm qo'shilmagan.</div>}
+  </div></div>
+  <div className="editor-footer"><span>Rasm tartibi saqlanganda customer saytida ham shu ketma-ketlik ishlatiladi.</span><button className="primary" disabled={saving}>O'zgarishlarni saqlash</button></div>
+</form></div>}
       {promoProduct&&<div className="modal-backdrop"><div className="modal form-panel"><div className="panel-head"><h2>Aksiya: {promoProduct.name}</h2><button className="secondary small" onClick={()=>setPromoProduct(null)}>Yopish</button></div><label>Chegirma foizi<input type="number" min="1" max="99" value={promoDiscount} onChange={e=>setPromoDiscount(e.target.value)}/></label><label>Tugash vaqti<input type="datetime-local" value={promoEndsAt} onChange={e=>setPromoEndsAt(e.target.value)}/></label><button className="primary full" onClick={()=>void savePromotion()}>Aksiyani saqlash</button></div></div>}
     </section>
   </main>;
