@@ -494,7 +494,7 @@ export default function App(){
 </nav>
 
     {panel&&<div className="drawer-backdrop" onClick={goBack}><aside className="drawer" onClick={e=>e.stopPropagation()}>
-      <div className="drawer-head"><h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":panel==="profile"?"Profil":panel==="filters"?"Filtrlar":panel==="search"?"Qidirish":"Katalog"}</h2></div>
+      <div className="drawer-head">{panel==="favorites"&&<button className="drawer-head-back" onClick={goBack} aria-label="Orqaga"><Icon name="back" size={19}/></button>}<h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":panel==="profile"?"Profil":panel==="filters"?"Filtrlar":panel==="search"?"Qidirish":"Katalog"}</h2></div>
       {panel==="profile"&&<div className="profile-panel profile-v2">
         {!authUser?<div className="profile-login-card profile-login-v2">
           <div className="profile-login-art"><Icon name="user" size={30}/></div>
@@ -522,12 +522,12 @@ export default function App(){
             </div>
 
             <div className="profile-section-card">
-              <div className="profile-section-head"><div><span>BUYURTMALAR</span><h3>Buyurtmalarim</h3></div><button onClick={()=>openProfileView("orders")}>Barchasi <b>›</b></button></div>
+              <div className="profile-section-head"><div><span>BUYURTMALAR</span><h3>Buyurtmalarim</h3></div><button onClick={()=>{setOrderStatusFilter("all");openProfileView("orders")}}>Barchasi <b>›</b></button></div>
               <div className="profile-order-stages">
-                <button onClick={()=>openProfileView("orders")}><span>○</span><b>Yangi</b><small>Qabul qilindi</small></button>
-                <button onClick={()=>openProfileView("orders")}><span>◔</span><b>Tayyorlanmoqda</b><small>Jarayonda</small></button>
-                <button onClick={()=>openProfileView("orders")}><span>⌁</span><b>Yetkazilmoqda</b><small>Yo'lda</small></button>
-                <button onClick={()=>openProfileView("orders")}><span>✓</span><b>Yetkazildi</b><small>Tugallangan</small></button>
+                <button onClick={()=>{setOrderStatusFilter("new");openProfileView("orders")}}><span>○</span><b>Yangi</b><small>Qabul qilindi</small></button>
+                <button onClick={()=>{setOrderStatusFilter("preparing");openProfileView("orders")}}><span>◔</span><b>Tayyorlanmoqda</b><small>Jarayonda</small></button>
+                <button onClick={()=>{setOrderStatusFilter("shipping");openProfileView("orders")}}><span>⌁</span><b>Yetkazilmoqda</b><small>Yo'lda</small></button>
+                <button onClick={()=>{setOrderStatusFilter("completed");openProfileView("orders")}}><span>✓</span><b>Yetkazildi</b><small>Tugallangan</small></button>
               </div>
             </div>
 
@@ -548,11 +548,14 @@ export default function App(){
 
           {profileView==="orders"&&<div className="profile-content profile-subview">
             <div className="profile-subview-heading"><span>BUYURTMALAR</span><h3>Buyurtmalarim</h3><p>Barcha xaridlaringiz va ularning joriy holati.</p></div>
-            {profileLoading?<div className="state">Yuklanmoqda...</div>:myOrders.length?myOrders.map(o=><div className="profile-order-card profile-order-v2" key={o.id}>
+            <div className="profile-order-filter-tabs" role="tablist" aria-label="Buyurtma holati">
+              {([["all","Barchasi"],["new","Yangi"],["preparing","Tayyorlanmoqda"],["shipping","Yetkazilmoqda"],["completed","Yetkazildi"]] as const).map(([key,label])=><button key={key} className={orderStatusFilter===key?"active":""} onClick={()=>setOrderStatusFilter(key)}>{label}</button>)}
+            </div>
+            {profileLoading?<div className="state">Yuklanmoqda...</div>:myOrders.length?myOrders.filter(o=>orderStatusFilter==="all"||o.status===orderStatusFilter).length?myOrders.filter(o=>orderStatusFilter==="all"||o.status===orderStatusFilter).map(o=><div className="profile-order-card profile-order-v2" key={o.id}>
               <div className="profile-order-top"><div><span>BUYURTMA #{o.id}</span><b>{new Date(o.createdAt).toLocaleDateString("uz-UZ")}</b></div><strong>{money(Number(o.total))}</strong></div>
               <em className={"order-status status-"+o.status}>{({new:"Yangi",confirmed:"Tasdiqlangan",preparing:"Tayyorlanmoqda",shipping:"Yetkazilmoqda",completed:"Yetkazildi",cancelled:"Bekor qilingan"} as any)[o.status]||o.status}</em>
               <small>{(o.items||[]).map((i:any)=>i.productName+" × "+i.quantity).join(" · ")}</small>
-            </div>):<div className="drawer-empty">Hali buyurtmalar yo'q.</div>}
+            </div>):<div className="drawer-empty">{myOrders.length?"Bu holatda buyurtmalar yo'q.":"Hali buyurtmalar yo'q."}</div>}
           </div>}
 
           {profileView==="chats"&&<div className="profile-content profile-subview">
