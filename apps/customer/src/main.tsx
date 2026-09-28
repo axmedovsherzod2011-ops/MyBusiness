@@ -555,7 +555,7 @@ export default function App(){
               <div className="profile-order-top"><div><span>BUYURTMA #{o.id}</span><b>{new Date(o.createdAt).toLocaleDateString("uz-UZ")}</b></div><strong>{money(Number(o.total))}</strong></div>
               <em className={"order-status status-"+o.status}>{({new:"Yangi",confirmed:"Tasdiqlangan",preparing:"Tayyorlanmoqda",shipping:"Yetkazilmoqda",completed:"Yetkazildi",cancelled:"Bekor qilingan"} as any)[o.status]||o.status}</em>
               <small>{(o.items||[]).map((i:any)=>i.productName+" × "+i.quantity).join(" · ")}</small>
-            </div>):<div className="drawer-empty">{myOrders.length?"Bu holatda buyurtmalar yo'q.":"Hali buyurtmalar yo'q."}</div>}
+            </div>):<div className="drawer-empty">Bu holatda buyurtmalar yo'q.</div>:<div className="drawer-empty">Hali buyurtmalar yo'q.</div>}
           </div>}
 
           {profileView==="chats"&&<div className="profile-content profile-subview">
