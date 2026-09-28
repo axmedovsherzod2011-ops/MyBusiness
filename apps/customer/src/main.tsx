@@ -172,6 +172,7 @@ export default function App(){
   const [checkoutAddress,setCheckoutAddress]=useState("");
   const [profileView,setProfileView]=useState<"home"|"orders"|"chats"|"favorites"|"settings"|"help"|"addresses">("home");
   const [myOrders,setMyOrders]=useState<Array<any>>([]);
+  const [orderStatusFilter,setOrderStatusFilter]=useState<"all"|"new"|"preparing"|"shipping"|"completed">("all");
   const [myChats,setMyChats]=useState<Array<any>>([]);
   const [profileLoading,setProfileLoading]=useState(false);
 
