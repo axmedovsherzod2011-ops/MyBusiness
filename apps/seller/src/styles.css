@@ -132,3 +132,21 @@ html,body,#root{width:100%;min-width:0;overflow-x:hidden}
 @media(max-width:600px){.order-item-detail{grid-template-columns:58px minmax(0,1fr);}.order-item-image{width:58px}.order-item-detail>strong{grid-column:2}.image-frame{width:220px}}
 
 .customer-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px}.customer-meta span{display:grid;gap:4px;padding:10px;border:1px solid #e5e8e3;border-radius:10px;background:#fff;color:#697169;font-size:10px}.customer-meta b{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#899089}@media(max-width:600px){.customer-meta{grid-template-columns:1fr}}
+
+.image-uploader{margin-top:16px;padding:16px;border:1px dashed #cfd5cc;border-radius:14px;background:#fafbfa}
+.image-uploader>label{margin:0 0 10px;cursor:pointer}
+.image-uploader>label span{display:block;font-size:10px;color:#8a918a;font-weight:600}
+.image-uploader input[type=file]{margin-top:8px;padding:9px;background:#fff}
+.image-uploader-divider{display:flex;align-items:center;gap:10px;margin:12px 0;color:#9aa19a;font-size:10px}
+.image-uploader-divider:before,.image-uploader-divider:after{content:"";height:1px;background:#e4e7e2;flex:1}
+.image-url-add{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.image-url-add input{margin:0!important}
+.image-gallery-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px;margin-top:12px}
+.image-preview-card{position:relative;aspect-ratio:3/4;border:1px solid #e1e4df;border-radius:9px;overflow:hidden;background:#fff}
+.image-preview-card img{width:100%;height:100%;object-fit:contain;background:#fff}
+.image-preview-card>span{position:absolute;left:5px;bottom:5px;padding:3px 5px;border-radius:5px;background:#171917;color:#fff;font-size:8px;font-weight:800}
+.image-preview-card>button{position:absolute;right:4px;top:4px;width:22px;height:22px;border:0;border-radius:50%;background:#fff;color:#171917;box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:16px;line-height:1;cursor:pointer}
+.image-frame{width:120px!important;aspect-ratio:3/4!important;height:auto!important;margin-top:10px;overflow:hidden;border:1px solid #e1e4df;border-radius:9px;background:#fff}
+.image-frame img{width:100%;height:100%;object-fit:contain}
+.field-help{display:block;color:#899089;font-size:10px;margin-top:-8px}
+.product-thumb{aspect-ratio:3/4!important;height:auto!important}
