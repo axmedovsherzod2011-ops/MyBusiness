@@ -40,6 +40,10 @@ export default function App(){
   const [query,setQuery]=useState("");
   const [tab,setTab]=useState("overview");
   const [loading,setLoading]=useState(true);
+  const [ordersLoading,setOrdersLoading]=useState(true);
+  const [chatsLoading,setChatsLoading]=useState(true);
+  const [messagesLoading,setMessagesLoading]=useState(false);
+  const [analyticsLoading,setAnalyticsLoading]=useState(false);
   const [saving,setSaving]=useState(false);
   const [message,setMessage]=useState("");
   const [liveTick,setLiveTick]=useState(0);
@@ -59,13 +63,14 @@ export default function App(){
     if(!r.ok) throw new Error(d.message||"Server xatosi.");
     return d;
   }
-  async function loadProducts(){try{const d=await api("/api/v1/products");setProducts((d as ProductsResponse).products)}catch(e){setMessage(e instanceof Error?e.message:"Mahsulotlarni yuklab bo'lmadi.")}finally{setLoading(false)}}
-  async function loadOrders(){try{const d=await api("/api/v1/orders");setOrders(d.orders||[])}catch(e){setMessage(e instanceof Error?e.message:"Buyurtmalarni yuklab bo'lmadi.")}}
-  async function loadChats(){try{const d=await api("/api/v1/chats");setChats(d.chats||[])}catch(e){setMessage(e instanceof Error?e.message:"Chatlarni yuklab bo'lmadi.")}}
+  async function loadProducts(){setLoading(true);try{const d=await api("/api/v1/products");setProducts((d as ProductsResponse).products)}catch(e){setMessage(e instanceof Error?e.message:"Mahsulotlarni yuklab bo'lmadi.")}finally{setLoading(false)}}
+  async function loadOrders(){setOrdersLoading(true);try{const d=await api("/api/v1/orders");setOrders(d.orders||[])}catch(e){setMessage(e instanceof Error?e.message:"Buyurtmalarni yuklab bo'lmadi.")}finally{setOrdersLoading(false)}}
+  async function loadChats(){setChatsLoading(true);try{const d=await api("/api/v1/chats");setChats(d.chats||[])}catch(e){setMessage(e instanceof Error?e.message:"Chatlarni yuklab bo'lmadi.")}finally{setChatsLoading(false)}}
   useEffect(()=>{
     void loadProducts(); void loadOrders(); void loadChats();
     const timer=window.setInterval(async()=>{
       try{
+        setOrdersLoading(true);
         const d=await api("/api/v1/orders");
         const next=(d.orders||[]) as Order[];
         const incoming=next.filter(o=>o.status==="new").length;
@@ -74,10 +79,11 @@ export default function App(){
           setTab("orders");
         }
         setLastSeenNewOrders(incoming);
-        setOrders(next);
+        setOrders(next);setOrdersLoading(false);
+        setChatsLoading(true);
         const c=await api("/api/v1/chats");
-        setChats(c.chats||[]);setLiveTick(x=>x+1);setLastSync(new Date());
-      }catch{}
+        setChats(c.chats||[]);setChatsLoading(false);setLiveTick(x=>x+1);setLastSync(new Date());
+      }catch{setOrdersLoading(false);setChatsLoading(false)}
     },15000);
     return()=>window.clearInterval(timer);
   },[]);
@@ -85,14 +91,15 @@ export default function App(){
   async function openChat(id:number){
     setActiveChat(id);setTab("chats");
     try{
+      setMessagesLoading(true);
       await api("/api/v1/chats/"+id+"/read",{method:"POST"});
       setChats(x=>x.map(c=>c.id===id?{...c,hasUnreadForSeller:false,sellerLastReadAt:new Date().toISOString()}:c));
       const d=await api("/api/v1/chats/"+id+"/messages");setMessages(d.messages||[]);
-    }catch(e){setMessage(e instanceof Error?e.message:"Xabarlarni yuklab bo'lmadi.")}
+    }catch(e){setMessage(e instanceof Error?e.message:"Xabarlarni yuklab bo'lmadi.")}finally{setMessagesLoading(false)}
   }
   useEffect(()=>{
     if(!activeChat)return;
-    const timer=window.setInterval(async()=>{try{const d=await api("/api/v1/chats/"+activeChat+"/messages");setMessages(d.messages||[])}catch{}},3000);
+    const timer=window.setInterval(async()=>{try{setMessagesLoading(true);const d=await api("/api/v1/chats/"+activeChat+"/messages");setMessages(d.messages||[])}catch{}finally{setMessagesLoading(false)}},3000);
     return()=>window.clearInterval(timer);
   },[activeChat]);
   async function sendChat(e:FormEvent){e.preventDefault();const text=chatText.trim();if(!activeChat||!text)return;try{const d=await api("/api/v1/chats/"+activeChat+"/messages",{method:"POST",body:JSON.stringify({message:text,senderRole:"seller"})});setMessages(x=>[...x,d.message]);setChatText("");await loadChats()}catch(e){setMessage(e instanceof Error?e.message:"Xabar yuborilmadi.")}}
@@ -218,8 +225,10 @@ export default function App(){
     }catch(e){setMessage(e instanceof Error?e.message:"Qoldiqni yangilab bo'lmadi.")}
   }
   async function loadAnalytics(){
+    setAnalyticsLoading(true);
     try{const d=await api("/api/v1/analytics/summary?days=30");setAnalytics(d);}
     catch(e){setMessage(e instanceof Error?e.message:"Analitikani yuklab bo'lmadi.")}
+    finally{setAnalyticsLoading(false)}
   }
   async function savePromotion(){
     if(!promoProduct)return;
@@ -255,6 +264,10 @@ export default function App(){
   const filteredOrders=orders.filter(o=>orderFilter==="all"?true:orderFilter==="new"?o.status==="new":orderFilter==="active"?["confirmed","preparing","shipping"].includes(o.status):["completed","cancelled"].includes(o.status));
   const selected=selectedOrder===null?null:orders.find(o=>o.id===selectedOrder)||null;
   const nav: Array<[string,string]> = [["overview","Dashboard"],["products","Mahsulotlar"],["orders","Buyurtmalar"],["chats","Chatlar"],["inventory","Ombor"],["marketing","Marketing"],["analytics","Analitika"]];
+
+  const DbSkeleton=()=> <span className="db-skeleton" aria-label="Ma'lumot yuklanmoqda"/>;
+  const DbListSkeleton=({rows=5}:{rows?:number})=><div className="db-skeleton-list">{Array.from({length:rows},(_,i)=><div className="db-skeleton-row" key={i}><span/><span/><i/></div>)}</div>;
+  const DbTableSkeleton=({rows=7}:{rows?:number})=><div className="db-table-skeleton">{Array.from({length:rows},(_,i)=><div className="db-table-skeleton-row" key={i}><span/><span/><span/><span/></div>)}</div>;
 
   return <main className="seller-shell">
     <aside className="sidebar">
