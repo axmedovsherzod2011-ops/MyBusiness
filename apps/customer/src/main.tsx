@@ -143,6 +143,7 @@ export default function App(){
   const [minPrice,setMinPrice]=useState("");
   const [maxPrice,setMaxPrice]=useState("");
   const [loading,setLoading]=useState(true);
+  const [productsLoaded,setProductsLoaded]=useState(false);
   const [error,setError]=useState("");
   const [favs,setFavs]=useState<number[]>(()=>JSON.parse(localStorage.getItem("mybusiness:favorites")||"[]"));
   const [cart,setCart]=useState<Record<string,number>>(()=>JSON.parse(localStorage.getItem("mybusiness:cart")||"{}"));
@@ -194,8 +195,8 @@ export default function App(){
     let profileView:RouteState["profileView"]="home";
     let productId:number|null=null;
     let chatProductId:number|null=null;
-    if(parts[0]==="product" && /^\\d+$/.test(parts[1]||"")) productId=Number(parts[1]);
-    else if(parts[0]==="chat" && /^\\d+$/.test(parts[1]||"")) chatProductId=Number(parts[1]);
+    if(parts[0]==="product" && /^\d+$/.test(parts[1]||"")) productId=Number(parts[1]);
+    else if(parts[0]==="chat" && /^\d+$/.test(parts[1]||"")) chatProductId=Number(parts[1]);
     else if(parts[0]==="profile"){
       panel="profile";
       const allowed=["home","orders","chats","favorites","settings","help","addresses"] as const;
@@ -249,12 +250,12 @@ export default function App(){
   }
 
   useEffect(()=>{
-    if(!products.length || routeReadyRef.current)return;
+    if(!productsLoaded || routeReadyRef.current)return;
     const r=routeFromUrl();
     applyRoute(r);
     routeReadyRef.current=true;
     if(window.location.hash!==routeUrl(r))history.replaceState(r,"",routeUrl(r));
-  },[products.length]);
+  },[productsLoaded]);
 
   useEffect(()=>{
     const onPop=()=>{
@@ -278,7 +279,7 @@ export default function App(){
     fetch(apiBase+"/api/v1/products",{headers:{Accept:"application/json"}})
       .then(async r=>{const d=await r.json() as ProductsResponse & {message?:string};if(!r.ok)throw new Error(d.message||"API xatosi");setProducts(d.products||[])})
       .catch(e=>setError(e instanceof Error?e.message:"API bilan ulanishda xatolik"))
-      .finally(()=>setLoading(false));
+      .finally(()=>{setLoading(false);setProductsLoaded(true)});
   },[]);
   useEffect(()=>localStorage.setItem("mybusiness:favorites",JSON.stringify(favs)),[favs]);
   useEffect(()=>localStorage.setItem("mybusiness:cart",JSON.stringify(cart)),[cart]);
