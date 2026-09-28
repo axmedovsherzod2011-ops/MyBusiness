@@ -182,7 +182,7 @@ export default function App(){
   }
   function reorderEditingImage(from:number,to:number){
     setEditing(p=>{if(!p)return p;const urls=[...(p.imageUrls||[])];if(from===to||!urls[from]||to<0||to>=urls.length)return p;
-      const [moved]=urls.splice(from,1);urls.splice(to,0,moved);return {...p,imageUrls:urls,imageUrl:urls[0]||""};});
+      const moved=urls[from];if(!moved)return p;urls.splice(from,1);urls.splice(to,0,moved);return {...p,imageUrls:urls,imageUrl:urls[0]||""};});
   }
   function addEditingImageUrl(){
     const url=imageUrlInput.trim(); if(!editing)return;
