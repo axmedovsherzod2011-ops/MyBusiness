@@ -293,7 +293,7 @@ export default function App(){
   function openCheckout(){
     if(!authUser){setAuthOpen(true);return}
     if(!cartItems.length)return;
-    setCheckoutName(authUser.name||"");setCheckoutPhone(authUser.phone||"");setCheckoutAddress("");setCheckoutPayment("cash");setCheckoutError("");setCheckoutOpen(true);setPanel(null);
+    setCheckoutName(authUser.name||"");setCheckoutPhone(authUser.phone||"");setCheckoutAddress("");setCheckoutPayment("cash");setCheckoutError("");setCheckoutOpen(true);
   }
   async function loadProfileData(){
     if(!authUser?.phone)return;
