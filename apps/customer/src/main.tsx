@@ -186,7 +186,7 @@ export default function App(){
 
   function routeFromUrl():RouteState{
     const hash=window.location.hash.replace(/^#/,"")||"/";
-    const [rawPath,rawQuery=""]=hash.split("?");
+    const [rawPath="/",rawQuery=""]=hash.split("?");
     const parts=rawPath.replace(/^\//,"").split("/").filter(Boolean);
     const params=new URLSearchParams(rawQuery);
     const modal=params.get("modal");
