@@ -14,8 +14,8 @@ function hmac(key: Buffer | string, value: string): Buffer {
   return createHmac("sha256", key).update(value).digest();
 }
 
-function signingKey(date: string): Buffer {
-  const kDate = hmac("AWS4" + secretKey, date);
+function signingKey(date: string, secret: string): Buffer {
+  const kDate = hmac("AWS4" + secret, date);
   const kRegion = hmac(kDate, region);
   const kService = hmac(kRegion, "s3");
   return hmac(kService, "aws4_request");
@@ -44,12 +44,12 @@ async function s3Request(method: "PUT" | "DELETE", key: string, body?: Buffer, c
   const canonicalRequest = [method, canonicalUri, "", canonicalHeaders, signedHeaders, payloadHash].join("\n");
   const scope = shortDate + "/" + region + "/s3/aws4_request";
   const stringToSign = ["AWS4-HMAC-SHA256", amzDate, scope, sha256(canonicalRequest)].join("\n");
-  const signature = createHmac("sha256", signingKey(shortDate)).update(stringToSign).digest("hex");
+  const signature = createHmac("sha256", signingKey(shortDate, secretKey)).update(stringToSign).digest("hex");
   const authorization = "AWS4-HMAC-SHA256 Credential=" + accessKey + "/" + scope + ", SignedHeaders=" + signedHeaders + ", Signature=" + signature;
   const response = await fetch(endpoint + canonicalUri, {
     method,
     headers: {...headers, Authorization: authorization},
-    body: body ? new Uint8Array(body) : undefined,
+    body: body ? new Uint8Array(body) : null,
   });
   if (!response.ok) {
     const text = await response.text().catch(() => "");
