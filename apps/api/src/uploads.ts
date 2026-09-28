@@ -8,7 +8,8 @@ export function registerUploadRoutes(app: Express): void {
     express.raw({ type: ["image/jpeg", "image/png", "image/webp"], limit: "12mb" }),
     async (req: Request, res: Response) => {
       const body = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
-      const contentType = String(req.headers["content-type"] || "").split(";")[0].toLowerCase();
+      const contentTypeHeader = req.headers["content-type"];
+      const contentType = (typeof contentTypeHeader === "string" ? contentTypeHeader : "").split(";")[0].toLowerCase();
       if (!body.length) {
         res.status(400).json({ message: "Rasm fayli bo'sh." });
         return;
