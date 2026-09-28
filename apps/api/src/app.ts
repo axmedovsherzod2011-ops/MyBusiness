@@ -7,6 +7,7 @@ import { registerOrderRoutes } from "./orders.js";
 import { registerChatRoutes } from "./chats.js";
 import { registerAnalyticsRoutes } from "./analytics.js";
 import { registerUploadRoutes } from "./uploads.js";
+import { registerFavoriteRoutes } from "./favorites.js";
 
 const appVersion = process.env.APP_VERSION ?? "0.1.0";
 const corsOrigins = (process.env.CORS_ORIGIN ?? "")
@@ -75,6 +76,7 @@ registerOrderRoutes(app);
 registerChatRoutes(app);
 registerAnalyticsRoutes(app);
 registerUploadRoutes(app);
+registerFavoriteRoutes(app);
 
 app.use("/api/v1/products", productsRouter);
 
