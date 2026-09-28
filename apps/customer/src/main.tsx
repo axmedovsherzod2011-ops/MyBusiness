@@ -283,6 +283,14 @@ export default function App(){
       .finally(()=>{setLoading(false);setProductsLoaded(true)});
   },[]);
   useEffect(()=>localStorage.setItem("mybusiness:favorites",JSON.stringify(favs)),[favs]);
+  useEffect(()=>{
+    if(!authUser?.token){setFavs(JSON.parse(localStorage.getItem("mybusiness:favorites")||"[]"));return;}
+    let stopped=false;
+    fetch(apiBase+"/api/v1/favorites",{headers:{Accept:"application/json",Authorization:"Bearer "+authUser.token}})
+      .then(async r=>{const d=await r.json() as {favorites?:number[];message?:string};if(!r.ok)throw new Error(d.message||"Sevimlilarni yuklab bo'lmadi.");if(!stopped)setFavs(d.favorites||[]);})
+      .catch(()=>{if(!stopped)setToast("Sevimlilarni yuklab bo'lmadi.")});
+    return()=>{stopped=true};
+  },[authUser?.token]);
   useEffect(()=>localStorage.setItem("mybusiness:cart",JSON.stringify(cart)),[cart]);
   useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(""),2200);return()=>clearTimeout(t)},[toast]);
   useEffect(()=>{if(!chatId||!chatProduct)return;
@@ -368,7 +376,17 @@ export default function App(){
   function clearFilters(){setQuery("");setCategory("all");setSub("");setSort("newest");setAvailability("all");setMinPrice("");setMaxPrice("");}
   function removeFromCart(id:number){setCart(c=>{const z={...c};delete z[id];return z})}
   function openSearch(nextQuery=query){setQuery(nextQuery.trim());setPanel("search");}
-  function toggleFav(id:number){setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);}
+  async function toggleFav(id:number){
+    if(!authUser?.token){setAuthOpen(true);setToast("Sevimlilarga saqlash uchun akkauntga kiring.");return;}
+    const wasLiked=favs.includes(id);
+    setFavs(f=>wasLiked?f.filter(x=>x!==id):[...f,id]);
+    try{
+      const r=await fetch(apiBase+"/api/v1/favorites/"+id,{method:"PUT",headers:{Accept:"application/json",Authorization:"Bearer "+authUser.token}});
+      const d=await r.json() as {liked?:boolean;message?:string};
+      if(!r.ok||typeof d.liked!=="boolean")throw new Error(d.message||"Sevimlini saqlab bo'lmadi.");
+      setFavs(f=>d.liked?(f.includes(id)?f:[...f,id]):f.filter(x=>x!==id));
+    }catch(e){setFavs(f=>wasLiked?(f.includes(id)?f:[...f,id]):f.filter(x=>x!==id));setToast(e instanceof Error?e.message:"Sevimlini saqlab bo'lmadi.");}
+  }
   function openProduct(p:Product){setQuick(p);setQuickImageIndex(0);}
   function askSeller(p:Product){if(!authUser){setAuthOpen(true);return}setPanel(null);setChatId(null);setChatMessages([]);setChatInput("");setChatProduct(p);}
   async function sendChatMessage(){
