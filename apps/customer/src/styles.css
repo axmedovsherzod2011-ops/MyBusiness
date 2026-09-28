@@ -2308,3 +2308,14 @@ html{
 .profile-order-filter-tabs button.active{
   background:var(--text,#111827);border-color:var(--text,#111827);color:#fff;
 }
+
+
+/* Favorites drawer: compact profile back control */
+.drawer-head:has(.drawer-profile-back){display:flex;align-items:center;gap:10px}
+.drawer-profile-back{
+  display:inline-flex;align-items:center;gap:3px;
+  border:0;background:transparent;color:#25292c;
+  padding:5px 4px 5px 0;margin:0;cursor:pointer;
+  font:700 13px/1 inherit;white-space:nowrap;flex:0 0 auto;
+}
+.drawer-profile-back svg{flex:0 0 auto}
