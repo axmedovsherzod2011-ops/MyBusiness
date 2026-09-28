@@ -1852,3 +1852,347 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 @media(min-width:701px) and (max-height:760px){
   .detail-main-image{min-height:0}
 }
+
+/* =========================================================
+   MYBUSINESS MOTION SYSTEM
+   Intentional micro-interactions for every customer action.
+   Lightweight CSS-first motion; respects reduced-motion.
+   ========================================================= */
+:root{
+  --motion-fast:140ms;
+  --motion-ui:220ms;
+  --motion-panel:360ms;
+  --ease-out:cubic-bezier(.2,.8,.2,1);
+  --ease-spring:cubic-bezier(.2,1.25,.35,1);
+}
+
+/* Global interactive feedback */
+button,select,input,textarea{
+  -webkit-tap-highlight-color:transparent;
+}
+button{
+  will-change:transform;
+}
+button:not(:disabled){
+  transition:
+    transform var(--motion-fast) var(--ease-out),
+    opacity var(--motion-fast) ease,
+    background-color var(--motion-ui) ease,
+    color var(--motion-ui) ease,
+    border-color var(--motion-ui) ease,
+    box-shadow var(--motion-ui) var(--ease-out);
+}
+button:not(:disabled):hover{
+  transition-duration:var(--motion-ui);
+}
+button:not(:disabled):active{
+  transform:scale(.965);
+}
+button:focus-visible{
+  animation:focusRing .38s var(--ease-out);
+}
+
+/* Header / navigation */
+header, .header, .topbar, .navbar{
+  animation:motionDrop .5s var(--ease-out) both;
+}
+.nav-badge{
+  transform-origin:center;
+}
+.nav-badge:not(:empty){
+  animation:badgeBounce .45s var(--ease-spring) both;
+}
+.mobile-nav{
+  animation:navRise .55s var(--ease-out) both;
+}
+.mobile-nav button.active::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:2px;
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:currentColor;
+  transform:translateX(-50%) scale(0);
+  animation:dotAppear .32s var(--ease-spring) forwards;
+}
+
+/* Search interactions */
+input,textarea,select{
+  transition:border-color var(--motion-ui) ease,box-shadow var(--motion-ui) ease,transform var(--motion-ui) var(--ease-out),background-color var(--motion-ui) ease;
+}
+input:focus,textarea:focus,select:focus{
+  transform:translateY(-1px);
+}
+.search-submit:active{
+  transform:scale(.94) rotate(-3deg);
+}
+.search-submit{
+  transform-origin:center;
+}
+
+/* Categories / chips */
+.category-card,.filter-chip,.filter-chips button,.catalog-filter-bar button{
+  transition:transform var(--motion-ui) var(--ease-out),box-shadow var(--motion-ui) var(--ease-out),border-color var(--motion-ui) ease,background-color var(--motion-ui) ease;
+}
+.category-card:hover,.filter-chip:hover{
+  transform:translateY(-3px);
+}
+.category-card:active,.filter-chip:active{
+  transform:scale(.96);
+}
+
+/* Product grid entrance: staggered, but restrained */
+.product-grid .product-card{
+  animation:productReveal .52s var(--ease-out) both;
+}
+.product-grid .product-card:nth-child(2){animation-delay:35ms}
+.product-grid .product-card:nth-child(3){animation-delay:70ms}
+.product-grid .product-card:nth-child(4){animation-delay:105ms}
+.product-grid .product-card:nth-child(5){animation-delay:140ms}
+.product-grid .product-card:nth-child(6){animation-delay:175ms}
+.product-grid .product-card:nth-child(n+7){animation-delay:205ms}
+
+.product-card{
+  transform-origin:center bottom;
+}
+.product-card:hover{
+  transform:translateY(-4px);
+}
+.product-card:active{
+  transform:translateY(-1px) scale(.985);
+}
+.product-name{
+  transition:color var(--motion-fast) ease,transform var(--motion-fast) var(--ease-out);
+}
+.product-name:hover{
+  transform:translateX(2px);
+}
+.product-image{
+  overflow:hidden;
+}
+.product-image img{
+  transition:transform .5s var(--ease-out),opacity .3s ease,filter .3s ease;
+}
+.product-card:hover .product-image img{
+  transform:scale(1.035);
+}
+.product-card:active .product-image img{
+  transform:scale(1.015);
+}
+
+/* Favorite action */
+.heart,.detail-fav{
+  transform-origin:center;
+}
+.heart:hover,.detail-fav:hover{
+  transform:scale(1.08);
+}
+.heart.liked,.detail-fav.liked{
+  animation:favConfirm .48s var(--ease-spring);
+}
+.heart.liked::after,.detail-fav.liked::after{
+  content:"";
+  position:absolute;
+  inset:2px;
+  border:1px solid currentColor;
+  border-radius:inherit;
+  opacity:0;
+  pointer-events:none;
+  animation:favRing .48s ease-out;
+}
+
+/* Cart actions */
+.add-button,.detail-add,.mini-add,.card-qty button{
+  position:relative;
+  overflow:hidden;
+}
+.add-button:not(:disabled):active,.detail-add:not(:disabled):active,.mini-add:not(:disabled):active{
+  transform:scale(.95);
+}
+.add-button:not(:disabled):hover svg{
+  animation:cartIcon .42s var(--ease-spring);
+}
+.card-qty{
+  animation:qtyIn .28s var(--ease-spring);
+}
+.card-qty button:active{
+  transform:scale(.86);
+}
+.product-price,.promo-price{
+  transition:transform var(--motion-ui) var(--ease-out);
+}
+.product-card:hover .product-price{
+  transform:translateX(2px);
+}
+
+/* Image gallery actions */
+.detail-thumbs-vertical button,
+.detail-thumbnails button{
+  transition:transform var(--motion-fast) var(--ease-out),border-color var(--motion-fast) ease,box-shadow var(--motion-ui) ease;
+}
+.detail-thumbs-vertical button:hover,
+.detail-thumbnails button:hover{
+  transform:scale(1.035);
+}
+.detail-thumbs-vertical button.active,
+.detail-thumbnails button.active{
+  animation:thumbSelect .3s var(--ease-spring);
+}
+.detail-main-image img,.detail-mobile-slide img{
+  transition:opacity .22s ease,transform .42s var(--ease-out);
+}
+.detail-gallery-arrow:active{
+  transform:translateY(-50%) scale(.88)!important;
+}
+.detail-gallery-arrow:hover{
+  animation:arrowNudge .55s var(--ease-out);
+}
+.detail-mobile-dots button.active{
+  animation:dotStretch .3s var(--ease-spring);
+}
+
+/* Product detail / overlays */
+.product-detail-screen{
+  animation:screenFade .28s ease both;
+}
+.product-detail{
+  animation:detailEnter .42s var(--ease-out) both;
+}
+.product-detail .detail-info>*{
+  animation:infoRise .42s var(--ease-out) both;
+}
+.product-detail .detail-info>*:nth-child(2){animation-delay:35ms}
+.product-detail .detail-info>*:nth-child(3){animation-delay:70ms}
+.product-detail .detail-info>*:nth-child(4){animation-delay:105ms}
+.product-detail .detail-info>*:nth-child(5){animation-delay:140ms}
+
+/* Drawers, dialogs, filters, search */
+.drawer-backdrop,.auth-overlay,.chat-overlay{
+  animation:backdropIn .22s ease both;
+}
+.drawer{
+  animation:drawerEnter .38s var(--ease-out) both;
+}
+.auth-modal,.checkout-modal{
+  animation:modalEnter .4s var(--ease-spring) both;
+}
+.filter-panel,.search-panel{
+  animation:panelEnter .34s var(--ease-out) both;
+}
+.drawer button,.auth-modal button,.checkout-modal button,.filter-panel button,.search-panel button{
+  transition:transform var(--motion-fast) var(--ease-out),background-color var(--motion-ui) ease,box-shadow var(--motion-ui) var(--ease-out);
+}
+.drawer button:not(:disabled):hover,.auth-modal button:not(:disabled):hover,.checkout-modal button:not(:disabled):hover{
+  transform:translateX(2px);
+}
+
+/* Cart / favorites list changes */
+.cart-item,.profile-order-card,.profile-chat-row,.mini-product{
+  animation:listItemIn .34s var(--ease-out) both;
+}
+.cart-item:hover,.profile-order-card:hover,.profile-chat-row:hover{
+  transform:translateY(-2px);
+}
+.cart-item .remove-button:active{
+  transform:scale(.88) rotate(-6deg);
+}
+
+/* Chat */
+.chat-screen{
+  animation:chatEnter .38s var(--ease-out) both;
+}
+.chat-message-row{
+  animation:messageEnter .3s var(--ease-out) both;
+}
+.chat-input button:active{
+  transform:scale(.9) rotate(-8deg);
+}
+.chat-online{
+  animation:onlineBreath 2s ease-in-out infinite;
+}
+
+/* Checkout / success feedback */
+.checkout-submit:not(:disabled):hover{
+  transform:translateY(-2px);
+}
+.payment-options button{
+  transition:transform var(--motion-ui) var(--ease-out),border-color var(--motion-ui) ease,box-shadow var(--motion-ui) var(--ease-out),background-color var(--motion-ui) ease;
+}
+.payment-options button.selected{
+  animation:selectionConfirm .3s var(--ease-spring);
+}
+.toast{
+  animation:toastEnter .38s var(--ease-spring) both;
+}
+
+/* Loading / error / empty states */
+.state{
+  animation:stateEnter .4s var(--ease-out) both;
+}
+.skeleton,.loading,.spinner{
+  animation:softPulse 1.35s ease-in-out infinite;
+}
+
+/* Scrollbars feel intentional rather than abrupt */
+*{
+  scrollbar-color:#d4d4dc transparent;
+}
+html{
+  scroll-behavior:smooth;
+}
+
+/* Keyframes */
+@keyframes motionDrop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+@keyframes navRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes dotAppear{from{opacity:0;transform:translateX(-50%) scale(0)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+@keyframes focusRing{0%{box-shadow:0 0 0 0 rgba(112,0,255,0)}45%{box-shadow:0 0 0 5px rgba(112,0,255,.13)}100%{box-shadow:0 0 0 0 rgba(112,0,255,0)}}
+@keyframes productReveal{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes badgeBounce{0%{opacity:0;transform:scale(.55)}65%{transform:scale(1.13)}100%{opacity:1;transform:scale(1)}}
+@keyframes favConfirm{0%{transform:scale(.72) rotate(-8deg)}45%{transform:scale(1.22) rotate(4deg)}75%{transform:scale(.94)}100%{transform:scale(1) rotate(0)}}
+@keyframes favRing{0%{opacity:.5;transform:scale(.55)}100%{opacity:0;transform:scale(1.7)}}
+@keyframes cartIcon{0%{transform:translateX(0)}35%{transform:translateX(2px) rotate(-5deg)}65%{transform:translateX(-1px) rotate(4deg)}100%{transform:none}}
+@keyframes qtyIn{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+@keyframes thumbSelect{0%{transform:scale(.95)}60%{transform:scale(1.04)}100%{transform:scale(1)}}
+@keyframes arrowNudge{50%{transform:translateY(-50%) scale(1.06)}}
+@keyframes dotStretch{from{transform:scaleX(.7)}to{transform:scaleX(1)}}
+@keyframes screenFade{from{opacity:0}to{opacity:1}}
+@keyframes detailEnter{from{opacity:0;transform:translateY(18px) scale(.992)}to{opacity:1;transform:none}}
+@keyframes infoRise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+@keyframes backdropIn{from{opacity:0}to{opacity:1}}
+@keyframes drawerEnter{from{opacity:.65;transform:translateX(30px)}to{opacity:1;transform:none}}
+@keyframes modalEnter{from{opacity:0;transform:translateY(18px) scale(.96)}55%{opacity:1;transform:translateY(-2px) scale(1.005)}to{opacity:1;transform:none}}
+@keyframes panelEnter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes listItemIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@keyframes chatEnter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes messageEnter{from{opacity:0;transform:translateY(7px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes onlineBreath{0%,100%{opacity:.55;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
+@keyframes selectionConfirm{from{transform:scale(.97)}60%{transform:scale(1.015)}to{transform:none}}
+@keyframes toastEnter{from{opacity:0;transform:translateY(14px) scale(.96)}60%{opacity:1;transform:translateY(-2px) scale(1.01)}to{opacity:1;transform:none}}
+@keyframes stateEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes softPulse{0%,100%{opacity:.58}50%{opacity:1}}
+
+/* Mobile: motion becomes shorter and avoids hover-only behavior. */
+@media(max-width:700px){
+  :root{--motion-fast:120ms;--motion-ui:180ms}
+  .product-grid .product-card:nth-child(n){animation-delay:0ms}
+  .product-card:hover{transform:none}
+  .product-card:active{transform:scale(.985)}
+  .category-card:active,.filter-chip:active{transform:scale(.965)}
+  .drawer{animation-name:drawerMobileEnter}
+  .auth-modal,.checkout-modal{animation-duration:.32s}
+  .product-detail .detail-info>*{animation-duration:.3s}
+}
+@keyframes drawerMobileEnter{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+/* Accessibility: honor the operating system's reduced-motion preference. */
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto!important}
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+    scroll-behavior:auto!important;
+  }
+}
