@@ -266,7 +266,7 @@ export default function App(){
   function removeFromCart(id:number){setCart(c=>{const z={...c};delete z[id];return z})}
   function openSearch(nextQuery=query){setQuery(nextQuery.trim());setPanel("search");}
   function toggleFav(id:number){setFavs(f=>f.includes(id)?f.filter(x=>x!==id):[...f,id]);}
-  function openProduct(p:Product){openProduct(p);setQuickImageIndex(0);}
+  function openProduct(p:Product){setQuick(p);setQuickImageIndex(0);}
   function askSeller(p:Product){if(!authUser){setAuthOpen(true);return}setPanel(null);setChatId(null);setChatMessages([]);setChatInput("");setChatProduct(p);}
   async function sendChatMessage(){
     const body=chatInput.trim();
