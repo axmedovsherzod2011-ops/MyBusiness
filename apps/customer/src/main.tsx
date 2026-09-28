@@ -496,9 +496,9 @@ export default function App(){
 
     {panel&&<div className="drawer-backdrop" onClick={goBack}><aside className="drawer" onClick={e=>e.stopPropagation()}>
       <div className="drawer-head">
-          {panel==="favorites"&&<button className="drawer-profile-back" onClick={goBack} aria-label="Profilga qaytish"><Icon name="back" size={17}/><span>Profil</span></button>}
           <h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":panel==="profile"?"Profil":panel==="filters"?"Filtrlar":panel==="search"?"Qidirish":"Katalog"}</h2>
         </div>
+        {panel==="favorites"&&<button className="drawer-profile-back" onClick={goBack} aria-label="Profilga qaytish"><Icon name="back" size={16}/><span>Profil</span></button>}
       {panel==="profile"&&<div className="profile-panel profile-v2">
         {!authUser?<div className="profile-login-card profile-login-v2">
           <div className="profile-login-art"><Icon name="user" size={30}/></div>
