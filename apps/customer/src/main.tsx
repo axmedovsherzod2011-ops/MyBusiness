@@ -252,7 +252,9 @@ export default function App(){
 
   const cartItems=Object.entries(cart).map(([id,q])=>({p:products.find(x=>x.id===Number(id)),q})).filter(x=>x.p) as {p:Product;q:number}[];
   const cartCount=cartItems.reduce((s,x)=>s+x.q,0);
+  const cartSubtotal=cartItems.reduce((s,x)=>s+x.p.price*x.q,0);
   const cartTotal=cartItems.reduce((s,x)=>s+effectivePrice(x.p)*x.q,0);
+  const cartSavings=Math.max(0,cartSubtotal-cartTotal);
   const newProducts=[...products].filter(isNew).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt)).slice(0,8);
   const popular=[...products].filter(p=>p.stock>0).sort((a,b)=>b.stock-a.stock).slice(0,8);
   const categoryCounts=products.reduce<Record<string,number>>((acc,p)=>{const k=cat(p);acc[k]=(acc[k]||0)+1;return acc},{}); 
@@ -425,7 +427,60 @@ export default function App(){
         <div className="filter-bottom"><button className="filter-clear" onClick={clearFilters}>Tozalash</button><button className="filter-apply" onClick={()=>setPanel(null)}>Ko‘rsatish · {visible.length}</button></div>
       </div>}
       {panel==="favorites"&&<div className="drawer-list">{products.filter(p=>favs.includes(p.id)).map(p=><Mini key={p.id} p={p} onOpen={()=>setQuick(p)} onCart={()=>add(p)}/>) }{!favs.length&&<div className="drawer-empty">Hali sevimli mahsulotlar yo'q.</div>}</div>}
-      {panel==="cart"&&<div className="drawer-cart">{cartItems.map(x=><div className="cart-item" key={x.p.id}><div className="mini-image">{productImages(x.p)[0]?<img src={productImages(x.p)[0]} alt=""/>:"MB"}</div><div><b>{x.p.name}</b><span>{money(effectivePrice(x.p))} × {x.q}</span><div className="qty"><button aria-label="Kamaytirish" onClick={()=>qty(x.p.id,-1)}>−</button><b>{x.q}</b><button aria-label="Ko'paytirish" onClick={()=>qty(x.p.id,1)}>+</button><button className="remove-item" aria-label="O'chirish" onClick={()=>removeFromCart(x.p.id)}>×</button></div></div></div>)}{cartItems.length?<div className="cart-total"><span>Jami</span><strong>{money(cartTotal)}</strong><button className="primary full" onClick={openCheckout}>Buyurtma berish</button></div>:<div className="drawer-empty">Savatingiz hozircha bo'sh.</div>}</div>}
+      {panel==="cart"&&<div className="drawer-cart cart-drawer">
+        <div className="cart-hero">
+          <div><span className="cart-kicker">SIZNING TANLOVINGIZ</span><h3>{cartItems.length?"Xaridni davom ettiring":"Savat hozircha bo'sh"}</h3><p>{cartCount?cartCount+" ta mahsulot · buyurtmangizni bir joyda boshqaring":"Mahsulotlarni tanlang — ular shu yerda saqlanadi."}</p></div>
+          <button className="cart-close" onClick={()=>setPanel(null)} aria-label="Savatni yopish"><Icon name="close" size={19}/></button>
+        </div>
+        {cartItems.length?
+          <>
+            <div className="cart-benefits">
+              <div><span>✓</span><b>Tanlov saqlandi</b><small>Sahifadan chiqib ketsangiz ham savat qoladi</small></div>
+              <div><span>↗</span><b>Tezkor boshqaruv</b><small>Miqdorni shu oynaning o'zida o'zgartiring</small></div>
+            </div>
+            <div className="cart-section-label"><b>Savatdagi mahsulotlar</b><span>{cartCount} dona</span></div>
+            <div className="cart-items-list">
+              {cartItems.map(x=>{
+                const images=productImages(x.p); const price=effectivePrice(x.p); const discounted=x.p.promoPrice!=null&&x.p.promoPrice<x.p.price;
+                return <article className="cart-item" key={x.p.id}>
+                  <button className="cart-item-image" onClick={()=>{setPanel(null);openProduct(x.p)}} aria-label={x.p.name}>
+                    {images[0]?<img src={images[0]} alt={x.p.name}/>:<span>MB</span>}
+                    {discounted&&<em>AKSIYA</em>}
+                  </button>
+                  <div className="cart-item-main">
+                    <div className="cart-item-top"><div><span className="cart-item-category">{label(cat(x.p))}</span><button className="cart-item-name" onClick={()=>{setPanel(null);openProduct(x.p)}}>{x.p.name}</button></div><button className="cart-remove" onClick={()=>removeFromCart(x.p.id)} aria-label="Mahsulotni o'chirish">×</button></div>
+                    <div className="cart-price-row"><strong>{money(price)}</strong>{discounted&&<s>{money(x.p.price)}</s>}</div>
+                    <div className="cart-item-bottom"><div className="cart-qty"><button onClick={()=>qty(x.p.id,-1)} aria-label="Kamaytirish">−</button><b>{x.q}</b><button onClick={()=>qty(x.p.id,1)} disabled={x.q>=x.p.stock} aria-label="Ko'paytirish">+</button></div><span className="cart-line-total">{money(price*x.q)}</span></div>
+                  </div>
+                </article>;
+              })}
+            </div>
+            {popular.filter(p=>!cart[p.id]).slice(0,3).length>0&&<section className="cart-recommendations">
+              <div className="cart-section-label"><div><b>Sizga ham yoqishi mumkin</b><small>Savatdan chiqmasdan qo'shing</small></div></div>
+              <div className="cart-recommendation-track">
+                {popular.filter(p=>!cart[p.id]).slice(0,3).map(p=><article className="cart-recommendation" key={p.id}>
+                  <button onClick={()=>{setPanel(null);openProduct(p)}} aria-label={p.name}>{productImages(p)[0]?<img src={productImages(p)[0]} alt=""/>:<span>MB</span>}</button>
+                  <div><b>{p.name}</b><strong>{money(effectivePrice(p))}</strong><button onClick={()=>add(p)}>+ Savatga</button></div>
+                </article>)}
+              </div>
+            </section>}
+            <div className="cart-summary">
+              <div className="cart-summary-head"><span>Buyurtma xulosasi</span><b>{cartCount} dona</b></div>
+              <div className="cart-summary-row"><span>Mahsulotlar</span><b>{money(cartSubtotal)}</b></div>
+              {cartSavings>0&&<div className="cart-summary-row savings"><span>Chegirma</span><b>− {money(cartSavings)}</b></div>}
+              <div className="cart-total-row"><span>Jami</span><strong>{money(cartTotal)}</strong></div>
+              <button className="cart-checkout" onClick={openCheckout}><span>Buyurtmani rasmiylashtirish</span><strong>→</strong></button>
+              <small className="cart-note">Keyingi bosqichda ism, telefon, manzil va to'lov usulini tasdiqlaysiz.</small>
+            </div>
+          </>
+          :
+          <div className="cart-empty-state">
+            <div className="cart-empty-icon"><Icon name="bag" size={34}/></div>
+            <b>Savatingizda hali mahsulot yo'q</b>
+            <p>Yoqtirgan mahsulotlaringizni tanlang va xaridni shu yerdan boshqaring.</p>
+            <button className="primary cart-empty-button" onClick={()=>setPanel(null)}>Xaridni davom ettirish</button>
+          </div>}
+      </div>
     </aside></div>}
 
     {quick&&<div className="product-detail-screen"><div className="product-detail-head"><button className="detail-back" onClick={()=>setQuick(null)} aria-label="Orqaga"><Icon name="back" size={22}/></button><span>Mahsulot</span><button className={"detail-fav "+(favs.includes(quick!.id)?"liked":"")} onClick={()=>toggleFav(quick!.id)} aria-label="Sevimliga qo'shish">{favs.includes(quick!.id)?"♥":"♡"}</button></div><section className="product-detail"><div className="detail-gallery" aria-label="Mahsulot rasmlari"><div className="detail-gallery-desktop"><div className="detail-thumbs-vertical">{productImages(quick).map((src,i)=><button key={"desk-"+src+i} className={quickImageIndex===i?"active":""} onClick={()=>setQuickImageIndex(i)} aria-label={"Rasm "+(i+1)}><img src={src} alt="" loading={i===0?"eager":"lazy"}/></button>)}</div><div className="detail-main-image">{productImages(quick).length?<img src={productImages(quick)[quickImageIndex]||productImages(quick)[0]} alt={quick!.name+" — rasm "+(quickImageIndex+1)} loading="eager"/>:<div className="detail-scroll-empty">MYBUSINESS</div>}{productImages(quick).length>1&&<><button className="detail-gallery-arrow prev" onClick={()=>setQuickImageIndex(i=>(i-1+productImages(quick).length)%productImages(quick).length)} aria-label="Oldingi rasm">‹</button><button className="detail-gallery-arrow next" onClick={()=>setQuickImageIndex(i=>(i+1)%productImages(quick).length)} aria-label="Keyingi rasm">›</button><span className="detail-image-counter">{quickImageIndex+1}/{productImages(quick).length}</span></>}</div></div><div className="detail-gallery-mobile"><div className="detail-mobile-track" onScroll={e=>{const el=e.currentTarget;const width=el.clientWidth;const next=width?Math.round(el.scrollLeft/width):0;if(next!==quickImageIndex)setQuickImageIndex(Math.min(next,Math.max(0,productImages(quick).length-1)));}}>{productImages(quick).length?productImages(quick).map((src,i)=><div className="detail-mobile-slide" key={"mob-"+src+i}><img src={src} alt={quick!.name+" — rasm "+(i+1)} loading={i===0?"eager":"lazy"}/></div>):<div className="detail-scroll-empty">MYBUSINESS</div>}</div>{productImages(quick).length>1&&<div className="detail-mobile-controls"><button onClick={()=>setQuickImageIndex(i=>Math.max(0,i-1))} aria-label="Oldingi rasm">‹</button><div className="detail-mobile-dots">{productImages(quick).map((_,i)=><button key={i} className={quickImageIndex===i?"active":""} onClick={()=>document.querySelector(".detail-mobile-track")?.scrollTo({left:i*(document.querySelector(".detail-mobile-track") as HTMLElement).clientWidth,behavior:"smooth"})} aria-label={"Rasm "+(i+1)}/>)}</div><button onClick={()=>setQuickImageIndex(i=>Math.min(productImages(quick).length-1,i+1))} aria-label="Keyingi rasm">›</button></div>}</div></div><div className="detail-info"><div className="detail-category">{label(cat(quick))}</div><h1>{quick!.name}</h1><div className="detail-meta"><span className="detail-stock">{quick!.stock>0?"Sotuvda":"Tugagan"}</span><span>Mahsulot ID: {quick!.id}</span></div><div className="detail-price">{quick!.promoPrice!=null?<><s className="old-price">{money(quick!.price)}</s><strong className="promo-price">{money(quick!.promoPrice)}</strong></>:money(quick!.price)}</div><p className="detail-description">{quick!.description||"Mahsulot tavsifi kiritilmagan."}</p><div className="detail-block"><b>Mahsulot haqida</b><span>Kategoriya: {label(cat(quick))}</span><span>{quick!.stock>0?"Omborda "+quick!.stock+" dona mavjud":"Hozircha mavjud emas"}</span></div><div className="detail-actions"><div className="detail-purchase-row"><button className="detail-ask" onClick={()=>askSeller(quick)}>Sotuvchidan so'rash</button>{cart[quick!.id]?<div className="detail-qty"><button onClick={()=>qty(quick!.id,-1)} aria-label="Kamaytirish">−</button><b>{cart[quick!.id]}</b><button onClick={()=>qty(quick!.id,1)} disabled={!(quick!.stock>0)||((cart[quick!.id]||0)>=quick!.stock)} aria-label="Ko'paytirish">+</button></div>:<button className="detail-add" disabled={!quick!.stock} onClick={()=>add(quick)}><Icon name="cart" size={19}/><span>{quick!.stock?"Savatga qo'shish":"Tugagan"}</span></button>}</div></div></div></section></div>}
