@@ -2310,12 +2310,11 @@ html{
 }
 
 
-/* Favorites drawer: compact profile back control */
-.drawer-head:has(.drawer-profile-back){display:flex;align-items:center;gap:10px}
+/* Favorites: profile back link sits below the title, aligned to the drawer edge */
 .drawer-profile-back{
   display:inline-flex;align-items:center;gap:3px;
   border:0;background:transparent;color:#25292c;
-  padding:5px 4px 5px 0;margin:0;cursor:pointer;
-  font:700 13px/1 inherit;white-space:nowrap;flex:0 0 auto;
+  padding:0;margin:2px 0 8px;cursor:pointer;
+  font:600 12px/1 inherit;white-space:nowrap;
 }
 .drawer-profile-back svg{flex:0 0 auto}
