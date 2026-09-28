@@ -151,7 +151,7 @@ export default function App(){
   }
   function addImageUrl(){
     const url=imageUrlInput.trim();
-    if(!/^https?:\\/\\//i.test(url)){setMessage("Rasm URL'i http:// yoki https:// bilan boshlanishi kerak.");return;}
+    if(!/^https?:\/\//i.test(url)){setMessage("Rasm URL'i http:// yoki https:// bilan boshlanishi kerak.");return;}
     if(form.imageUrls.includes(url)){setImageUrlInput("");return;}
     if(form.imageUrls.length>=12){setMessage("Ko'pi bilan 12 ta rasm qo'shish mumkin.");return;}
     setForm(x=>({...x,imageUrl:x.imageUrls[0]||url,imageUrls:[...x.imageUrls,url]}));
