@@ -41,6 +41,7 @@ export async function initializeDatabase(): Promise<void> {
         description TEXT NOT NULL DEFAULT '',
         price NUMERIC(14, 2) NOT NULL CHECK (price >= 0),
         image_url TEXT NOT NULL DEFAULT '',
+        image_urls TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
         stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
@@ -147,7 +148,13 @@ export async function initializeDatabase(): Promise<void> {
         ON customer_users (auth_token);
 
       ALTER TABLE marketplace_products
-        ADD COLUMN IF NOT EXISTS sku VARCHAR(40) NOT NULL DEFAULT '';
+        ADD COLUMN IF NOT EXISTS sku VARCHAR(40) NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS image_urls TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+      UPDATE marketplace_products SET image_urls = CASE
+        WHEN COALESCE(array_length(image_urls, 1), 0) = 0 AND image_url <> '' THEN ARRAY[image_url]
+        ELSE image_urls
+      END;
 
       UPDATE marketplace_products SET sku = 'MB-' || LPAD(id::text, 6, '0') WHERE sku = '';
       CREATE UNIQUE INDEX IF NOT EXISTS marketplace_products_sku_idx ON marketplace_products (sku);
