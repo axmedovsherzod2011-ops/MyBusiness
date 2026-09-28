@@ -45,6 +45,7 @@ export default function App(){
   const [messagesLoading,setMessagesLoading]=useState(false);
   const [analyticsLoading,setAnalyticsLoading]=useState(false);
   const [saving,setSaving]=useState(false);
+  const [refreshLoading,setRefreshLoading]=useState(false);
   const [message,setMessage]=useState("");
   const [liveTick,setLiveTick]=useState(0);
   const [orderFilter,setOrderFilter]=useState<"all"|"new"|"active"|"completed">("all");
@@ -64,27 +65,35 @@ export default function App(){
     return d;
   }
   async function loadProducts(){setLoading(true);try{const d=await api("/api/v1/products");setProducts((d as ProductsResponse).products)}catch(e){setMessage(e instanceof Error?e.message:"Mahsulotlarni yuklab bo'lmadi.")}finally{setLoading(false)}}
-  async function loadOrders(){setOrdersLoading(true);try{const d=await api("/api/v1/orders");setOrders(d.orders||[])}catch(e){setMessage(e instanceof Error?e.message:"Buyurtmalarni yuklab bo'lmadi.")}finally{setOrdersLoading(false)}}
+  async function loadOrders(){setOrdersLoading(true);try{const d=await api("/api/v1/orders");const next=(d.orders||[]) as Order[];setOrders(next);return next}catch(e){setMessage(e instanceof Error?e.message:"Buyurtmalarni yuklab bo'lmadi.");return [] as Order[]}finally{setOrdersLoading(false)}}
   async function loadChats(){setChatsLoading(true);try{const d=await api("/api/v1/chats");setChats(d.chats||[])}catch(e){setMessage(e instanceof Error?e.message:"Chatlarni yuklab bo'lmadi.")}finally{setChatsLoading(false)}}
-  useEffect(()=>{
-    void loadProducts(); void loadOrders(); void loadChats();
-    const timer=window.setInterval(async()=>{
-      try{
-        setOrdersLoading(true);
-        const d=await api("/api/v1/orders");
-        const next=(d.orders||[]) as Order[];
+  async function refreshAll(){
+    if(refreshLoading)return;
+    setRefreshLoading(true);
+    setMessage("");
+    try{
+      const results=await Promise.allSettled([loadProducts(),loadOrders(),loadChats()]);
+      const orderResult=results[1];
+      if(orderResult.status==="fulfilled"){
+        const next=orderResult.value;
         const incoming=next.filter(o=>o.status==="new").length;
         if(lastSeenNewOrders>0 && incoming>lastSeenNewOrders){
           setNotification(`Yangi buyurtma keldi: ${incoming-lastSeenNewOrders} ta`);
           setTab("orders");
         }
         setLastSeenNewOrders(incoming);
-        setOrders(next);setOrdersLoading(false);
-        setChatsLoading(true);
-        const c=await api("/api/v1/chats");
-        setChats(c.chats||[]);setChatsLoading(false);setLiveTick(x=>x+1);setLastSync(new Date());
-      }catch{setOrdersLoading(false);setChatsLoading(false)}
-    },15000);
+      }
+      if(analytics)await loadAnalytics();
+      setLiveTick(x=>x+1);
+      setLastSync(new Date());
+    }finally{
+      setRefreshLoading(false);
+    }
+  }
+
+  useEffect(()=>{
+    void loadProducts(); void loadOrders(); void loadChats();
+    const timer=window.setInterval(()=>{void refreshAll()},300000);
     return()=>window.clearInterval(timer);
   },[]);
 
@@ -99,7 +108,7 @@ export default function App(){
   }
   useEffect(()=>{
     if(!activeChat)return;
-    const timer=window.setInterval(async()=>{try{setMessagesLoading(true);const d=await api("/api/v1/chats/"+activeChat+"/messages");setMessages(d.messages||[])}catch{}finally{setMessagesLoading(false)}},3000);
+    const timer=window.setInterval(async()=>{try{setMessagesLoading(true);const d=await api("/api/v1/chats/"+activeChat+"/messages");setMessages(d.messages||[])}catch{}finally{setMessagesLoading(false)}},300000);
     return()=>window.clearInterval(timer);
   },[activeChat]);
   async function sendChat(e:FormEvent){e.preventDefault();const text=chatText.trim();if(!activeChat||!text)return;try{const d=await api("/api/v1/chats/"+activeChat+"/messages",{method:"POST",body:JSON.stringify({message:text,senderRole:"seller"})});setMessages(x=>[...x,d.message]);setChatText("");await loadChats()}catch(e){setMessage(e instanceof Error?e.message:"Xabar yuborilmadi.")}}
@@ -279,7 +288,7 @@ export default function App(){
     <section className="seller-main">
       <header className="top">
         <div><span className="eyebrow">SELLER CENTER · LIVE v3</span><h1>{tab==="overview"?"Dashboard":nav.find(x=>x[0]===tab)?.[1]}</h1><p>Do'koningizni bitta joydan boshqaring.</p></div>
-        <div className="top-actions">{notification&&<button className="notice" onClick={()=>setNotification("")}>🔔 {notification}</button>}<div className="status">● LIVE DATABASE · {liveTick}{lastSync?` · ${lastSync.toLocaleTimeString("uz-UZ",{hour:"2-digit",minute:"2-digit"})}`:""}</div></div>
+        <div className="top-actions">{notification&&<button className="notice" onClick={()=>setNotification("")}>🔔 {notification}</button>}<button className="db-refresh-button" onClick={()=>void refreshAll()} disabled={refreshLoading} aria-label="Ma'lumotlarni yangilash">{refreshLoading?<><span className="refresh-spinner" aria-hidden="true"/>Yangilanmoqda...</>:<><span className="refresh-icon" aria-hidden="true">↻</span>Yangilash</>}</button><div className="status">● LIVE DATABASE · {liveTick}{lastSync?` · ${lastSync.toLocaleTimeString("uz-UZ",{hour:"2-digit",minute:"2-digit"})}`:""}</div></div>
       </header>
 
       {tab==="overview"&&<>
@@ -313,7 +322,7 @@ export default function App(){
         <section className="panel">
           <div className="panel-head">
             <div><h2>Buyurtmalar</h2><span className="muted">Customer saytidan kelgan buyurtmalar · {filteredOrders.length} ta</span></div>
-            <div className="order-toolbar"><div className="filter-tabs">{([["all","Barchasi"],["new","Yangi"],["active","Jarayonda"],["completed","Yakunlangan"]] as const).map(([id,label])=><button key={id} className={orderFilter===id?"active":""} onClick={()=>setOrderFilter(id)}>{label}</button>)}</div><button className="secondary small" onClick={()=>{void loadOrders();void loadChats()}}>Yangilash</button></div>
+            <div className="order-toolbar"><div className="filter-tabs">{([["all","Barchasi"],["new","Yangi"],["active","Jarayonda"],["completed","Yakunlangan"]] as const).map(([id,label])=><button key={id} className={orderFilter===id?"active":""} onClick={()=>setOrderFilter(id)}>{label}</button>)}</div><button className="db-refresh-button small-refresh" onClick={()=>void refreshAll()} disabled={refreshLoading}>{refreshLoading?<><span className="refresh-spinner" aria-hidden="true"/>Yangilanmoqda...</>:<><span className="refresh-icon" aria-hidden="true">↻</span>Yangilash</>}</button></div>
           </div>
           {ordersLoading ? <DbListSkeleton rows={6}/> : !filteredOrders.length ? (
             <div className="empty"><b>Hali buyurtma yo'q</b><span>Customer checkout ishlaganda yangi buyurtmalar shu yerda paydo bo'ladi.</span></div>
@@ -383,7 +392,7 @@ export default function App(){
       )}
 
       {tab==="chats"&&<section className="chat-layout panel">
-        <div className="chat-list"><div className="panel-head"><div><h2>Mijozlar chatlari</h2><span className="muted">{chats.length} ta suhbat</span></div><button className="secondary small" onClick={()=>void loadChats()}>Yangilash</button></div>
+        <div className="chat-list"><div className="panel-head"><div><h2>Mijozlar chatlari</h2><span className="muted">{chats.length} ta suhbat</span></div><button className="db-refresh-button small-refresh" onClick={()=>void refreshAll()} disabled={refreshLoading}>{refreshLoading?<><span className="refresh-spinner" aria-hidden="true"/>Yangilanmoqda...</>:<><span className="refresh-icon" aria-hidden="true">↻</span>Yangilash</>}</button></div>
           {chatsLoading?<DbListSkeleton rows={6}/>:chats.length?chats.map(c=><button className={"chat-row "+(activeChat===c.id?"selected":"")} key={c.id} onClick={()=>void openChat(c.id)}><span className="avatar">{(c.customerName||"M").slice(0,1).toUpperCase()}</span><span><b>{c.productName||"Mahsulot"}</b><small>{c.customerName||"Mijoz"} · {c.lastMessage||"Yangi suhbat"}</small></span><i>{formatDate(c.updatedAt)}</i></button>):<div className="empty small-empty">Hali chat yo'q.</div>}
         </div>
         <div className="chat-window">{chatsLoading?<DbTableSkeleton rows={5}/>:activeChat?(()=>{const active=chats.find(c=>c.id===activeChat);return <><div className="chat-window-head"><div className="seller-chat-title">{active?.productImageUrl?<img src={active.productImageUrl} alt=""/>:<span className="seller-chat-product-fallback">MB</span>}<span><b>{active?.productName||"Mahsulot"}</b><small>{active?.customerName||"Mijoz"} bilan suhbat</small></span></div><button onClick={()=>setActiveChat(null)}>×</button></div><div className="messages">{messagesLoading?<DbListSkeleton rows={5}/>:messages.length?messages.map(m=><div key={m.id} className={"chat-message-row "+(m.senderRole==="seller"?"mine":"theirs")}><div className={"message-avatar "+(m.senderRole==="seller"?"seller":"customer")}>{m.senderRole==="seller"?"S":"M"}</div><div className={"bubble "+m.senderRole}><small className="message-sender">{m.senderRole==="seller"?"Siz":"Mijoz"}</small><span>{m.body}</span><small>{formatDate(m.createdAt)}</small></div></div>):<div className="chat-placeholder"><b>Hali xabar yo'q</b><span>Mijozga birinchi xabarni yuboring.</span></div>}</div><form className="chat-compose" onSubmit={sendChat}><input value={chatText} onChange={e=>setChatText(e.target.value)} placeholder="Mijozga xabar yozing..." /><button className="primary" disabled={!chatText.trim()}>Yuborish</button></form></>})():<div className="chat-placeholder"><b>Chatni tanlang</b><span>Mijoz bilan yozishmalar shu yerda ko'rinadi.</span></div>}</div>
@@ -411,7 +420,7 @@ export default function App(){
   <small>Har bir rasm 1080×1440 oq fonli formatga tayyorlanadi. Katta rasm kesilmaydi. DB'ga rasmning o'zi emas, faqat URL saqlanadi.</small>
 </div><button className="primary full" disabled={saving}>{saving?"Saqlanmoqda...":"Mahsulotni bazaga qo'shish"}</button>{message&&<div className="message">{message}</div>}</form></section>}
 
-      {tab==="analytics"&&<section className="panel analytics-panel">{analyticsLoading?<DbTableSkeleton rows={8}/>:!analytics?<div className="empty"><b>Real analytics</b><span>Neondan 30 kunlik ma'lumotni yuklash uchun bosing.</span><button className="primary small" onClick={()=>void loadAnalytics()}>Analitikani yuklash</button></div>:<><div className="stats"><div><span>30 kunlik tushum</span><b>{formatPrice(Number(analytics.summary.revenue))}</b><small>Faqat yakunlangan buyurtmalar</small></div><div><span>Buyurtmalar</span><b>{analytics.summary.totalOrders}</b><small>{analytics.summary.completedOrders} tasi yakunlangan</small></div><div><span>O'rtacha chek</span><b>{formatPrice(Number(analytics.summary.averageOrder))}</b><small>Yakunlangan buyurtmalar</small></div><div><span>Past qoldiq</span><b>{analytics.stock.lowStock}</b><small>{analytics.stock.outOfStock} ta tugagan</small></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><h2>Eng ko'p tushum bergan mahsulotlar</h2><button className="secondary small" onClick={()=>void loadAnalytics()}>Yangilash</button></div>{analytics.topProducts.map((x:any)=><div className="overview-list" key={x.productId}><div><span>{x.productName}</span><b>{formatPrice(Number(x.revenue))}</b></div></div>)}</section><section className="panel"><div className="panel-head"><h2>Kundalik savdo</h2></div>{analytics.daily.map((x:any)=><div className="overview-list" key={String(x.day)}><div><span>{String(x.day).slice(5)}</span><b>{formatPrice(Number(x.revenue))} · {x.orders} buyurtma</b></div></div>)}</section></div></>}</section>}
+      {tab==="analytics"&&<section className="panel analytics-panel">{analyticsLoading?<DbTableSkeleton rows={8}/>:!analytics?<div className="empty"><b>Real analytics</b><span>Neondan 30 kunlik ma'lumotni yuklash uchun bosing.</span><button className="primary small" onClick={()=>void loadAnalytics()}>Analitikani yuklash</button></div>:<><div className="stats"><div><span>30 kunlik tushum</span><b>{formatPrice(Number(analytics.summary.revenue))}</b><small>Faqat yakunlangan buyurtmalar</small></div><div><span>Buyurtmalar</span><b>{analytics.summary.totalOrders}</b><small>{analytics.summary.completedOrders} tasi yakunlangan</small></div><div><span>O'rtacha chek</span><b>{formatPrice(Number(analytics.summary.averageOrder))}</b><small>Yakunlangan buyurtmalar</small></div><div><span>Past qoldiq</span><b>{analytics.stock.lowStock}</b><small>{analytics.stock.outOfStock} ta tugagan</small></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><h2>Eng ko'p tushum bergan mahsulotlar</h2><button className="db-refresh-button small-refresh" onClick={()=>void refreshAll()} disabled={refreshLoading}>{refreshLoading?<><span className="refresh-spinner" aria-hidden="true"/>Yangilanmoqda...</>:<><span className="refresh-icon" aria-hidden="true">↻</span>Yangilash</>}</button></div>{analytics.topProducts.map((x:any)=><div className="overview-list" key={x.productId}><div><span>{x.productName}</span><b>{formatPrice(Number(x.revenue))}</b></div></div>)}</section><section className="panel"><div className="panel-head"><h2>Kundalik savdo</h2></div>{analytics.daily.map((x:any)=><div className="overview-list" key={String(x.day)}><div><span>{String(x.day).slice(5)}</span><b>{formatPrice(Number(x.revenue))} · {x.orders} buyurtma</b></div></div>)}</section></div></>}</section>}
       {tab==="marketing"&&<section className="panel"><div className="panel-head"><div><h2>Marketing & Aksiyalar</h2><span className="muted">Aksiyalar real katalogga saqlanadi va customer API orqali chegirmali narx sifatida qaytadi.</span></div></div>{loading?<DbTableSkeleton rows={7}/>:<div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{(p.imageUrls?.[0]||p.imageUrl)?<img src={p.imageUrls?.[0]||p.imageUrl} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>setPromoProduct(p)}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div>}</section>}
       {editing&&<div className="modal-backdrop editor-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(null)}}><form className="modal product-editor-modal" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}>
   <div className="panel-head editor-head"><div><span className="eyebrow">PRODUCT EDITOR</span><h2>Mahsulotni tahrirlash</h2><span className="muted">Barcha ma'lumotlar va rasmlar shu oynadan boshqariladi.</span></div><button type="button" className="secondary small" onClick={()=>setEditing(null)}>Yopish</button></div>
