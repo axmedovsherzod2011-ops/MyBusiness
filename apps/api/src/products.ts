@@ -44,7 +44,7 @@ function readProductInput(body: unknown) {
   if (!Number.isInteger(stock) || stock < 0) return { error: "Stock must be a non-negative integer." as const };
   if (imageUrls.length > 12) return { error: "Ko'pi bilan 12 ta rasm qo'shish mumkin." as const };
   if (imageUrls.some((url) => url.length > 2_000)) return { error: "Image URL is too long." as const };
-  if (imageUrls.some((url) => !/^https?:\\/\\//i.test(url))) return { error: "Rasm URL'i http:// yoki https:// bilan boshlanishi kerak." as const };
+  if (imageUrls.some((url) => !/^https?:\/\//i.test(url))) return { error: "Rasm URL'i http:// yoki https:// bilan boshlanishi kerak." as const };
 
   return { name, sku, description, price, stock, imageUrl: imageUrls[0] ?? "", imageUrls };
 }
