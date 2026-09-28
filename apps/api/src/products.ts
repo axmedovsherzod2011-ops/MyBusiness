@@ -12,6 +12,7 @@ function toProduct(row: Record<string, unknown>) {
     description: String(row.description ?? ""),
     price: Number(row.price),
     imageUrl: String(row.image_url ?? ""),
+    imageUrls: Array.isArray(row.image_urls) ? row.image_urls.map(String).filter(Boolean) : (row.image_url ? [String(row.image_url)] : []),
     stock: Number(row.stock),
     createdAt: String(row.created_at),
     promoDiscountPercent: row.promo_discount_percent == null ? null : Number(row.promo_discount_percent),
@@ -29,6 +30,8 @@ function readProductInput(body: unknown) {
   const sku = typeof value.sku === "string" ? value.sku.trim().toUpperCase() : "";
   const description = typeof value.description === "string" ? value.description.trim() : "";
   const imageUrl = typeof value.imageUrl === "string" ? value.imageUrl.trim() : "";
+  const rawImageUrls = Array.isArray(value.imageUrls) ? value.imageUrls : [];
+  const imageUrls = rawImageUrls.length ? rawImageUrls.map((x) => typeof x === "string" ? x.trim() : "").filter(Boolean) : (imageUrl ? [imageUrl] : []);
   const price = typeof value.price === "number" ? value.price : Number(value.price);
   const stock = typeof value.stock === "number" ? value.stock : Number(value.stock);
 
@@ -39,9 +42,11 @@ function readProductInput(body: unknown) {
   if (name.length > 180) return { error: "Product name is too long." as const };
   if (!Number.isFinite(price) || price < 0) return { error: "Price must be a non-negative number." as const };
   if (!Number.isInteger(stock) || stock < 0) return { error: "Stock must be a non-negative integer." as const };
-  if (imageUrl && imageUrl.length > 2_000) return { error: "Image URL is too long." as const };
+  if (imageUrls.length > 12) return { error: "Ko'pi bilan 12 ta rasm qo'shish mumkin." as const };
+  if (imageUrls.some((url) => url.length > 2_000)) return { error: "Image URL is too long." as const };
+  if (imageUrls.some((url) => !/^https?:\\/\\//i.test(url))) return { error: "Rasm URL'i http:// yoki https:// bilan boshlanishi kerak." as const };
 
-  return { name, sku, description, price, stock, imageUrl };
+  return { name, sku, description, price, stock, imageUrl: imageUrls[0] ?? "", imageUrls };
 }
 
 router.get("/", async (_req: Request, res: Response) => {
@@ -49,7 +54,7 @@ router.get("/", async (_req: Request, res: Response) => {
     await initializeDatabase();
     const db = requireDatabase();
     const result = await db.query(
-      `SELECT p.id, p.name, p.sku, p.description, p.price, p.image_url, p.stock, p.created_at,
+      `SELECT p.id, p.name, p.sku, p.description, p.price, p.image_url, p.image_urls, p.stock, p.created_at,
               pr.discount_percent AS promo_discount_percent
        FROM marketplace_products p
        LEFT JOIN LATERAL (
@@ -78,10 +83,10 @@ router.post("/", async (req: Request, res: Response) => {
     await initializeDatabase();
     const db = requireDatabase();
     const result = await db.query(
-      `INSERT INTO marketplace_products (name, sku, description, price, image_url, stock)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING id, name, sku, description, price, image_url, stock, created_at`,
-      [input.name, input.sku, input.description, input.price, input.imageUrl, input.stock],
+      `INSERT INTO marketplace_products (name, sku, description, price, image_url, image_urls, stock)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, name, sku, description, price, image_url, image_urls, stock, created_at`,
+      [input.name, input.sku, input.description, input.price, input.imageUrl, input.imageUrls, input.stock],
     );
     res.status(201).json({ product: toProduct(result.rows[0]) });
   } catch (error) {
@@ -99,9 +104,9 @@ router.patch("/:id", async (req: Request, res: Response) => {
   try {
     const db = requireDatabase();
     const result = await db.query(
-      `UPDATE marketplace_products SET name=$1, sku=$2, description=$3, price=$4, image_url=$5, stock=$6
-       WHERE id=$7 RETURNING id, name, sku, description, price, image_url, stock, created_at`,
-      [input.name, input.sku, input.description, input.price, input.imageUrl, input.stock, req.params.id],
+      `UPDATE marketplace_products SET name=$1, sku=$2, description=$3, price=$4, image_url=$5, image_urls=$6, stock=$7
+       WHERE id=$8 RETURNING id, name, sku, description, price, image_url, image_urls, stock, created_at`,
+      [input.name, input.sku, input.description, input.price, input.imageUrl, input.imageUrls, input.stock, req.params.id],
     );
     if (!result.rowCount) { res.status(404).json({ message: "Mahsulot topilmadi." }); return; }
     res.json({ product: toProduct(result.rows[0]) });
