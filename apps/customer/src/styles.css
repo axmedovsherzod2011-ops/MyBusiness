@@ -2288,3 +2288,23 @@ html{
 .profile-help-v2{position:relative;padding-right:42px}.profile-help-v2>span{position:absolute;right:18px;top:50%;font-size:25px;color:#a0a5aa}
 @media(max-width:700px){.profile-v2{padding:15px 12px 88px}.profile-account-card{padding:17px;border-radius:21px}.profile-quick-grid button{padding:12px 9px}.profile-order-stages b{font-size:9px}.profile-order-stages small{font-size:8px}.profile-subview-heading h3{font-size:23px}}
 @media(min-width:701px){.profile-v2{max-width:620px;margin:0 auto}.profile-account-card{padding:22px}.profile-quick-grid button{padding:16px}.profile-section-card{padding:18px}}
+
+
+/* Profile order filters + favorites navigation */
+.drawer-head-back{
+  width:34px;height:34px;border:0;border-radius:10px;background:var(--surface-2,#f4f5f7);
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto;
+}
+.drawer-head:has(.drawer-head-back){display:flex;align-items:center;gap:10px}
+.profile-order-filter-tabs{
+  display:flex;gap:7px;overflow-x:auto;padding:2px 0 12px;margin-bottom:4px;
+  scrollbar-width:none;
+}
+.profile-order-filter-tabs::-webkit-scrollbar{display:none}
+.profile-order-filter-tabs button{
+  border:1px solid var(--line,#e5e7eb);background:var(--surface,#fff);color:var(--text-2,#667085);
+  border-radius:999px;padding:9px 13px;font:600 12px/1 inherit;white-space:nowrap;cursor:pointer;
+}
+.profile-order-filter-tabs button.active{
+  background:var(--text,#111827);border-color:var(--text,#111827);color:#fff;
+}
