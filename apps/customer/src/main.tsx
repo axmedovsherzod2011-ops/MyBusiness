@@ -393,7 +393,7 @@ export default function App(){
   <button className={panel==="profile"?"active":""} onClick={()=>setPanel("profile")}><span><Icon name="user"/></span>{panel==="profile"&&<b className="nav-label">Profil</b>}</button>
 </nav>
 
-    {panel&&<div className="drawer-backdrop" onClick={()=>setPanel(null)}><aside className="drawer" onClick={e=>e.stopPropagation()}>
+    {panel&&<div className="drawer-backdrop" onClick={()=>setPanel(null)}><aside className={"drawer "+(panel==="cart"?"cart-drawer-host":"")} onClick={e=>e.stopPropagation()}>
       <div className="drawer-head"><h2>{panel==="cart"?"Savat":panel==="favorites"?"Sevimlilar":panel==="profile"?"Profil":panel==="filters"?"Filtrlar":panel==="search"?"Qidirish":"Katalog"}</h2></div>
       {panel==="profile"&&<div className="profile-panel">
         {!authUser?<div className="profile-login-card"><div className="profile-icon"><Icon name="user" size={28}/></div><h3>MyBusiness akkaunti</h3><p>Buyurtmalar, chatlar, sevimlilar va shaxsiy sozlamalarni bir joydan boshqaring.</p><button className="primary full" onClick={()=>setAuthOpen(true)}>Kirish / ro'yxatdan o'tish</button></div>:
