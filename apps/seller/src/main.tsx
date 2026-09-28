@@ -106,7 +106,7 @@ export default function App(){
   }
   async function changeStatus(order:Order,status:string){try{const d=await api("/api/v1/orders/"+order.id+"/status",{method:"PATCH",body:JSON.stringify({status})});setOrders(x=>x.map(o=>o.id===order.id?d.order:o))}catch(e){setMessage(e instanceof Error?e.message:"Holatni o'zgartirib bo'lmadi.")}}
 
-  function firstImage(value:string){return value.split(/[\\n|,]+/).map(x=>x.trim()).filter(Boolean)[0]||"";}
+  function firstImage(value:string){return value.split(/[\n|,]+/).map(x=>x.trim()).filter(Boolean)[0]||"";}
   async function uploadImage(file:File):Promise<string>{
     const r=await fetch(apiBase+"/api/v1/uploads/product-image",{method:"POST",headers:{"Content-Type":file.type},body:file});
     const d=await r.json().catch(()=>({}));
