@@ -122,8 +122,12 @@ function Grid({items,favs,cart,onLike,onCart,onQty,onAsk,onOpen}:{items:Product[
   return <div className="product-grid">{items.map(p=><ProductCard key={p.id} p={p} liked={favs.includes(p.id)} qty={cart[p.id]||0} onLike={onLike} onCart={onCart} onQty={onQty} onAsk={onAsk} onOpen={onOpen}/>)}</div>;
 }
 
-function Mini({p,onOpen,onCart}:{p:Product;onOpen:()=>void;onCart:()=>void}){
-  return <div className="mini-product"><button className="mini-image" onClick={onOpen}>{productImages(p)[0]?<img src={productImages(p)[0]} alt=""/>:"MB"}</button><div><button className="mini-name" onClick={onOpen}>{p.name}</button><b>{p.promoPrice!=null?<><s className="old-price">{money(p.price)}</s> {money(p.promoPrice)}</>:money(p.price)}</b><button className="mini-add" onClick={onCart} disabled={!p.stock}>Savatga</button></div></div>;
+function Mini({p,onOpen,onCart,onRemove}:{p:Product;onOpen:()=>void;onCart:()=>void;onRemove:()=>void}){
+  return <div className="mini-product">
+    <button className="mini-image" onClick={onOpen}>{productImages(p)[0]?<img src={productImages(p)[0]} alt=""/>:"MB"}</button>
+    <div><button className="mini-name" onClick={onOpen}>{p.name}</button><b>{p.promoPrice!=null?<><s className="old-price">{money(p.price)}</s> {money(p.promoPrice)}</>:money(p.price)}</b><button className="mini-add" onClick={onCart} disabled={!p.stock}>Savatga</button></div>
+    <button className="mini-remove" onClick={e=>{e.stopPropagation();onRemove()}} aria-label="Sevimlilardan o'chirish" title="Sevimlilardan o'chirish"><Icon name="trash" size={17}/></button>
+  </div>;
 }
 
 function HomeProductGrid({items,favs,cart,onLike,onCart,onQty,onAsk,onOpen,onPromo}:{items:Product[];favs:number[];cart:Record<string,number>;onLike:(id:number)=>void;onCart:(p:Product)=>void;onQty:(id:number,d:number)=>void;onAsk:(p:Product)=>void;onOpen:(p:Product)=>void;onPromo:(kind:"new"|"sale")=>void}){
@@ -606,7 +610,7 @@ export default function App(){
         <div className="filter-section"><div className="filter-section-title"><b>Saralash</b></div><div className="filter-sort-list">{[["newest","Yangi mahsulotlar"],["price-low","Arzon → qimmat"],["price-high","Qimmat → arzon"],["name","Nomi bo‘yicha"]].map(([k,v])=><button key={k} className={sort===k?"selected":""} onClick={()=>setSort(k as typeof sort)}><span>{v}</span><i>{sort===k?"✓":"○"}</i></button>)}</div></div>
         <div className="filter-bottom"><button className="filter-clear" onClick={clearFilters}>Tozalash</button><button className="filter-apply" onClick={goBack}>Ko‘rsatish · {visible.length}</button></div>
       </div>}
-      {panel==="favorites"&&<div className="drawer-list">{products.filter(p=>favs.includes(p.id)).map(p=><Mini key={p.id} p={p} onOpen={()=>setQuick(p)} onCart={()=>add(p)}/>) }{!favs.length&&<div className="drawer-empty">Hali sevimli mahsulotlar yo'q.</div>}</div>}
+      {panel==="favorites"&&<div className="drawer-list">{products.filter(p=>favs.includes(p.id)).map(p=><Mini key={p.id} p={p} onOpen={()=>setQuick(p)} onCart={()=>add(p)} onRemove={()=>toggleFav(p.id)}/>) }{!favs.length&&<div className="drawer-empty">Hali sevimli mahsulotlar yo'q.</div>}</div>}
       {panel==="cart"&&<div className="drawer-cart">{cartItems.map(x=><div className="cart-item" key={x.p.id}><div className="cart-item-main" role="button" tabIndex={0} onClick={()=>openProduct(x.p)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openProduct(x.p)}}} aria-label={x.p.name}><div className="mini-image">{productImages(x.p)[0]?<img src={productImages(x.p)[0]} alt=""/>:"MB"}</div><div className="cart-item-info"><b>{x.p.name}</b><span>{money(effectivePrice(x.p))} × {x.q}</span><div className="qty" onClick={e=>e.stopPropagation()}><button aria-label="Kamaytirish" onClick={()=>qty(x.p.id,-1)}>−</button><b>{x.q}</b><button aria-label="Ko'paytirish" onClick={()=>qty(x.p.id,1)}>+</button></div></div></div><button className="remove-item" aria-label="O'chirish" onClick={()=>removeFromCart(x.p.id)}><Icon name="trash" size={18}/></button></div>)}{cartItems.length?<div className="cart-total"><span>Jami</span><strong>{money(cartTotal)}</strong><button className="primary full" onClick={openCheckout}>Buyurtma berish</button></div>:<div className="drawer-empty">Savatingiz hozircha bo'sh.</div>}</div>}
     </aside></div>}
 
