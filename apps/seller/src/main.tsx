@@ -17,6 +17,7 @@ type Chat = {
   hasUnreadForSeller?:boolean; sellerLastReadAt?:string|null;
 };
 type ChatMessage = { id:number; senderRole:"customer"|"seller"; body:string; createdAt:string };
+type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string };
 const statusLabels:Record<string,string> = {
   new:"Yangi", confirmed:"Qabul qilindi", preparing:"Tayyorlanmoqda",
   shipping:"Yetkazilmoqda", completed:"Yakunlangan", cancelled:"Bekor qilingan"
@@ -72,6 +73,11 @@ export default function App(){
   const [deleteProductTarget,setDeleteProductTarget]=useState<Product|null>(null);
   const [deleteLoading,setDeleteLoading]=useState(false);
   const [editingImageLoading,setEditingImageLoading]=useState(false);
+  const [banners,setBanners]=useState<Banner[]>([]);
+  const [bannerLoading,setBannerLoading]=useState(true);
+  const [bannerSaving,setBannerSaving]=useState(false);
+  const [bannerDesktopUrl,setBannerDesktopUrl]=useState("");
+  const [bannerMobileUrl,setBannerMobileUrl]=useState("");
 
   const inventoryDirtyIds=useMemo(()=>Object.keys(stockDraft).filter(id=>{const productId=Number(id);const product=products.find(p=>p.id===productId);const original=inventoryOriginalRef.current[productId];return product&&Number(stockDraft[productId])!==Number(original??product.stock)}).map(Number),[products,stockDraft]);
   const inventoryDirtyCount=inventoryDirtyIds.length;
@@ -117,12 +123,13 @@ export default function App(){
   async function loadProducts(){setLoading(true);try{const d=await api("/api/v1/products");setProducts((d as ProductsResponse).products)}catch(e){setMessage(e instanceof Error?e.message:"Mahsulotlarni yuklab bo'lmadi.")}finally{setLoading(false)}}
   async function loadOrders(){setOrdersLoading(true);try{const d=await api("/api/v1/orders");const next=(d.orders||[]) as Order[];setOrders(next);return next}catch(e){setMessage(e instanceof Error?e.message:"Buyurtmalarni yuklab bo'lmadi.");return [] as Order[]}finally{setOrdersLoading(false)}}
   async function loadChats(){setChatsLoading(true);try{const d=await api("/api/v1/chats");setChats(d.chats||[])}catch(e){setMessage(e instanceof Error?e.message:"Chatlarni yuklab bo'lmadi.")}finally{setChatsLoading(false)}}
+  async function loadBanners(){setBannerLoading(true);try{const d=await api("/api/v1/banners/manage");setBanners(d.banners||[])}catch(e){setMessage(e instanceof Error?e.message:"Bannerlarni yuklab bo'lmadi.")}finally{setBannerLoading(false)}}
   async function refreshAll(){
     if(refreshLoading)return;
     setRefreshLoading(true);
     setMessage("");
     try{
-      const results=await Promise.allSettled([loadProducts(),loadOrders(),loadChats()]);
+      const results=await Promise.allSettled([loadProducts(),loadOrders(),loadChats(),loadBanners()]);
       const orderResult=results[1];
       if(orderResult.status==="fulfilled"){
         const next=orderResult.value;
@@ -153,7 +160,7 @@ export default function App(){
       syncRoute();
     };
     window.addEventListener("popstate",onPop);
-    void loadProducts(); void loadOrders(); void loadChats(); void loadAnalytics();
+    void loadProducts(); void loadOrders(); void loadChats(); void loadBanners(); void loadAnalytics();
     const timer=window.setInterval(()=>{void refreshAll()},300000);
     return()=>{window.clearInterval(timer);window.removeEventListener("popstate",onPop);};
   },[]);
@@ -233,6 +240,37 @@ export default function App(){
     if(form.imageUrls.length>=12){setMessage("Ko'pi bilan 12 ta rasm qo'shish mumkin.");return;}
     setForm(x=>({...x,imageUrl:x.imageUrls[0]||url,imageUrls:[...x.imageUrls,url]}));
     setImageUrlInput("");
+  }
+
+  async function uploadBannerFile(file:File,width:number,height:number):Promise<string>{
+    if(!file.type.startsWith("image/"))throw new Error("Faqat rasm fayli tanlang.");
+    if(file.size>12*1024*1024)throw new Error("Rasm 12 MB dan kichik bo'lishi kerak.");
+    const normalized=await new Promise<Blob>((resolve,reject)=>{
+      const src=URL.createObjectURL(file);const img=new Image();
+      img.onload=()=>{URL.revokeObjectURL(src);const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;
+        const ctx=canvas.getContext("2d");if(!ctx){reject(new Error("Canvas tayyorlanmadi."));return;}
+        ctx.fillStyle="#fff";ctx.fillRect(0,0,width,height);
+        const scale=Math.min(width/img.naturalWidth,height/img.naturalHeight);const w=img.naturalWidth*scale,h=img.naturalHeight*scale;
+        ctx.drawImage(img,(width-w)/2,(height-h)/2,w,h);
+        canvas.toBlob(b=>b?resolve(b):reject(new Error("Rasmni tayyorlab bo'lmadi.")),"image/jpeg",.92);
+      };img.onerror=()=>{URL.revokeObjectURL(src);reject(new Error("Rasmni ochib bo'lmadi."));};img.src=src;
+    });
+    return uploadImage(new File([normalized],file.name.replace(/\.[^.]+$/,"")+".jpg",{type:"image/jpeg"}));
+  }
+  async function createBanner(){
+    if(!bannerDesktopUrl||!bannerMobileUrl){setMessage("Avval desktop va mobile banner rasmlarini yuklang.");return;}
+    try{setBannerSaving(true);const d=await api("/api/v1/banners",{method:"POST",body:JSON.stringify({desktopImageUrl:bannerDesktopUrl,mobileImageUrl:bannerMobileUrl,sortOrder:banners.length})});
+      setBanners(x=>[...x,d.banner]);setBannerDesktopUrl("");setBannerMobileUrl("");setMessage("Banner customer saytiga joylandi.");
+    }catch(e){setMessage(e instanceof Error?e.message:"Bannerni saqlab bo'lmadi.");}finally{setBannerSaving(false)}
+  }
+  async function toggleBanner(b:Banner){
+    try{const d=await api("/api/v1/banners/"+b.id,{method:"PATCH",body:JSON.stringify({active:!b.active})});setBanners(x=>x.map(v=>v.id===b.id?d.banner:v));}
+    catch(e){setMessage(e instanceof Error?e.message:"Banner holatini o'zgartirib bo'lmadi.")}
+  }
+  async function deleteBanner(b:Banner){
+    if(!confirm("Bu bannerni o'chirishga aminmisiz?"))return;
+    try{await api("/api/v1/banners/"+b.id,{method:"DELETE"});setBanners(x=>x.filter(v=>v.id!==b.id));setMessage("Banner o'chirildi.");}
+    catch(e){setMessage(e instanceof Error?e.message:"Bannerni o'chirib bo'lmadi.")}
   }
 
   async function uploadEditingImage(file:File){
@@ -522,7 +560,18 @@ export default function App(){
       {tab==="inventory"&&inventoryDirtyCount>0&&<div className="inventory-save-bar" role="status"><div className="inventory-save-bar-info"><span className="inventory-save-dot"/><div><b>{inventoryDirtyCount} ta mahsulot o'zgartirildi</b><small>O'zgarishlarni hozircha tasdiqlamasdan boshqa mahsulotlarni ham tahrirlashingiz mumkin.</small></div></div><div className="inventory-save-actions"><button type="button" className="inventory-discard-button" onClick={cancelAllStock} disabled={inventorySaving}>Voz kechish</button><button type="button" className="inventory-save-button" onClick={()=>void saveAllStock()} disabled={inventorySaving}>{inventorySaving?<><span className="refresh-spinner" aria-hidden="true"/>Saqlanmoqda...</>:<>Saqlash <span>→</span></>}</button></div></div>}
       {pendingNavigation&&<div className="modal-backdrop inventory-leave-backdrop"><div className="modal inventory-leave-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-leave-title"><div className="inventory-leave-icon">!</div><span className="eyebrow">SAQLANMAGAN O'ZGARISHLAR</span><h2 id="inventory-leave-title">{inventoryDirtyCount} ta mahsulot o'zgartirildi</h2><p>Ombordan chiqishdan oldin o'zgarishlarni saqlaysizmi?</p><div className="inventory-leave-actions"><button type="button" className="secondary" onClick={()=>completePendingNavigation(false)} disabled={inventorySaving}>Voz kechish</button><button type="button" className="primary" onClick={()=>void completePendingNavigation(true)} disabled={inventorySaving}>{inventorySaving?<><span className="refresh-spinner" aria-hidden="true"/>Saqlanmoqda...</>:<>Saqlash va chiqish <span>→</span></>}</button></div><button type="button" className="modal-close-button inventory-leave-close" onClick={()=>setPendingNavigation(null)} disabled={inventorySaving} aria-label="Yopish" title="Yopish"><span aria-hidden="true">×</span></button></div></div>}
       {tab==="analytics"&&<section className="panel analytics-panel"><div className="analytics-hero"><div><span className="eyebrow">BUSINESS INTELLIGENCE · 30 KUN</span><h2>Analitika</h2><p>Do'koningizning real savdo va ombor ko'rsatkichlari Neon bazasidan avtomatik yuklanadi.</p></div><div className="analytics-live"><span className="live-dot"/> LIVE DATA</div></div>{analyticsLoading?<DbTableSkeleton rows={8}/>:!analytics?<div className="empty"><b>Analitika hozircha mavjud emas</b><span>Ma'lumotlar bazadan yuklanmoqda yoki vaqtincha mavjud emas.</span></div>:<><div className="stats"><div><span>30 kunlik tushum</span><b>{formatPrice(Number(analytics.summary.revenue))}</b><small>Faqat yakunlangan buyurtmalar</small></div><div><span>Buyurtmalar</span><b>{analytics.summary.totalOrders}</b><small>{analytics.summary.completedOrders} tasi yakunlangan</small></div><div><span>O'rtacha chek</span><b>{formatPrice(Number(analytics.summary.averageOrder))}</b><small>Yakunlangan buyurtmalar</small></div><div><span>Past qoldiq</span><b>{analytics.stock.lowStock}</b><small>{analytics.stock.outOfStock} ta tugagan</small></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><h2>Eng ko'p tushum bergan mahsulotlar</h2><button className="db-refresh-button small-refresh" onClick={()=>void refreshAll()} disabled={refreshLoading}>{refreshLoading?<><span className="refresh-spinner" aria-hidden="true"/>Yangilanmoqda...</>:<><span className="refresh-icon" aria-hidden="true">↻</span>Yangilash</>}</button></div>{analytics.topProducts.map((x:any)=><div className="overview-list" key={x.productId}><div><span>{x.productName}</span><b>{formatPrice(Number(x.revenue))}</b></div></div>)}</section><section className="panel"><div className="panel-head"><h2>Kundalik savdo</h2></div>{analytics.daily.map((x:any)=><div className="overview-list" key={String(x.day)}><div><span>{formatAnalyticsDay(String(x.day))}</span><b>{formatPrice(Number(x.revenue))} · {x.orders} buyurtma</b></div></div>)}</section></div></>}</section>}
-      {tab==="marketing"&&<section className="panel"><div className="panel-head"><div><h2>Marketing & Aksiyalar</h2><span className="muted">Aksiyalar real katalogga saqlanadi va customer API orqali chegirmali narx sifatida qaytadi.</span></div></div>{loading?<DbTableSkeleton rows={7}/>:<div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{(p.imageUrls?.[0]||p.imageUrl)?<img loading="lazy" decoding="async" src={p.imageUrls?.[0]||p.imageUrl} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>{setPromoProduct(p);window.history.pushState({},"","/xaccount/marketing/aksiya/"+p.id)}}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div>}</section>}
+      {tab==="marketing"&&<section className="panel marketing-page">
+        <div className="panel-head"><div><h2>Marketing & Aksiyalar</h2><span className="muted">Bannerlar customer saytining bosh sahifasida, aksiyalar esa katalogda ko'rinadi.</span></div></div>
+        <div className="banner-manager">
+          <div className="banner-manager-head"><div><span className="editor-section-kicker">CUSTOMER · BANNER</span><h3>Sayt bannerlari</h3><p>Faqat rasm. Desktop: <b>1440×480 px</b> · Telefon: <b>1080×540 px</b>. Tizim rasmni shu nisbatga sig'dirib, oq fon bilan tayyorlaydi.</p></div><span className="banner-size-badge">RESPONSIVE</span></div>
+          <div className="banner-upload-grid">
+            <label className="banner-upload-card"><input type="file" accept="image/*" disabled={bannerSaving} onChange={async e=>{const f=e.target.files?.[0];e.currentTarget.value="";if(!f)return;try{setBannerSaving(true);setBannerDesktopUrl(await uploadBannerFile(f,1440,480));setMessage("Desktop banner tayyor.");}catch(err){setMessage(err instanceof Error?err.message:"Desktop banner yuklanmadi.")}finally{setBannerSaving(false)}}}/><span>▣</span><b>Desktop banner</b><small>1440 × 480 px · 3:1</small>{bannerDesktopUrl&&<img src={bannerDesktopUrl} alt="Desktop banner preview"/>}</label>
+            <label className="banner-upload-card"><input type="file" accept="image/*" disabled={bannerSaving} onChange={async e=>{const f=e.target.files?.[0];e.currentTarget.value="";if(!f)return;try{setBannerSaving(true);setBannerMobileUrl(await uploadBannerFile(f,1080,540));setMessage("Mobile banner tayyor.");}catch(err){setMessage(err instanceof Error?err.message:"Mobile banner yuklanmadi.")}finally{setBannerSaving(false)}}}/><span>▯</span><b>Telefon banner</b><small>1080 × 540 px · 2:1</small>{bannerMobileUrl&&<img src={bannerMobileUrl} alt="Mobile banner preview"/>}</label>
+          </div>
+          <button className="primary banner-publish-button" onClick={()=>void createBanner()} disabled={bannerSaving||!bannerDesktopUrl||!bannerMobileUrl}>{bannerSaving?<><span className="refresh-spinner"/>Yuklanmoqda...</>:<>Bannerlarni customer saytiga joylash <span>→</span></>}</button>
+          <div className="banner-list">{bannerLoading?<DbTableSkeleton rows={2}/>:banners.length?banners.map(b=><div className={"banner-row "+(!b.active?"inactive":"")} key={b.id}><div className="banner-previews"><img src={b.desktopImageUrl} alt=""/><img src={b.mobileImageUrl} alt=""/></div><div className="banner-row-copy"><b>{b.active?"Customer saytida ko'rinmoqda":"O'chirilgan"}</b><small>Desktop 1440×480 · Mobile 1080×540</small></div><button className="secondary small" onClick={()=>void toggleBanner(b)}>{b.active?"O'chirish":"Yoqish"}</button><button className="icon-action danger" onClick={()=>void deleteBanner(b)} aria-label="Bannerni o'chirish">×</button></div>):<div className="banner-empty">Hali banner joylanmagan.</div>}</div>
+        </div>
+        {loading?<DbTableSkeleton rows={7}/>:<div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{(p.imageUrls?.[0]||p.imageUrl)?<img loading="lazy" decoding="async" src={p.imageUrls?.[0]||p.imageUrl} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>{setPromoProduct(p);window.history.pushState({},"","/xaccount/marketing/aksiya/"+p.id)}}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div>}</section>}
       {editing&&<div className="modal-backdrop editor-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!saving&&!editingImageLoading)setEditing(null)}}><form className="modal product-editor-modal" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}>
   <header className="product-editor-header">
     <div className="product-editor-title-wrap"><div className="product-editor-avatar">{(editing.imageUrls?.[0]||editing.imageUrl)?<img loading="lazy" decoding="async" src={editing.imageUrls?.[0]||editing.imageUrl} alt=""/>:<span>MB</span>}</div><div><span className="eyebrow">CATALOG · PRODUCT EDITOR</span><h2>Mahsulotni tahrirlash</h2><p>{editing.name||"Yangi mahsulot"} <span>·</span> SKU {editing.sku||"—"}</p></div></div>
