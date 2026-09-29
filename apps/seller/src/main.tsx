@@ -18,7 +18,7 @@ type Chat = {
 };
 type ChatMessage = { id:number; senderRole:"customer"|"seller"; body:string; createdAt:string };
 type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string; targetType:string; targetValue:string; primaryColor:string };
-type LandingPage = { id:number; slug:string; title:string; subtitle:string; description:string; offerText:string; productIds:number[]; active:boolean };
+type LandingPage = { id:number; slug:string; title:string; subtitle:string; description:string; offerText:string; productIds:number[]; active:boolean; primaryColor:string };
 const statusLabels:Record<string,string> = {
   new:"Yangi", confirmed:"Qabul qilindi", preparing:"Tayyorlanmoqda",
   shipping:"Yetkazilmoqda", completed:"Yakunlangan", cancelled:"Bekor qilingan"
@@ -136,11 +136,41 @@ export default function App(){
   async function loadOrders(){setOrdersLoading(true);try{const d=await api("/api/v1/orders");const next=(d.orders||[]) as Order[];setOrders(next);return next}catch(e){setMessage(e instanceof Error?e.message:"Buyurtmalarni yuklab bo'lmadi.");return [] as Order[]}finally{setOrdersLoading(false)}}
   async function loadChats(){setChatsLoading(true);try{const d=await api("/api/v1/chats");setChats(d.chats||[])}catch(e){setMessage(e instanceof Error?e.message:"Chatlarni yuklab bo'lmadi.")}finally{setChatsLoading(false)}}
   async function loadBanners(){setBannerLoading(true);try{const d=await api("/api/v1/banners/manage");setBanners(d.banners||[])}catch(e){setMessage(e instanceof Error?e.message:"Bannerlarni yuklab bo'lmadi.")}finally{setBannerLoading(false)}}
-  async function loadLandingPages(){try{const d=await api("/api/v1/landing-pages/manage");setLandingPages(d.pages||[])}catch(e){setMessage(e instanceof Error?e.message:"Sahifalarni yuklab bo'lmadi.")}}
+  async function loadLandingPages(){
+    try{
+      const d=await api("/api/v1/landing-pages/manage");
+      setLandingPages(Array.isArray(d.pages)?d.pages:[]);
+      return Array.isArray(d.pages)?d.pages as LandingPage[]:[];
+    }catch(e){
+      setMessage(e instanceof Error?e.message:"Sahifalarni yuklab bo'lmadi.");
+      return [] as LandingPage[];
+    }
+  }
   async function createLandingPage(){
     if(!pageTitle.trim()){setMessage("Sahifa nomini kiriting.");return;}
-    try{setPageSaving(true);const d=await api("/api/v1/landing-pages",{method:"POST",body:JSON.stringify({title:pageTitle,subtitle:pageSubtitle,description:pageDescription,offerText:pageOfferText,productIds:pageProductIds})});setLandingPages(x=>[d.page,...x]);setBannerTargetType("page");setBannerTargetValue(d.page.slug);setPageEditorOpen(false);setPageTitle("");setPageSubtitle("");setPageDescription("");setPageOfferText("");setPageProductIds([]);setMessage("Yangi sahifa yaratildi.");}
-    catch(e){setMessage(e instanceof Error?e.message:"Sahifani yaratib bo'lmadi.");}finally{setPageSaving(false)}
+    try{
+      setPageSaving(true);
+      const d=await api("/api/v1/landing-pages",{
+        method:"POST",
+        body:JSON.stringify({
+          title:pageTitle,
+          subtitle:pageSubtitle,
+          description:pageDescription,
+          offerText:pageOfferText,
+          productIds:pageProductIds
+        })
+      });
+      setLandingPages(x=>[d.page,...x.filter((p:LandingPage)=>p.id!==d.page.id)]);
+      setBannerTargetType("page");
+      setBannerTargetValue(d.page.slug);
+      setPageEditorOpen(false);
+      setPageTitle("");setPageSubtitle("");setPageDescription("");setPageOfferText("");setPageProductIds([]);
+      // Re-read from the API so the UI always reflects the persistent DB record.
+      await loadLandingPages();
+      setMessage("Yangi sahifa yaratildi va bazada saqlandi.");
+    }catch(e){
+      setMessage(e instanceof Error?e.message:"Sahifani yaratib bo'lmadi.");
+    }finally{setPageSaving(false)}
   }
   async function toggleLandingPage(p:LandingPage){try{const d=await api("/api/v1/landing-pages/"+p.id,{method:"PATCH",body:JSON.stringify({active:!p.active})});setLandingPages(x=>x.map(v=>v.id===p.id?d.page:v));}catch(e){setMessage(e instanceof Error?e.message:"Sahifa holatini o'zgartirib bo'lmadi.")}}
   async function deleteLandingPage(p:LandingPage){if(!confirm("Bu sahifani o'chirishga aminmisiz?"))return;try{await api("/api/v1/landing-pages/"+p.id,{method:"DELETE"});setLandingPages(x=>x.filter(v=>v.id!==p.id));if(bannerTargetValue===p.slug){setBannerTargetType("all-products");setBannerTargetValue("")}setMessage("Sahifa o'chirildi.");}catch(e){setMessage(e instanceof Error?e.message:"Sahifani o'chirib bo'lmadi.")}}
@@ -149,7 +179,7 @@ export default function App(){
     setRefreshLoading(true);
     setMessage("");
     try{
-      const results=await Promise.allSettled([loadProducts(),loadOrders(),loadChats(),loadBanners()]);
+      const results=await Promise.allSettled([loadProducts(),loadOrders(),loadChats(),loadBanners(),loadLandingPages()]);
       const orderResult=results[1];
       if(orderResult.status==="fulfilled"){
         const next=orderResult.value;
