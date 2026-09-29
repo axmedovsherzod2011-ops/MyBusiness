@@ -56,7 +56,12 @@ jobs:
       - name: Verify live Seller Worker
         run: |
           set -e
-          body="$(curl -fsSL "https://mybusiness.axmedovsherzod2011.workers.dev/?v=${GITHUB_SHA}")"
-          echo "$body" | grep -q 'id="root"'
-          echo "$body" | grep -q 'assets/'
-          echo "Live Seller Worker is serving the React Vite build."
+          root="$(curl -fsSL "https://mybusiness.axmedovsherzod2011.workers.dev/?v=${GITHUB_SHA}")"
+          echo "$root" | grep -q 'id="root"'
+          echo "$root" | grep -q 'assets/'
+          deep="$(curl -fsSL -H "Accept: text/html" "https://mybusiness.axmedovsherzod2011.workers.dev/xaccount/ombor?v=${GITHUB_SHA}")"
+          echo "$deep" | grep -q 'id="root"'
+          echo "$deep" | grep -q 'assets/'
+          health="$(curl -fsSL "https://mybusiness.axmedovsherzod2011.workers.dev/health?v=${GITHUB_SHA}")"
+          test "$health" = "ok"
+          echo "Live Seller Worker root, SPA deep link, and health endpoint are working."
