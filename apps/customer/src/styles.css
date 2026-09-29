@@ -2349,9 +2349,9 @@ html{
 /* Campaign landing pages: intentionally separate from the normal marketplace chrome. */
 .landing-mode{
   min-height:100vh;
-  background:
-    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--landing-primary) 82%, white) 0, transparent 34%),
-    linear-gradient(180deg, color-mix(in srgb, var(--landing-primary) 88%, white), #fff 62%);
+  min-height:100dvh;
+  width:100%;
+  background:var(--landing-primary,#f4f1f7)!important;
   padding-top:1px;
 }
 .landing-mode .customer-banner-section{margin-top:72px}
@@ -2386,3 +2386,33 @@ html{
   .landing-back-button span{display:none}
   .landing-back-button svg{width:22px;height:22px}
 }
+
+
+/* Performance: keep large product catalogs responsive by skipping off-screen painting. */
+.product-card{
+  content-visibility:auto;
+  contain-intrinsic-size:520px;
+}
+.product-load-more{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:14px;
+  flex-wrap:wrap;
+  padding:6px 10px 34px;
+  color:#777d84;
+  font-size:11px;
+}
+.product-load-more button{
+  min-height:42px;
+  padding:0 16px;
+  border:1px solid #dfe2e6;
+  border-radius:12px;
+  background:#fff;
+  color:#20252a;
+  font:700 12px/1 inherit;
+  cursor:pointer;
+  box-shadow:0 5px 18px rgba(20,20,30,.06);
+  transition:transform .16s ease,box-shadow .16s ease;
+}
+.product-load-more button:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(20,20,30,.09)}
