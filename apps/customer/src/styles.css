@@ -2371,14 +2371,52 @@ html{
 .landing-back-button:hover{transform:translateY(-2px);box-shadow:0 16px 34px rgba(25,20,35,.17);background:#fff}
 .landing-back-button:active{transform:translateY(0) scale(.97)}
 .landing-back-button svg{padding:4px;border-radius:50%;background:var(--landing-primary);box-sizing:content-box}
-.landing-mode .landing-page{margin-top:18px}
+.landing-mode .landing-page{
+  width:100%;
+  max-width:none;
+  margin:0;
+  padding:86px clamp(16px,4vw,56px) 110px;
+  background:var(--landing-primary,#f4f1f7)!important;
+}
 .landing-mode .landing-page-hero{
-  background:
-    linear-gradient(135deg,
-      color-mix(in srgb, var(--landing-primary) 76%, white),
-      color-mix(in srgb, var(--landing-primary) 28%, white) 58%,
-      rgba(255,255,255,.92));
-  border-color:color-mix(in srgb, var(--landing-primary) 45%, #ececef);
+  max-width:1200px;
+  margin:0 auto 28px;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  border-radius:0!important;
+  padding:34px 0 10px;
+}
+.landing-mode .landing-page-hero h1,
+.landing-mode .landing-page-hero h2,
+.landing-mode .landing-page-hero p{
+  color:inherit;
+}
+.landing-mode .landing-page-hero h1{color:#17191b}
+.landing-mode .landing-page-hero h2{color:rgba(23,25,27,.72)}
+.landing-mode .landing-page-hero p{color:rgba(23,25,27,.68)}
+.landing-mode .landing-page .product-section{
+  max-width:1200px;
+  padding:24px 0 0;
+  background:transparent!important;
+}
+.landing-mode .landing-page .panel-head{
+  color:#17191b;
+}
+.landing-mode .landing-page .muted{
+  color:rgba(23,25,27,.58);
+}
+@media(max-width:700px){
+  .landing-mode .landing-page{
+    padding:70px 12px 100px;
+  }
+  .landing-mode .landing-page-hero{
+    padding:24px 10px 8px;
+    margin-bottom:16px;
+  }
+  .landing-mode .landing-page .product-section{
+    padding-top:12px;
+  }
 }
 @media(max-width:700px){
   .landing-mode .customer-banner-section{margin-top:66px}
