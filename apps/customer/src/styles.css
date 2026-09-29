@@ -2318,3 +2318,18 @@ html{
   font:700 13px/1 inherit;white-space:nowrap;
 }
 .drawer-profile-back svg{flex:0 0 auto}
+
+
+/* Responsive seller-managed marketplace banners */
+.customer-banner-section{width:min(1440px,calc(100% - 32px));margin:18px auto 0;overflow:hidden}
+.customer-banner-track{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding:2px}
+.customer-banner-track::-webkit-scrollbar{display:none}
+.customer-banner{display:block;flex:0 0 100%;scroll-snap-align:start;border-radius:24px;overflow:hidden;background:#f5f5f7;box-shadow:0 12px 34px rgba(20,20,30,.08);transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s ease;line-height:0}
+.customer-banner:hover{transform:translateY(-2px);box-shadow:0 18px 42px rgba(20,20,30,.12)}
+.customer-banner picture,.customer-banner img{display:block;width:100%;height:auto}
+.customer-banner img{aspect-ratio:3/1;object-fit:cover}
+@media(max-width:700px){
+  .customer-banner-section{width:100%;margin:10px 0 0;padding:0 12px}
+  .customer-banner{border-radius:18px}
+  .customer-banner img{aspect-ratio:2/1;object-fit:cover}
+}
