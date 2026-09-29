@@ -2550,3 +2550,18 @@ html{
   border-color:rgba(255,255,255,.35)!important;
   color:#fff!important;
 }
+
+.product-detail-screen.sale-product-detail-screen{
+  background:#dc2626!important;
+  min-height:100vh;
+  color:#fff!important;
+}
+.product-detail-screen.sale-product-detail-screen .product-detail-head{
+  background:#dc2626!important;
+  color:#fff!important;
+  border-color:rgba(255,255,255,.18)!important;
+}
+.product-detail-screen.sale-product-detail-screen .detail-back,
+.product-detail-screen.sale-product-detail-screen .detail-fav{
+  color:#fff!important;
+}
