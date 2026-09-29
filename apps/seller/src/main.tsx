@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState, type DragEvent } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { createRoot } from "react-dom/client";
 import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
@@ -27,12 +27,12 @@ const priceFormatter=new Intl.NumberFormat("uz-UZ");
 const dateFormatter=new Intl.DateTimeFormat("uz-UZ",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
 function formatPrice(price:number){return priceFormatter.format(Number(price))+ " so'm";}
 function formatDate(value:string){return dateFormatter.format(new Date(value));}
-function formatAnalyticsDay(value:string){const match=String(value).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);return match?\`\${match[3]}/\${match[2]}/\${match[1]}\`:String(value);}
+function formatAnalyticsDay(value:string){const match=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);return match?`${match[3]}/${match[2]}/${match[1]}`:String(value);}
 
 const routeToTab:Record<string,string>={dashboard:"overview",products:"products","buyurtmalar":"orders",chatlar:"chats",ombor:"inventory",marketing:"marketing",analitika:"analytics","mahsulot-qoshish":"add"};
 const tabToRoute:Record<string,string>={overview:"dashboard",products:"products",orders:"buyurtmalar",chats:"chatlar",inventory:"ombor",marketing:"marketing",analytics:"analitika",add:"mahsulot-qoshish"};
 function pathForTab(value:string){return "/xaccount/"+(tabToRoute[value]||"dashboard");}
-function tabFromLocation(){const match=window.location.pathname.match(/^\\/xaccount\\/([^/]+)/i);return match?routeToTab[decodeURIComponent(match[1])]||"overview":"overview";}
+function tabFromLocation(){const match=window.location.pathname.match(/^\/xaccount\/([^/]+)/i);return match?routeToTab[decodeURIComponent(match[1])]||"overview":"overview";}
 
 export default function App(){
   const [products,setProducts]=useState<Product[]>([]);
@@ -73,12 +73,12 @@ export default function App(){
 
   const inventoryDirtyIds=useMemo(()=>Object.keys(stockDraft).filter(id=>{const product=products.find(p=>p.id===Number(id));return product&&Number(stockDraft[Number(id)])!==Number(product.stock)}).map(Number),[products,stockDraft]);
   const inventoryDirtyCount=inventoryDirtyIds.length;
-
+  const tabRef=useRef(tab);\n  const dirtyCountRef=useRef(inventoryDirtyCount);\n  useEffect(()=>{tabRef.current=tab;dirtyCountRef.current=inventoryDirtyCount;},[tab,inventoryDirtyCount]);\n
   function syncRoute(){const next=tabFromLocation();setTab(next);}
   function requestNavigation(nextTab:string){
     const nextPath=pathForTab(nextTab);
     if(window.location.pathname===nextPath)return;
-    if(tab==="inventory"&&inventoryDirtyCount>0){setPendingNavigation(nextPath);return;}
+    if(tabRef.current==="inventory"&&dirtyCountRef.current>0){setPendingNavigation(nextPath);return;}
     window.history.pushState({},"",nextPath);syncRoute();
   }
   function completePendingNavigation(save:boolean){
@@ -124,7 +124,7 @@ export default function App(){
   useEffect(()=>{
     syncRoute();
     const onPop=()=>{
-      if(tab==="inventory"&&inventoryDirtyCount>0){
+      if(tabRef.current==="inventory"&&dirtyCountRef.current>0){
         const current=window.location.pathname;
         window.history.pushState({},"",pathForTab("inventory"));
         setPendingNavigation(current);
@@ -136,10 +136,10 @@ export default function App(){
     void loadProducts(); void loadOrders(); void loadChats(); void loadAnalytics();
     const timer=window.setInterval(()=>{void refreshAll()},300000);
     return()=>{window.clearInterval(timer);window.removeEventListener("popstate",onPop);};
-  },[tab,inventoryDirtyCount]);
+  },[]);
 
   async function openChat(id:number){
-    setActiveChat(id);setTab("chats");
+    setActiveChat(id);requestNavigation("chats");
     try{
       setMessagesLoading(true);
       await api("/api/v1/chats/"+id+"/read",{method:"POST"});
@@ -159,7 +159,7 @@ export default function App(){
       || chats.find(c=>c.customerName===order.customerName);
     if(match){await openChat(match.id);return;}
     setMessage("Bu mijoz uchun hali chat ochilmagan.");
-    setTab("chats");
+    requestNavigation("chats");
   }
   async function changeStatus(order:Order,status:string){try{const d=await api("/api/v1/orders/"+order.id+"/status",{method:"PATCH",body:JSON.stringify({status})});setOrders(x=>x.map(o=>o.id===order.id?d.order:o))}catch(e){setMessage(e instanceof Error?e.message:"Holatni o'zgartirib bo'lmadi.")}}
 
@@ -319,7 +319,7 @@ export default function App(){
         name:form.name.trim(),sku:form.sku.trim().toUpperCase(),description:form.description.trim(),price:Number(form.price),
         stock:Number(form.stock),imageUrl:form.imageUrls[0]||"",imageUrls:form.imageUrls
       })});
-      if(d.product)setProducts(x=>[d.product,...x]);setForm(emptyForm);setMessage("Mahsulot bazaga saqlandi.");setTab("products");
+      if(d.product)setProducts(x=>[d.product,...x]);setForm(emptyForm);setMessage("Mahsulot bazaga saqlandi.");requestNavigation("products");
     }catch(err){setMessage(err instanceof Error?err.message:"Saqlashda xatolik.")}finally{setSaving(false)}
   }
 
@@ -359,8 +359,8 @@ export default function App(){
         </div>
         <div className="dashboard-grid">
           <section className="panel">
-            <div className="panel-head"><div><h2>So'nggi buyurtmalar</h2><span className="muted">Customer saytidan real kelganlar</span></div><button className="secondary small" onClick={()=>setTab("orders")}>Barchasi</button></div>
-            {ordersLoading ? <DbListSkeleton rows={5}/> : orders.length ? <div className="recent-orders">{orders.slice(0,5).map(o=><button className="recent-order" key={o.id} onClick={()=>{setSelectedOrder(o.id);setTab("orders")}}>
+            <div className="panel-head"><div><h2>So'nggi buyurtmalar</h2><span className="muted">Customer saytidan real kelganlar</span></div><button className="secondary small" onClick={()=>requestNavigation("orders")}>Barchasi</button></div>
+            {ordersLoading ? <DbListSkeleton rows={5}/> : orders.length ? <div className="recent-orders">{orders.slice(0,5).map(o=><button className="recent-order" key={o.id} onClick={()=>{setSelectedOrder(o.id);requestNavigation("orders")}}>
               <span><b>#{o.id} · {o.customerName}</b><small>{o.customerPhone} · {o.items?.length||0} ta mahsulot</small></span>
               <span><strong>{formatPrice(o.total)}</strong><i className={"status-pill "+o.status}>{statusLabels[o.status]||o.status}</i></span>
             </button>)}</div> : <div className="empty compact-empty"><b>Buyurtmalar hali yo'q</b><span>Customer checkout qilganda shu yerda ko'rinadi.</span></div>}
@@ -372,7 +372,7 @@ export default function App(){
               <div><span>Yakunlangan buyurtmalar</span>{ordersLoading?<DbSkeleton/>:<b>{orders.filter(o=>o.status==="completed").length}</b>}</div>
               <div><span>Bekor qilingan</span>{ordersLoading?<DbSkeleton/>:<b>{orders.filter(o=>o.status==="cancelled").length}</b>}</div>
             </div>
-            <div className="quick-actions"><button className="primary" onClick={()=>setTab("add")}>+ Yangi mahsulot</button><button className="secondary" onClick={()=>setTab("chats")}>Mijozlar chatini ochish</button></div>
+            <div className="quick-actions"><button className="primary" onClick={()=>requestNavigation("add")}>+ Yangi mahsulot</button><button className="secondary" onClick={()=>requestNavigation("chats")}>Mijozlar chatini ochish</button></div>
           </section>
         </div>
       </>}
