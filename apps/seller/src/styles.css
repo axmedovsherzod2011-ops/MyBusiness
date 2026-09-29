@@ -649,3 +649,17 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{
   .editor-image-drop-zone{margin:12px 14px 9px;min-height:112px}
   .editor-summary-grid strong{font-size:10px}
 }
+
+
+/* Performance layer: keep the UI visually rich without expensive full-screen effects */
+.top{backdrop-filter:none!important}
+.editor-backdrop{backdrop-filter:none!important;background:rgba(12,16,12,.72)!important}
+.editor-image-number{backdrop-filter:none!important}
+.stats>div,.panel{box-shadow:0 5px 18px rgba(25,30,25,.035)}
+.stats>div:hover,.panel:hover{box-shadow:0 8px 22px rgba(25,30,25,.055)}
+.row:hover,.order-card:hover{box-shadow:0 5px 14px rgba(25,30,25,.045)}
+.seller-product-row,.order-card,.chat-row,.recent-order{contain:layout paint}
+.seller-product-row img,.order-card img,.chat-row img,.recent-order img{content-visibility:auto}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
