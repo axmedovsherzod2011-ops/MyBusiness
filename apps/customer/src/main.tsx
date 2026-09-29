@@ -512,6 +512,8 @@ export default function App(){
   }
   function signOut(){localStorage.removeItem("mybusiness:customer-auth");setAuthUser(null);setAuthSession("");setAuthStatus("idle");setAuthFirstName("");setAuthLastName("");}
 
+  const isLandingPage = Boolean(routeFromUrl().pageSlug);
+
   function openBannerTarget(b:Banner){
     if(b.targetType==="page" && b.targetValue){window.location.hash="#/page/"+encodeURIComponent(b.targetValue);window.scrollTo(0,0);return;}
     if(b.targetType==="url" && b.targetValue){window.open(b.targetValue,"_blank","noopener,noreferrer");return;}
@@ -534,7 +536,7 @@ export default function App(){
 
     {banners.length>0&&<section className="customer-banner-section" aria-label="Maxsus takliflar">
       <div className="customer-banner-track">
-        {banners.map(b=><button className="customer-banner" key={b.id} type="button" onClick={()=>openBannerTarget(b)}>
+        {banners.map(b=><button className={"customer-banner "+(isLandingPage?"customer-banner-static":"")} key={b.id} type="button" disabled={isLandingPage} onClick={()=>{if(!isLandingPage)openBannerTarget(b)}} aria-label={isLandingPage?"Banner":"Bannerga o'tish"}>
           <picture><source media="(max-width: 700px)" srcSet={b.mobileImageUrl}/><img src={b.desktopImageUrl} alt="Maxsus taklif" loading="eager" decoding="async"/></picture>
         </button>)}
       </div>
@@ -549,7 +551,7 @@ export default function App(){
     </section>}
 
     <nav className="mobile-nav" aria-label="Asosiy navigatsiya">
-  <button className={panel===null?"active":""} onClick={()=>{setPanel(null);scrollTo(0,0)}}><span><Icon name="home"/></span>{panel===null&&<b className="nav-label">Asosiy</b>}</button>
+  <button className={!isLandingPage&&panel===null?"active":""} onClick={()=>{window.location.hash="#/";scrollTo(0,0)}}><span><Icon name="home"/></span>{panel===null&&<b className="nav-label">Asosiy</b>}</button>
   <button className={panel==="menu"?"active":""} onClick={()=>setPanel("menu")}><span><Icon name="grid"/></span>{panel==="menu"&&<b className="nav-label">Mahsulotlar</b>}</button>
   <button className={panel==="search"?"active":""} onClick={()=>openSearch()}><span><Icon name="search"/></span>{panel==="search"&&<b className="nav-label">Qidirish</b>}</button>
   <button className={panel==="cart"?"active":""} onClick={()=>setPanel("cart")}><span><Icon name="bag"/></span>{panel==="cart"&&<b className="nav-label">Savat</b>}{cartCount>0&&<i className="nav-badge">{cartCount}</i>}</button>
