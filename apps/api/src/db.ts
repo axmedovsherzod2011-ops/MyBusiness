@@ -175,6 +175,17 @@ export async function initializeDatabase(): Promise<void> {
       ALTER TABLE marketplace_orders
         ADD COLUMN IF NOT EXISTS payment_method VARCHAR(20) NOT NULL DEFAULT 'cash',
         ADD COLUMN IF NOT EXISTS delivery_address TEXT NOT NULL DEFAULT '';
+
+      CREATE TABLE IF NOT EXISTS marketplace_banners (
+        id BIGSERIAL PRIMARY KEY,
+        desktop_image_url TEXT NOT NULL,
+        mobile_image_url TEXT NOT NULL,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS marketplace_banners_active_idx
+        ON marketplace_banners (active, sort_order, created_at DESC);
     `).then(() => undefined).catch((error) => {
       initializationPromise = null;
       throw error;
