@@ -4,7 +4,7 @@ import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
 const apiBase = "https://mybusiness-api-e6dk.onrender.com";
-type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string; targetType:string; targetValue:string };
+type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string; targetType:string; targetValue:string; primaryColor:string };
 type LandingPage = { id:number; slug:string; title:string; subtitle:string; description:string; offerText:string; productIds:number[]; active:boolean };
 
 const categories = [
@@ -536,33 +536,7 @@ export default function App(){
     document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"});
   }
 
-  useEffect(()=>{
-    if(!isLandingPage || !landingBanner){setLandingPrimaryColor("#f4f1f7");return;}
-    const src=landingBanner.desktopImageUrl || landingBanner.mobileImageUrl;
-    const img=new Image();
-    img.crossOrigin="anonymous";
-    img.onload=()=>{
-      try{
-        const canvas=document.createElement("canvas");
-        const size=48; canvas.width=size; canvas.height=size;
-        const ctx=canvas.getContext("2d",{willReadFrequently:true});
-        if(!ctx)throw new Error("no canvas");
-        ctx.drawImage(img,0,0,size,size);
-        const data=ctx.getImageData(0,0,size,size).data;
-        let r=0,g=0,b=0,n=0;
-        for(let i=0;i<data.length;i+=16){if(data[i+3]<180)continue;r+=data[i];g+=data[i+1];b+=data[i+2];n++;}
-        if(n){
-          r=Math.round(r/n);g=Math.round(g/n);b=Math.round(b/n);
-          const lift=0.72; r=Math.round(r+(255-r)*lift);g=Math.round(g+(255-g)*lift);b=Math.round(b+(255-b)*lift);
-          setLandingPrimaryColor(`rgb(${r}, ${g}, ${b})`);
-        }
-      }catch{setLandingPrimaryColor("#f4f1f7");}
-    };
-    img.onerror=()=>setLandingPrimaryColor("#f4f1f7");
-    img.src=src;
-  },[isLandingPage,landingBanner?.id,landingBanner?.desktopImageUrl]);
-
-  return <main className={"market "+(isLandingPage?"landing-mode":"")} style={isLandingPage?{"--landing-primary":landingPrimaryColor} as React.CSSProperties:undefined}>
+  useEffect(()=>{\n    setLandingPrimaryColor(isLandingPage && landingBanner ? (landingBanner.primaryColor || "#f4f1f7") : "#f4f1f7");\n  },[isLandingPage,landingBanner?.id,landingBanner?.primaryColor]);\n\n  return <main className={"market "+(isLandingPage?"landing-mode":"")} style={isLandingPage?{"--landing-primary":landingPrimaryColor,backgroundColor:landingPrimaryColor} as React.CSSProperties:undefined}>
     {isLandingPage&&<button className="landing-back-button" type="button" onClick={()=>{setRouteHash("#/");window.location.hash="#/";window.scrollTo({top:0,left:0,behavior:"auto"})}}><Icon name="back" size={22}/><span>Asosiyga qaytish</span></button>}
     {!isLandingPage&&panel===null&&<header className="app-header">
       <a className="logo" href="/" aria-label="MyBusiness Market">MYBUSINESS<span>MARKET</span></a>
@@ -590,13 +564,13 @@ export default function App(){
       {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<HomeProductGrid items={visible} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
     </section>}
 
-    <nav className="mobile-nav" aria-label="Asosiy navigatsiya">
+    {!isLandingPage&&<nav className="mobile-nav" aria-label="Asosiy navigatsiya">
   <button className={!isLandingPage&&panel===null?"active":""} onClick={()=>{window.location.hash="#/";scrollTo(0,0)}}><span><Icon name="home"/></span>{panel===null&&<b className="nav-label">Asosiy</b>}</button>
   <button className={panel==="menu"?"active":""} onClick={()=>setPanel("menu")}><span><Icon name="grid"/></span>{panel==="menu"&&<b className="nav-label">Mahsulotlar</b>}</button>
   <button className={panel==="search"?"active":""} onClick={()=>openSearch()}><span><Icon name="search"/></span>{panel==="search"&&<b className="nav-label">Qidirish</b>}</button>
   <button className={panel==="cart"?"active":""} onClick={()=>setPanel("cart")}><span><Icon name="bag"/></span>{panel==="cart"&&<b className="nav-label">Savat</b>}{cartCount>0&&<i className="nav-badge">{cartCount}</i>}</button>
   <button className={panel==="profile"?"active":""} onClick={()=>setPanel("profile")}><span><Icon name="user"/></span>{panel==="profile"&&<b className="nav-label">Profil</b>}</button>
-</nav>
+</nav>}
 
     {panel&&<div className="drawer-backdrop" onClick={goBack}><aside className="drawer" onClick={e=>e.stopPropagation()}>
       <div className="drawer-head">
