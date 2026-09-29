@@ -58,6 +58,8 @@ export default function App(){
   const [promoDiscount,setPromoDiscount]=useState("10");
   const [promoEndsAt,setPromoEndsAt]=useState("");
   const [imageUrlInput,setImageUrlInput]=useState("");
+  const [deleteProductTarget,setDeleteProductTarget]=useState<Product|null>(null);
+  const [deleteLoading,setDeleteLoading]=useState(false);
 
   async function api(path:string, options:RequestInit={}) {
     const r=await fetch(apiBase+path,{...options,headers:{"Accept":"application/json","Content-Type":"application/json",...(options.headers||{})}});
@@ -221,10 +223,17 @@ export default function App(){
       setProducts(x=>x.map(p=>p.id===product.id?d.product:p)); setEditing(null); setMessage("Mahsulot yangilandi.");
     }catch(e){setMessage(e instanceof Error?e.message:"Mahsulotni yangilab bo'lmadi.")}
   }
-  async function deleteProduct(id:number){
-    if(!window.confirm("Bu mahsulotni o'chirishni tasdiqlaysizmi?"))return;
-    try{await api("/api/v1/products/"+id,{method:"DELETE"});setProducts(x=>x.filter(p=>p.id!==id));setMessage("Mahsulot o'chirildi.");}
-    catch(e){setMessage(e instanceof Error?e.message:"Mahsulotni o'chirib bo'lmadi.")}
+  async function deleteProduct(product:Product){
+    if(deleteLoading)return;
+    setDeleteLoading(true);
+    setMessage("");
+    try{
+      await api("/api/v1/products/"+product.id,{method:"DELETE"});
+      setProducts(x=>x.filter(p=>p.id!==product.id));
+      setDeleteProductTarget(null);
+      setMessage("Mahsulot o'chirildi.");
+    }catch(e){setMessage(e instanceof Error?e.message:"Mahsulotni o'chirib bo'lmadi.");}
+    finally{setDeleteLoading(false);}
   }
   async function saveStock(p:Product){
     const value=Math.max(0,Math.floor(Number(stockDraft[p.id] ?? p.stock)));
@@ -416,7 +425,7 @@ export default function App(){
   {p.promoPrice!=null&&<button type="button" className="product-action stop-action" onClick={()=>void stopPromotion(p.id)} title="Aksiyani to'xtatish" aria-label={p.name+" aksiyasini to'xtatish"}>
     <span className="product-action-icon" aria-hidden="true">⏸</span><span>To'xtatish</span>
   </button>}
-  <button type="button" className="product-action delete-action" onClick={()=>void deleteProduct(p.id)} title="Mahsulotni o'chirish" aria-label={p.name+" ni o'chirish"}>
+  <button type="button" className="product-action delete-action" onClick={()=>setDeleteProductTarget(p)} title="Mahsulotni o'chirish" aria-label={p.name+" ni o'chirish"}>
     <span className="product-action-icon" aria-hidden="true">⌫</span><span>O'chirish</span>
   </button>
 </div>}
@@ -458,6 +467,12 @@ export default function App(){
   </div></div>
   <div className="editor-footer"><span>Rasm tartibi saqlanganda customer saytida ham shu ketma-ketlik ishlatiladi.</span><button className="primary" disabled={saving}>O'zgarishlarni saqlash</button></div>
 </form></div>}
+      {deleteProductTarget&&<div className="modal-backdrop delete-confirm-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!deleteLoading)setDeleteProductTarget(null)}}><div className="modal delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-product-title">
+        <div className="delete-confirm-head"><div className="delete-confirm-icon" aria-hidden="true">⌫</div><button type="button" className="modal-close-button" onClick={()=>setDeleteProductTarget(null)} disabled={deleteLoading} aria-label="Yopish" title="Yopish"><span aria-hidden="true">×</span></button></div>
+        <div className="delete-confirm-content"><span className="eyebrow">MAHSULOTNI O'CHIRISH</span><h2 id="delete-product-title">Shu mahsulotni o'chirishga aminmisiz?</h2><p>Bu amal mahsulotni seller katalogidan olib tashlaydi.</p></div>
+        <div className="delete-product-preview"><div className="delete-product-image">{(deleteProductTarget.imageUrls?.[0]||firstImage(deleteProductTarget.imageUrl))?<img src={deleteProductTarget.imageUrls?.[0]||firstImage(deleteProductTarget.imageUrl)} alt={deleteProductTarget.name}/>:<span>NO IMAGE</span>}</div><div className="delete-product-info"><b>{deleteProductTarget.name}</b><span>SKU · {deleteProductTarget.sku||"—"}</span><small>{formatPrice(Number(deleteProductTarget.price))} · {deleteProductTarget.stock} dona</small></div></div>
+        <div className="delete-confirm-actions"><button type="button" className="secondary small" onClick={()=>setDeleteProductTarget(null)} disabled={deleteLoading}>Bekor qilish</button><button type="button" className="delete-confirm-button" onClick={()=>void deleteProduct(deleteProductTarget)} disabled={deleteLoading}>{deleteLoading?<><span className="refresh-spinner" aria-hidden="true"/>O'chirilmoqda...</>:<><span aria-hidden="true">⌫</span>Ha, o'chirish</>}</button></div>
+      </div></div>}
       {promoProduct&&<div className="modal-backdrop"><div className="modal form-panel"><div className="panel-head"><h2>Aksiya: {promoProduct.name}</h2><button type="button" className="modal-close-button" onClick={()=>setPromoProduct(null)} aria-label="Yopish" title="Yopish"><span aria-hidden="true">×</span></button></div><label>Chegirma foizi<input type="number" min="1" max="99" value={promoDiscount} onChange={e=>setPromoDiscount(e.target.value)}/></label><label>Tugash vaqti<input type="datetime-local" value={promoEndsAt} onChange={e=>setPromoEndsAt(e.target.value)}/></label><button className="primary full" onClick={()=>void savePromotion()}>Aksiyani saqlash</button></div></div>}
     </section>
   </main>;
