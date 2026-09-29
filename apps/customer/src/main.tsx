@@ -4,7 +4,8 @@ import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
 const apiBase = "https://mybusiness-api-e6dk.onrender.com";
-type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string };
+type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string; targetType:string; targetValue:string };
+type LandingPage = { id:number; slug:string; title:string; subtitle:string; description:string; offerText:string; productIds:number[]; active:boolean };
 
 const categories = [
   ["all","Barcha mahsulotlar","✦"],
@@ -141,6 +142,8 @@ function HomeProductGrid({items,favs,cart,onLike,onCart,onQty,onAsk,onOpen,onPro
 export default function App(){
   const [products,setProducts]=useState<Product[]>([]);
   const [banners,setBanners]=useState<Banner[]>([]);
+  const [landingPage,setLandingPage]=useState<LandingPage|null>(null);
+  const [landingPageLoading,setLandingPageLoading]=useState(false);
   const [query,setQuery]=useState("");
   const [category,setCategory]=useState("all");
   const [sub,setSub]=useState("");
@@ -188,6 +191,7 @@ export default function App(){
     productId: number|null;
     chatProductId: number|null;
     modal: "auth"|"checkout"|null;
+    pageSlug: string|null;
   };
   const routeReadyRef=useRef(false);
   const applyingRouteRef=useRef(false);
@@ -202,7 +206,9 @@ export default function App(){
     let profileView:RouteState["profileView"]="home";
     let productId:number|null=null;
     let chatProductId:number|null=null;
-    if(parts[0]==="product" && /^\d+$/.test(parts[1]||"")) productId=Number(parts[1]);
+    let pageSlug:string|null=null;
+    if(parts[0]==="page" && parts[1]) pageSlug=decodeURIComponent(parts[1]);
+    else if(parts[0]==="product" && /^\d+$/.test(parts[1]||"")) productId=Number(parts[1]);
     else if(parts[0]==="chat" && /^\d+$/.test(parts[1]||"")) chatProductId=Number(parts[1]);
     else if(parts[0]==="profile"){
       panel="profile";
@@ -211,7 +217,7 @@ export default function App(){
     }else if(["cart","favorites","menu","filters","search"].includes(parts[0]||"")){
       panel=parts[0] as RouteState["panel"];
     }
-    return {panel,profileView,productId,chatProductId,modal:modal==="auth"||modal==="checkout"?modal:null};
+    return {panel,profileView,productId,chatProductId,modal:modal==="auth"||modal==="checkout"?modal:null,pageSlug};
   }
 
   function currentRoute():RouteState{
@@ -220,7 +226,8 @@ export default function App(){
       profileView,
       productId:quick?.id??null,
       chatProductId:chatProduct?.id??null,
-      modal:authOpen?"auth":checkoutOpen?"checkout":null
+      modal:authOpen?"auth":checkoutOpen?"checkout":null,
+      pageSlug: landingPage?.slug??null
     };
   }
 
@@ -237,6 +244,7 @@ export default function App(){
   function applyRoute(r:RouteState){
     applyingRouteRef.current=true;
     setPanel(r.panel);
+    if(r.pageSlug!==landingPage?.slug)setLandingPage(null);
     setProfileView(r.panel==="profile"?r.profileView:"home");
     const p=r.productId!=null?products.find(x=>x.id===r.productId):null;
     setQuick(p||null);
@@ -282,6 +290,20 @@ export default function App(){
   },[panel,profileView,quick?.id,chatProduct?.id,authOpen,checkoutOpen]);
 
 
+  useEffect(()=>{
+    fetch(apiBase+"/api/v1/landing-pages/"+encodeURIComponent(routeFromUrl().pageSlug||""))
+      .then(async r=>{if(!routeFromUrl().pageSlug)return null;const d=await r.json() as {page?:LandingPage};if(r.ok)setLandingPage(d.page||null);})
+      .catch(()=>setLandingPage(null));
+  },[]);
+  useEffect(()=>{
+    const slug=routeFromUrl().pageSlug;
+    if(!slug){setLandingPage(null);return;}
+    setLandingPageLoading(true);
+    fetch(apiBase+"/api/v1/landing-pages/"+encodeURIComponent(slug),{headers:{Accept:"application/json"}})
+      .then(async r=>{const d=await r.json() as {page?:LandingPage};if(r.ok)setLandingPage(d.page||null);else setLandingPage(null);})
+      .catch(()=>setLandingPage(null))
+      .finally(()=>setLandingPageLoading(false));
+  },[window.location.hash]);
   useEffect(()=>{
     fetch(apiBase+"/api/v1/banners",{headers:{Accept:"application/json"}})
       .then(async r=>{const d=await r.json() as {banners?:Banner[]};if(r.ok)setBanners(d.banners||[])})
@@ -494,6 +516,15 @@ export default function App(){
   }
   function signOut(){localStorage.removeItem("mybusiness:customer-auth");setAuthUser(null);setAuthSession("");setAuthStatus("idle");setAuthFirstName("");setAuthLastName("");}
 
+  function openBannerTarget(b:Banner){
+    if(b.targetType==="page" && b.targetValue){window.location.hash="#/page/"+encodeURIComponent(b.targetValue);window.scrollTo(0,0);return;}
+    if(b.targetType==="url" && b.targetValue){window.open(b.targetValue,"_blank","noopener,noreferrer");return;}
+    if(b.targetType==="new-products"){setCategory("new");setTimeout(()=>document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"}),0);return;}
+    if(b.targetType==="sale-products"){setCategory("sale");setTimeout(()=>document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"}),0);return;}
+    if(b.targetType==="category" && b.targetValue){setCategory(b.targetValue);setTimeout(()=>document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"}),0);return;}
+    document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"});
+  }
+
   return <main className="market">
     {panel===null&&<header className="app-header">
       <a className="logo" href="/" aria-label="MyBusiness Market">MYBUSINESS<span>MARKET</span></a>
@@ -507,12 +538,16 @@ export default function App(){
 
     {banners.length>0&&<section className="customer-banner-section" aria-label="Maxsus takliflar">
       <div className="customer-banner-track">
-        {banners.map(b=><a className="customer-banner" key={b.id} href={currentRoute()==="/"?"#all-products":"#all-products"} onClick={e=>{e.preventDefault();document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"})}}>
+        {banners.map(b=><button className="customer-banner" key={b.id} type="button" onClick={()=>openBannerTarget(b)}>
           <picture><source media="(max-width: 700px)" srcSet={b.mobileImageUrl}/><img src={b.desktopImageUrl} alt="Maxsus taklif" loading="eager" decoding="async"/></picture>
-        </a>)}
+        </button>)}
       </div>
     </section>}
-    <section id="all-products" className="product-section app-products">
+    {landingPageLoading?<div className="state">Sahifa yuklanmoqda...</div>:landingPage?<section className="landing-page">
+      <div className="landing-page-hero"><span className="eyebrow">MYBUSINESS · MAXSUS</span><h1>{landingPage.title}</h1>{landingPage.subtitle&&<h2>{landingPage.subtitle}</h2>}{landingPage.description&&<p>{landingPage.description}</p>}{landingPage.offerText&&<div className="landing-offer">{landingPage.offerText}</div>}</div>
+      <section id="all-products" className="product-section app-products"><div className="panel-head"><div><h2>Tanlangan mahsulotlar</h2><span className="muted">{landingPage.productIds.length} ta mahsulot</span></div></div>{(()=>{const selected=products.filter(p=>landingPage.productIds.includes(p.id));return selected.length?<HomeProductGrid items={selected} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>:<div className="state">Bu sahifaga hali mahsulot qo'shilmagan.</div>})()}</section>
+    </section>:null}
+    {!landingPage&&!landingPageLoading&&<section id="all-products" className="product-section app-products">
       <div className="catalog-filter-bar"><button className="filter-main-button" onClick={()=>setPanel("filters")}><span>Filtrlar</span><Icon name="grid" size={17}/></button><button className="sort-button" onClick={()=>setPanel("filters")}><span>{sort==="price-low"?"Arzon → qimmat":sort==="price-high"?"Qimmat → arzon":sort==="name"?"Nomi bo‘yicha":"Yangi mahsulotlar"}</span><span>⌄</span></button>{(category!=="all"||sub||availability==="stock"||minPrice||maxPrice||query)&&<button className="filter-reset-chip" onClick={clearFilters}>Tozalash</button>}</div>
       {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<HomeProductGrid items={visible} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
     </section>
