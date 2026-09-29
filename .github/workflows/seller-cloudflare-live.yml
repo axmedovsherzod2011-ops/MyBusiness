@@ -1,0 +1,53 @@
+name: Seller Cloudflare Live Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seller-cloudflare-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        run: |
+          npm install --global pnpm@10.15.0
+          pnpm --version
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build seller
+        run: pnpm --filter @marketplace/seller build
+
+      - name: Verify seller build
+        run: test -f apps/seller/dist/index.html
+
+      - name: Deploy Seller Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4 deploy --config apps/seller/wrangler.jsonc
+
+      - name: Verify live Seller Worker
+        run: |
+          set -e
+          root="$(curl -fsSL "https://mybusiness.axmedovsherzod2011.workers.dev/?v=${GITHUB_SHA}")"
+          echo "$root" | grep -q 'id="root"'
+          echo "$root" | grep -q 'assets/'
+          deep="$(curl -fsSL -H "Accept: text/html" "https://mybusiness.axmedovsherzod2011.workers.dev/xaccount/ombor?v=${GITHUB_SHA}")"
+          echo "$deep" | grep -q 'id="root"'
+          echo "$deep" | grep -q 'assets/'
+          health="$(curl -fsSL "https://mybusiness.axmedovsherzod2011.workers.dev/health?v=${GITHUB_SHA}")"
+          test "$health" = "ok"
+          echo "Seller Worker root, deep link, and health endpoint verified."
