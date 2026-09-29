@@ -11,6 +11,7 @@ function toBanner(row: Record<string, unknown>) {
     createdAt: String(row.created_at),
     targetType: String(row.target_type ?? "all-products"),
     targetValue: String(row.target_value ?? ""),
+    primaryColor: String(row.primary_color ?? "#f4f1f7"),
   };
 }
 
@@ -33,7 +34,7 @@ export function registerBannerRoutes(app: Express): void {
     try {
       await initializeDatabase();
       const db = requireDatabase();
-      const result = await db.query(`SELECT id, desktop_image_url, mobile_image_url, active, sort_order, created_at
+      const result = await db.query(`SELECT id, desktop_image_url, mobile_image_url, active, sort_order, created_at, target_type, target_value, primary_color
         FROM marketplace_banners ORDER BY sort_order ASC, created_at DESC, id DESC`);
       res.json({ banners: result.rows.map(toBanner) });
     } catch (error) {
@@ -47,6 +48,7 @@ export function registerBannerRoutes(app: Express): void {
     const sortOrder = Number.isFinite(Number(req.body?.sortOrder)) ? Number(req.body.sortOrder) : 0;
     const targetType = typeof req.body?.targetType === "string" ? req.body.targetType.trim() : "all-products";
     const targetValue = typeof req.body?.targetValue === "string" ? req.body.targetValue.trim() : "";
+    const primaryColor = typeof req.body?.primaryColor === "string" && /^#[0-9a-fA-F]{6}$/.test(req.body.primaryColor.trim()) ? req.body.primaryColor.trim().toLowerCase() : "#f4f1f7";
     const allowedTargets = new Set(["all-products","new-products","sale-products","category","page","url"]);
     if (!allowedTargets.has(targetType)) { res.status(400).json({message:"Banner yo'nalishi noto'g'ri."}); return; }
     if (["category","page","url"].includes(targetType) && !targetValue) { res.status(400).json({message:"Banner yo'nalishi uchun tanlov kerak."}); return; }
@@ -57,10 +59,10 @@ export function registerBannerRoutes(app: Express): void {
       await initializeDatabase();
       const db = requireDatabase();
       const result = await db.query(`INSERT INTO marketplace_banners
-        (desktop_image_url, mobile_image_url, active, sort_order, target_type, target_value)
-        VALUES ($1,$2,TRUE,$3,$4,$5)
-        RETURNING id, desktop_image_url, mobile_image_url, active, sort_order, created_at, target_type, target_value`,
-        [desktopImageUrl, mobileImageUrl, sortOrder, targetType, targetValue]);
+        (desktop_image_url, mobile_image_url, active, sort_order, target_type, target_value, primary_color)
+        VALUES ($1,$2,TRUE,$3,$4,$5,$6)
+        RETURNING id, desktop_image_url, mobile_image_url, active, sort_order, created_at, target_type, target_value, primary_color`,
+        [desktopImageUrl, mobileImageUrl, sortOrder, targetType, targetValue, primaryColor]);
       res.status(201).json({ banner: toBanner(result.rows[0]) });
     } catch (error) {
       console.error("Failed to create banner", error);
@@ -79,8 +81,9 @@ export function registerBannerRoutes(app: Express): void {
       const sortOrder = req.body?.sortOrder == null ? Number(row.sort_order) : Number(req.body.sortOrder);
       const targetType = typeof req.body?.targetType === "string" ? req.body.targetType : String(row.target_type ?? "all-products");
       const targetValue = typeof req.body?.targetValue === "string" ? req.body.targetValue.trim() : String(row.target_value ?? "");
-      const result = await db.query(`UPDATE marketplace_banners SET active=$1, sort_order=$2, target_type=$3, target_value=$4 WHERE id=$5
-        RETURNING id, desktop_image_url, mobile_image_url, active, sort_order, created_at, target_type, target_value`, [active, sortOrder, targetType, targetValue, req.params.id]);
+      const primaryColor = typeof req.body?.primaryColor === "string" && /^#[0-9a-fA-F]{6}$/.test(req.body.primaryColor.trim()) ? req.body.primaryColor.trim().toLowerCase() : String(row.primary_color ?? "#f4f1f7");
+      const result = await db.query(`UPDATE marketplace_banners SET active=$1, sort_order=$2, target_type=$3, target_value=$4, primary_color=$5 WHERE id=$6
+        RETURNING id, desktop_image_url, mobile_image_url, active, sort_order, created_at, target_type, target_value, primary_color`, [active, sortOrder, targetType, targetValue, primaryColor, req.params.id]);
       res.json({ banner: toBanner(result.rows[0]) });
     } catch (error) {
       res.status(500).json({ message: "Bannerni yangilab bo'lmadi." });
