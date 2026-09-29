@@ -27,7 +27,12 @@ const priceFormatter=new Intl.NumberFormat("uz-UZ");
 const dateFormatter=new Intl.DateTimeFormat("uz-UZ",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
 function formatPrice(price:number){return priceFormatter.format(Number(price))+ " so'm";}
 function formatDate(value:string){return dateFormatter.format(new Date(value));}
-function formatAnalyticsDay(value:string){const match=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);return match?`${match[3]}/${match[2]}/${match[1]}`:String(value);}
+function formatAnalyticsDay(value:string){const match=String(value).match(/^(\\d{4})-(\\d{2})-(\\d{2})/);return match?\`\${match[3]}/\${match[2]}/\${match[1]}\`:String(value);}
+
+const routeToTab:Record<string,string>={dashboard:"overview",products:"products","buyurtmalar":"orders",chatlar:"chats",ombor:"inventory",marketing:"marketing",analitika:"analytics","mahsulot-qoshish":"add"};
+const tabToRoute:Record<string,string>={overview:"dashboard",products:"products",orders:"buyurtmalar",chats:"chatlar",inventory:"ombor",marketing:"marketing",analytics:"analitika",add:"mahsulot-qoshish"};
+function pathForTab(value:string){return "/xaccount/"+(tabToRoute[value]||"dashboard");}
+function tabFromLocation(){const match=window.location.pathname.match(/^\\/xaccount\\/([^/]+)/i);return match?routeToTab[decodeURIComponent(match[1])]||"overview":"overview";}
 
 export default function App(){
   const [products,setProducts]=useState<Product[]>([]);
@@ -42,6 +47,8 @@ export default function App(){
   const [form,setForm]=useState(emptyForm);
   const [query,setQuery]=useState("");
   const [tab,setTab]=useState("overview");
+  const [pendingNavigation,setPendingNavigation]=useState<string|null>(null);
+  const [inventorySaving,setInventorySaving]=useState(false);
   const [loading,setLoading]=useState(true);
   const [ordersLoading,setOrdersLoading]=useState(true);
   const [chatsLoading,setChatsLoading]=useState(true);
@@ -64,6 +71,23 @@ export default function App(){
   const [deleteLoading,setDeleteLoading]=useState(false);
   const [editingImageLoading,setEditingImageLoading]=useState(false);
 
+  const inventoryDirtyIds=useMemo(()=>Object.keys(stockDraft).filter(id=>{const product=products.find(p=>p.id===Number(id));return product&&Number(stockDraft[Number(id)])!==Number(product.stock)}).map(Number),[products,stockDraft]);
+  const inventoryDirtyCount=inventoryDirtyIds.length;
+
+  function syncRoute(){const next=tabFromLocation();setTab(next);}
+  function requestNavigation(nextTab:string){
+    const nextPath=pathForTab(nextTab);
+    if(window.location.pathname===nextPath)return;
+    if(tab==="inventory"&&inventoryDirtyCount>0){setPendingNavigation(nextPath);return;}
+    window.history.pushState({},"",nextPath);syncRoute();
+  }
+  function completePendingNavigation(save:boolean){
+    const nextPath=pendingNavigation;
+    if(!nextPath)return;
+    if(save){void saveAllStock(nextPath);return;}
+    setStockDraft({});setPendingNavigation(null);window.history.pushState({},"",nextPath);syncRoute();
+  }
+
   async function api(path:string, options:RequestInit={}) {
     const r=await fetch(apiBase+path,{...options,headers:{"Accept":"application/json","Content-Type":"application/json",...(options.headers||{})}});
     const d=await r.json().catch(()=>({}));
@@ -85,7 +109,7 @@ export default function App(){
         const incoming=next.filter(o=>o.status==="new").length;
         if(lastSeenNewOrders>0 && incoming>lastSeenNewOrders){
           setNotification(`Yangi buyurtma keldi: ${incoming-lastSeenNewOrders} ta`);
-          setTab("orders");
+          requestNavigation("orders");
         }
         setLastSeenNewOrders(incoming);
       }
@@ -98,10 +122,21 @@ export default function App(){
   }
 
   useEffect(()=>{
+    syncRoute();
+    const onPop=()=>{
+      if(tab==="inventory"&&inventoryDirtyCount>0){
+        const current=window.location.pathname;
+        window.history.pushState({},"",pathForTab("inventory"));
+        setPendingNavigation(current);
+        return;
+      }
+      syncRoute();
+    };
+    window.addEventListener("popstate",onPop);
     void loadProducts(); void loadOrders(); void loadChats(); void loadAnalytics();
     const timer=window.setInterval(()=>{void refreshAll()},300000);
-    return()=>window.clearInterval(timer);
-  },[]);
+    return()=>{window.clearInterval(timer);window.removeEventListener("popstate",onPop);};
+  },[tab,inventoryDirtyCount]);
 
   async function openChat(id:number){
     setActiveChat(id);setTab("chats");
@@ -242,14 +277,21 @@ export default function App(){
     }catch(e){setMessage(e instanceof Error?e.message:"Mahsulotni o'chirib bo'lmadi.");}
     finally{setDeleteLoading(false);}
   }
-  async function saveStock(p:Product){
-    const value=Math.max(0,Math.floor(Number(stockDraft[p.id] ?? p.stock)));
-    if(!Number.isFinite(value))return;
+  async function saveAllStock(nextPath?:string){
+    if(inventorySaving||inventoryDirtyCount===0){if(nextPath){setPendingNavigation(null);window.history.pushState({},"",nextPath);syncRoute();}return;}
+    setInventorySaving(true);setMessage("");
+    const changes=inventoryDirtyIds.map(id=>{const p=products.find(item=>item.id===id);return p?{product:p,value:Math.max(0,Math.floor(Number(stockDraft[id])))}:null}).filter(Boolean) as Array<{product:Product;value:number}>;
+    if(changes.some(x=>!Number.isFinite(x.value))){setMessage("Ombor sonini tekshiring.");setInventorySaving(false);return;}
     try{
-      const d=await api("/api/v1/products/"+p.id,{method:"PATCH",body:JSON.stringify({...p,stock:value})});
-      setProducts(x=>x.map(item=>item.id===p.id?d.product:item));setMessage(p.name+" qoldig'i yangilandi.");
-    }catch(e){setMessage(e instanceof Error?e.message:"Qoldiqni yangilab bo'lmadi.")}
+      const results=await Promise.all(changes.map(async ({product,value})=>({id:product.id,data:await api("/api/v1/products/"+product.id,{method:"PATCH",body:JSON.stringify({...product,stock:value})})})));
+      setProducts(current=>current.map(product=>{const result=results.find(x=>x.id===product.id);return result?.data?.product||product;}));
+      setStockDraft({});setMessage(changes.length+" ta mahsulot qoldig'i saqlandi.");
+      const destination=nextPath||pendingNavigation;
+      if(destination){setPendingNavigation(null);window.history.pushState({},"",destination);syncRoute();}
+    }catch(e){setMessage(e instanceof Error?e.message:"Ombor o'zgarishlarini saqlab bo'lmadi.");}
+    finally{setInventorySaving(false)}
   }
+  function cancelAllStock(){setStockDraft({});setMessage("Ombor o'zgarishlari bekor qilindi.");}
   async function loadAnalytics(){
     setAnalyticsLoading(true);
     try{const d=await api("/api/v1/analytics/summary?days=30");setAnalytics(d);}
@@ -298,7 +340,7 @@ export default function App(){
   return <main className="seller-shell">
     <aside className="sidebar">
       <a className="brand" href="/">MYBUSINESS <span>SELLER</span></a>
-      <nav>{nav.map(([id,label])=><button key={id} className={tab===id?"active":""} onClick={()=>setTab(id)}>{label}{id==="orders"&&newOrders>0?<i className="nav-count">{newOrders}</i>:id==="chats"&&unreadChats>0?<i className="nav-count">{unreadChats}</i>:null}</button>)}</nav>
+      <nav>{nav.map(([id,label])=><button key={id} className={tab===id?"active":""} onClick={()=>requestNavigation(id)}>{label}{id==="orders"&&newOrders>0?<i className="nav-count">{newOrders}</i>:id==="chats"&&unreadChats>0?<i className="nav-count">{unreadChats}</i>:null}</button>)}</nav>
       <div className="side-note"><b>Live boshqaruv</b><span>Buyurtmalar, chatlar, mahsulotlar va ombor shu paneldan boshqariladi.</span></div>
     </aside>
 
@@ -421,7 +463,7 @@ export default function App(){
           {filtered.map(p=><div className="row seller-product-row" key={p.id}>
             <div className="thumb product-thumb">{(p.imageUrls?.[0]||firstImage(p.imageUrl))?<img loading="lazy" decoding="async" src={p.imageUrls?.[0]||firstImage(p.imageUrl)} alt=""/>:"NO IMAGE"}</div>
             <div className="product-row-main"><b>{p.name}</b><span>SKU · {p.sku} · {p.promoPrice!=null?<><s>{formatPrice(p.price)}</s> {formatPrice(p.promoPrice)} · {p.promoDiscountPercent}% chegirma</>:formatPrice(p.price)}</span></div>
-            {tab==="inventory"?<div className="stock-editor"><input type="number" min="0" value={stockDraft[p.id] ?? String(p.stock)} onChange={e=>setStockDraft(x=>({...x,[p.id]:e.target.value}))}/><button className="secondary small" onClick={()=>void saveStock(p)}>Saqlash</button></div>:<strong className={p.stock===0?"out":p.stock<=5?"low":""}>{p.stock} dona</strong>}
+            {tab==="inventory"?<div className={"stock-editor "+(inventoryDirtyIds.includes(p.id)?"stock-editor-dirty":"")}><div className="stock-stepper"><button type="button" onClick={()=>setStockDraft(x=>({...x,[p.id]:String(Math.max(0,Number(x[p.id]??p.stock)-1))}))} aria-label="Bitta kamaytirish">−</button><input aria-label={p.name+" qoldig'i"} type="number" min="0" value={stockDraft[p.id] ?? String(p.stock)} onChange={e=>setStockDraft(x=>({...x,[p.id]:e.target.value}))}/><button type="button" onClick={()=>setStockDraft(x=>({...x,[p.id]:String(Math.max(0,Number(x[p.id]??p.stock)+1))}))} aria-label="Bitta oshirish">+</button></div><span className="stock-unit">dona</span></div>:<strong className={p.stock===0?"out":p.stock<=5?"low":""}>{p.stock} dona</strong>}
             {tab==="products"&&<div className="row-actions product-actions" aria-label={p.name+" amallari"}>
   <button type="button" className="product-action edit-action" onClick={()=>setEditing(p)} title="Mahsulotni tahrirlash" aria-label={p.name+" ni tahrirlash"}>
     <span className="product-action-icon" aria-hidden="true">✎</span><span>Tahrirlash</span>
@@ -450,6 +492,8 @@ export default function App(){
   <small>Har bir rasm 1080×1440 oq fonli formatga tayyorlanadi. Katta rasm kesilmaydi. DB'ga rasmning o'zi emas, faqat URL saqlanadi.</small>
 </div><button className="primary full" disabled={saving}>{saving?"Saqlanmoqda...":"Mahsulotni bazaga qo'shish"}</button>{message&&<div className="message">{message}</div>}</form></section>}
 
+      {tab==="inventory"&&inventoryDirtyCount>0&&<div className="inventory-save-bar" role="status"><div className="inventory-save-bar-info"><span className="inventory-save-dot"/><div><b>{inventoryDirtyCount} ta mahsulot o'zgartirildi</b><small>O'zgarishlarni hozircha tasdiqlamasdan boshqa mahsulotlarni ham tahrirlashingiz mumkin.</small></div></div><div className="inventory-save-actions"><button type="button" className="inventory-discard-button" onClick={cancelAllStock} disabled={inventorySaving}>Voz kechish</button><button type="button" className="inventory-save-button" onClick={()=>void saveAllStock()} disabled={inventorySaving}>{inventorySaving?<><span className="refresh-spinner" aria-hidden="true"/>Saqlanmoqda...</>:<>Saqlash <span>→</span></>}</button></div></div>}
+      {pendingNavigation&&<div className="modal-backdrop inventory-leave-backdrop"><div className="modal inventory-leave-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-leave-title"><div className="inventory-leave-icon">!</div><span className="eyebrow">SAQLANMAGAN O'ZGARISHLAR</span><h2 id="inventory-leave-title">{inventoryDirtyCount} ta mahsulot o'zgartirildi</h2><p>Ombordan chiqishdan oldin o'zgarishlarni saqlaysizmi?</p><div className="inventory-leave-actions"><button type="button" className="secondary" onClick={()=>completePendingNavigation(false)} disabled={inventorySaving}>Voz kechish</button><button type="button" className="primary" onClick={()=>void completePendingNavigation(true)} disabled={inventorySaving}>{inventorySaving?<><span className="refresh-spinner" aria-hidden="true"/>Saqlanmoqda...</>:<>Saqlash va chiqish <span>→</span></>}</button></div><button type="button" className="modal-close-button inventory-leave-close" onClick={()=>setPendingNavigation(null)} disabled={inventorySaving} aria-label="Yopish" title="Yopish"><span aria-hidden="true">×</span></button></div></div>}
       {tab==="analytics"&&<section className="panel analytics-panel"><div className="analytics-hero"><div><span className="eyebrow">BUSINESS INTELLIGENCE · 30 KUN</span><h2>Analitika</h2><p>Do'koningizning real savdo va ombor ko'rsatkichlari Neon bazasidan avtomatik yuklanadi.</p></div><div className="analytics-live"><span className="live-dot"/> LIVE DATA</div></div>{analyticsLoading?<DbTableSkeleton rows={8}/>:!analytics?<div className="empty"><b>Analitika hozircha mavjud emas</b><span>Ma'lumotlar bazadan yuklanmoqda yoki vaqtincha mavjud emas.</span></div>:<><div className="stats"><div><span>30 kunlik tushum</span><b>{formatPrice(Number(analytics.summary.revenue))}</b><small>Faqat yakunlangan buyurtmalar</small></div><div><span>Buyurtmalar</span><b>{analytics.summary.totalOrders}</b><small>{analytics.summary.completedOrders} tasi yakunlangan</small></div><div><span>O'rtacha chek</span><b>{formatPrice(Number(analytics.summary.averageOrder))}</b><small>Yakunlangan buyurtmalar</small></div><div><span>Past qoldiq</span><b>{analytics.stock.lowStock}</b><small>{analytics.stock.outOfStock} ta tugagan</small></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><h2>Eng ko'p tushum bergan mahsulotlar</h2><button className="db-refresh-button small-refresh" onClick={()=>void refreshAll()} disabled={refreshLoading}>{refreshLoading?<><span className="refresh-spinner" aria-hidden="true"/>Yangilanmoqda...</>:<><span className="refresh-icon" aria-hidden="true">↻</span>Yangilash</>}</button></div>{analytics.topProducts.map((x:any)=><div className="overview-list" key={x.productId}><div><span>{x.productName}</span><b>{formatPrice(Number(x.revenue))}</b></div></div>)}</section><section className="panel"><div className="panel-head"><h2>Kundalik savdo</h2></div>{analytics.daily.map((x:any)=><div className="overview-list" key={String(x.day)}><div><span>{formatAnalyticsDay(String(x.day))}</span><b>{formatPrice(Number(x.revenue))} · {x.orders} buyurtma</b></div></div>)}</section></div></>}</section>}
       {tab==="marketing"&&<section className="panel"><div className="panel-head"><div><h2>Marketing & Aksiyalar</h2><span className="muted">Aksiyalar real katalogga saqlanadi va customer API orqali chegirmali narx sifatida qaytadi.</span></div></div>{loading?<DbTableSkeleton rows={7}/>:<div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{(p.imageUrls?.[0]||p.imageUrl)?<img loading="lazy" decoding="async" src={p.imageUrls?.[0]||p.imageUrl} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>setPromoProduct(p)}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div>}</section>}
       {editing&&<div className="modal-backdrop editor-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!saving&&!editingImageLoading)setEditing(null)}}><form className="modal product-editor-modal" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}>
