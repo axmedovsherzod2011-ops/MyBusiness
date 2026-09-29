@@ -9,6 +9,7 @@ import { registerAnalyticsRoutes } from "./analytics.js";
 import { registerUploadRoutes } from "./uploads.js";
 import { registerFavoriteRoutes } from "./favorites.js";
 import { registerBannerRoutes } from "./banners.js";
+import { registerLandingPageRoutes } from "./landingPages.js";
 
 const appVersion = process.env.APP_VERSION ?? "0.1.0";
 const corsOrigins = (process.env.CORS_ORIGIN ?? "")
@@ -79,6 +80,7 @@ registerAnalyticsRoutes(app);
 registerUploadRoutes(app);
 registerFavoriteRoutes(app);
 registerBannerRoutes(app);
+registerLandingPageRoutes(app);
 
 app.use("/api/v1/products", productsRouter);
 
