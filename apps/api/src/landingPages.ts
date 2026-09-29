@@ -16,6 +16,7 @@ function toPage(row: Record<string, unknown>) {
 export function registerLandingPageRoutes(app: Express): void {
   app.get("/api/v1/landing-pages/:slug", async (req: Request, res: Response) => {
     try {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
       await initializeDatabase(); const db = requireDatabase();
       const result = await db.query("SELECT * FROM marketplace_landing_pages WHERE slug=$1 AND active=TRUE", [req.params.slug]);
       if (!result.rowCount) return res.status(404).json({message:"Sahifa topilmadi."});
@@ -23,7 +24,8 @@ export function registerLandingPageRoutes(app: Express): void {
     } catch { res.status(503).json({message:"Sahifani yuklab bo'lmadi."}); }
   });
   app.get("/api/v1/landing-pages/manage", async (_req: Request, res: Response) => {
-    try { await initializeDatabase(); const db=requireDatabase(); const result=await db.query(`
+    try {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0"); await initializeDatabase(); const db=requireDatabase(); const result=await db.query(`
         SELECT lp.*,
           COALESCE((
             SELECT b.primary_color
