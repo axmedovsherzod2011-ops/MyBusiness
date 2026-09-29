@@ -186,6 +186,25 @@ export async function initializeDatabase(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS marketplace_banners_active_idx
         ON marketplace_banners (active, sort_order, created_at DESC);
+
+      ALTER TABLE marketplace_banners
+        ADD COLUMN IF NOT EXISTS target_type VARCHAR(30) NOT NULL DEFAULT 'all-products',
+        ADD COLUMN IF NOT EXISTS target_value TEXT NOT NULL DEFAULT '';
+
+      CREATE TABLE IF NOT EXISTS marketplace_landing_pages (
+        id BIGSERIAL PRIMARY KEY,
+        slug VARCHAR(120) NOT NULL UNIQUE,
+        title VARCHAR(180) NOT NULL,
+        subtitle VARCHAR(300) NOT NULL DEFAULT '',
+        description TEXT NOT NULL DEFAULT '',
+        offer_text VARCHAR(500) NOT NULL DEFAULT '',
+        product_ids BIGINT[] NOT NULL DEFAULT ARRAY[]::BIGINT[],
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS marketplace_landing_pages_active_idx
+        ON marketplace_landing_pages (active, updated_at DESC);
     `).then(() => undefined).catch((error) => {
       initializationPromise = null;
       throw error;
