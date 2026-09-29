@@ -288,9 +288,11 @@ export default function App(){
 
   useEffect(()=>{
     if(!routeReadyRef.current || applyingRouteRef.current)return;
+    const urlRoute=routeFromUrl();
+    if(urlRoute.pageSlug && !landingPage)return;
     const url=routeUrl(currentRoute());
     if(window.location.hash!==url)history.pushState(currentRoute(),"",url);
-  },[panel,profileView,quick?.id,chatProduct?.id,authOpen,checkoutOpen]);
+  },[panel,profileView,quick?.id,chatProduct?.id,authOpen,checkoutOpen,landingPage?.slug]);
 
 
   useEffect(()=>{
