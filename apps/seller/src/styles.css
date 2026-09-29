@@ -823,3 +823,12 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{
 .banner-previews{display:grid;grid-template-columns:1fr 48px;gap:5px;height:54px;overflow:hidden;border-radius:9px;background:#f3f3f5}.banner-previews img{width:100%;height:100%;object-fit:cover}.banner-row-copy{min-width:0}.banner-row-copy b{display:block;font-size:12px}.banner-row-copy small{display:block;margin-top:4px;color:#858893;font-size:10px}
 .icon-action{width:34px;height:34px;border:1px solid #e7e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:20px}.icon-action.danger{color:#a34b4b}.banner-empty{padding:24px;text-align:center;color:#898c94;font-size:12px;border:1px dashed #dddde4;border-radius:15px}
 @media(max-width:760px){.banner-manager{padding:15px;border-radius:19px}.banner-upload-grid{grid-template-columns:1fr}.banner-row{grid-template-columns:110px 1fr auto auto}.banner-previews{height:46px}.banner-manager-head{flex-direction:column;gap:8px}}
+
+
+.banner-target-box,.banner-page-editor,.landing-page-list{margin-top:16px;padding:16px;border:1px solid #e8e8ed;border-radius:16px;background:#fff}
+.banner-target-box{display:grid;gap:10px}.banner-target-box h3,.banner-page-editor h3{margin:4px 0;font-size:15px}.banner-target-box p,.banner-page-editor p{margin:0;color:#858893;font-size:11px;line-height:1.5}
+.banner-target-box select,.banner-target-box input,.banner-page-editor input,.banner-page-editor textarea{width:100%;border:1px solid #dedee5;border-radius:11px;background:#fafafd;padding:11px 12px;font:inherit;font-size:12px;outline:none}
+.banner-page-editor{display:grid;gap:10px;background:#fafafd}.page-product-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-height:240px;overflow:auto;padding:4px}
+.page-product-picker label{display:flex;gap:8px;align-items:center;padding:9px;border:1px solid #e8e8ed;border-radius:10px;background:#fff;font-size:11px}
+.landing-page-list{margin-bottom:16px}
+@media(max-width:760px){.page-product-picker{grid-template-columns:1fr}.banner-target-box,.banner-page-editor{padding:13px}}
