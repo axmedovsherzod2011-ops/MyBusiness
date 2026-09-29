@@ -237,6 +237,34 @@ html,body,#root{width:100%;min-width:0;overflow-x:hidden}
 }
 
 
+/* Product row action system */
+.product-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;min-width:0}
+.product-action{
+  position:relative;display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  min-height:36px;padding:0 10px;border:1px solid #dfe3dd;border-radius:10px;
+  background:#fff;color:#3f463f;font-size:10px;font-weight:850;letter-spacing:-.01em;
+  cursor:pointer;white-space:nowrap;overflow:hidden;
+  box-shadow:0 2px 7px rgba(20,25,20,.035);
+  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,background .16s ease,color .16s ease;
+}
+.product-action:after{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 25%,rgba(255,255,255,.72) 50%,transparent 75%);transform:translateX(-125%);transition:transform .42s ease}
+.product-action:hover:after{transform:translateX(125%)}
+.product-action:hover{transform:translateY(-1px);box-shadow:0 7px 16px rgba(20,25,20,.08)}
+.product-action:active{transform:translateY(0) scale(.97)}
+.product-action:focus-visible{outline:3px solid rgba(23,25,23,.13);outline-offset:2px}
+.product-action-icon{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:6px;font-size:12px;line-height:1;font-weight:950;background:#f1f3ef;color:#454b44;z-index:1}
+.product-action>span:last-child{z-index:1}
+.edit-action:hover{border-color:#b9c5d0;background:#f7fafc;color:#273746}.edit-action:hover .product-action-icon{background:#e7eef4;color:#31516a}
+.promo-action{border-color:#ddd8e9;background:#fbf9ff;color:#55456d}.promo-action .product-action-icon{background:#eee9f6;color:#74559a}.promo-action:hover,.promo-action.promo-active{border-color:#cfc0e4;background:#f7f2fc;color:#5d3f78}.promo-action.promo-active .product-action-icon{background:#e6d9f1;color:#6f3e92}
+.stop-action{border-color:#eadcc7;background:#fffbf5;color:#76562d}.stop-action .product-action-icon{background:#f5ead8;color:#8a5d25}.stop-action:hover{border-color:#d9c09a;background:#fff7e9;color:#694817}
+.delete-action{border-color:#eadada;background:#fffafa;color:#8b4545}.delete-action .product-action-icon{background:#f6e8e8;color:#a34c4c}.delete-action:hover{border-color:#dcb4b4;background:#fff3f3;color:#8f3030}.delete-action:hover .product-action-icon{background:#f1dcdc;color:#9f2f2f}
+.seller-product-row{align-items:center}
+.seller-product-row .product-row-main{min-width:0}
+.seller-product-row .product-row-main b,.seller-product-row .product-row-main span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:1050px){.product-actions{justify-content:flex-start}.product-action{min-height:34px;padding:0 9px}}
+@media(max-width:760px){.product-actions{grid-column:1/-1;width:100%;padding-top:10px;border-top:1px solid #edf0eb}.product-action{flex:1 1 auto}.product-action span:last-child{font-size:9px}}
+@media(max-width:430px){.product-action{padding:0 7px;gap:5px}.product-action-icon{width:16px;height:16px;font-size:11px}}
+
 /* Seller Center 2026 professional system */
 .seller-shell{background:#f4f6f3;color:#171a17}
 .sidebar{
