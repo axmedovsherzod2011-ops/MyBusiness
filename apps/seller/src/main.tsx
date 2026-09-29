@@ -17,7 +17,8 @@ type Chat = {
   hasUnreadForSeller?:boolean; sellerLastReadAt?:string|null;
 };
 type ChatMessage = { id:number; senderRole:"customer"|"seller"; body:string; createdAt:string };
-type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string };
+type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string; targetType:string; targetValue:string };
+type LandingPage = { id:number; slug:string; title:string; subtitle:string; description:string; offerText:string; productIds:number[]; active:boolean };
 const statusLabels:Record<string,string> = {
   new:"Yangi", confirmed:"Qabul qilindi", preparing:"Tayyorlanmoqda",
   shipping:"Yetkazilmoqda", completed:"Yakunlangan", cancelled:"Bekor qilingan"
@@ -78,6 +79,16 @@ export default function App(){
   const [bannerSaving,setBannerSaving]=useState(false);
   const [bannerDesktopUrl,setBannerDesktopUrl]=useState("");
   const [bannerMobileUrl,setBannerMobileUrl]=useState("");
+  const [bannerTargetType,setBannerTargetType]=useState("all-products");
+  const [bannerTargetValue,setBannerTargetValue]=useState("");
+  const [landingPages,setLandingPages]=useState<LandingPage[]>([]);
+  const [pageEditorOpen,setPageEditorOpen]=useState(false);
+  const [pageSaving,setPageSaving]=useState(false);
+  const [pageTitle,setPageTitle]=useState("");
+  const [pageSubtitle,setPageSubtitle]=useState("");
+  const [pageDescription,setPageDescription]=useState("");
+  const [pageOfferText,setPageOfferText]=useState("");
+  const [pageProductIds,setPageProductIds]=useState<number[]>([]);
 
   const inventoryDirtyIds=useMemo(()=>Object.keys(stockDraft).filter(id=>{const productId=Number(id);const product=products.find(p=>p.id===productId);const original=inventoryOriginalRef.current[productId];return product&&Number(stockDraft[productId])!==Number(original??product.stock)}).map(Number),[products,stockDraft]);
   const inventoryDirtyCount=inventoryDirtyIds.length;
@@ -124,6 +135,14 @@ export default function App(){
   async function loadOrders(){setOrdersLoading(true);try{const d=await api("/api/v1/orders");const next=(d.orders||[]) as Order[];setOrders(next);return next}catch(e){setMessage(e instanceof Error?e.message:"Buyurtmalarni yuklab bo'lmadi.");return [] as Order[]}finally{setOrdersLoading(false)}}
   async function loadChats(){setChatsLoading(true);try{const d=await api("/api/v1/chats");setChats(d.chats||[])}catch(e){setMessage(e instanceof Error?e.message:"Chatlarni yuklab bo'lmadi.")}finally{setChatsLoading(false)}}
   async function loadBanners(){setBannerLoading(true);try{const d=await api("/api/v1/banners/manage");setBanners(d.banners||[])}catch(e){setMessage(e instanceof Error?e.message:"Bannerlarni yuklab bo'lmadi.")}finally{setBannerLoading(false)}}
+  async function loadLandingPages(){try{const d=await api("/api/v1/landing-pages/manage");setLandingPages(d.pages||[])}catch(e){setMessage(e instanceof Error?e.message:"Sahifalarni yuklab bo'lmadi.")}}
+  async function createLandingPage(){
+    if(!pageTitle.trim()){setMessage("Sahifa nomini kiriting.");return;}
+    try{setPageSaving(true);const d=await api("/api/v1/landing-pages",{method:"POST",body:JSON.stringify({title:pageTitle,subtitle:pageSubtitle,description:pageDescription,offerText:pageOfferText,productIds:pageProductIds})});setLandingPages(x=>[d.page,...x]);setBannerTargetType("page");setBannerTargetValue(d.page.slug);setPageEditorOpen(false);setPageTitle("");setPageSubtitle("");setPageDescription("");setPageOfferText("");setPageProductIds([]);setMessage("Yangi sahifa yaratildi.");}
+    catch(e){setMessage(e instanceof Error?e.message:"Sahifani yaratib bo'lmadi.");}finally{setPageSaving(false)}
+  }
+  async function toggleLandingPage(p:LandingPage){try{const d=await api("/api/v1/landing-pages/"+p.id,{method:"PATCH",body:JSON.stringify({active:!p.active})});setLandingPages(x=>x.map(v=>v.id===p.id?d.page:v));}catch(e){setMessage(e instanceof Error?e.message:"Sahifa holatini o'zgartirib bo'lmadi.")}}
+  async function deleteLandingPage(p:LandingPage){if(!confirm("Bu sahifani o'chirishga aminmisiz?"))return;try{await api("/api/v1/landing-pages/"+p.id,{method:"DELETE"});setLandingPages(x=>x.filter(v=>v.id!==p.id));if(bannerTargetValue===p.slug){setBannerTargetType("all-products");setBannerTargetValue("")}setMessage("Sahifa o'chirildi.");}catch(e){setMessage(e instanceof Error?e.message:"Sahifani o'chirib bo'lmadi.")}}
   async function refreshAll(){
     if(refreshLoading)return;
     setRefreshLoading(true);
@@ -160,7 +179,7 @@ export default function App(){
       syncRoute();
     };
     window.addEventListener("popstate",onPop);
-    void loadProducts(); void loadOrders(); void loadChats(); void loadBanners(); void loadAnalytics();
+    void loadProducts(); void loadOrders(); void loadChats(); void loadBanners(); void loadLandingPages(); void loadAnalytics();
     const timer=window.setInterval(()=>{void refreshAll()},300000);
     return()=>{window.clearInterval(timer);window.removeEventListener("popstate",onPop);};
   },[]);
@@ -259,7 +278,8 @@ export default function App(){
   }
   async function createBanner(){
     if(!bannerDesktopUrl||!bannerMobileUrl){setMessage("Avval desktop va mobile banner rasmlarini yuklang.");return;}
-    try{setBannerSaving(true);const d=await api("/api/v1/banners",{method:"POST",body:JSON.stringify({desktopImageUrl:bannerDesktopUrl,mobileImageUrl:bannerMobileUrl,sortOrder:banners.length})});
+    if(["category","page","url"].includes(bannerTargetType)&&!bannerTargetValue){setMessage("Banner qayerga olib borishini tanlang.");return;}
+    try{setBannerSaving(true);const d=await api("/api/v1/banners",{method:"POST",body:JSON.stringify({desktopImageUrl:bannerDesktopUrl,mobileImageUrl:bannerMobileUrl,sortOrder:banners.length,targetType:bannerTargetType,targetValue:bannerTargetValue})});
       setBanners(x=>[...x,d.banner]);setBannerDesktopUrl("");setBannerMobileUrl("");setMessage("Banner customer saytiga joylandi.");
     }catch(e){setMessage(e instanceof Error?e.message:"Bannerni saqlab bo'lmadi.");}finally{setBannerSaving(false)}
   }
@@ -567,10 +587,29 @@ export default function App(){
           <div className="banner-upload-grid">
             <label className="banner-upload-card"><input type="file" accept="image/*" disabled={bannerSaving} onChange={async e=>{const f=e.target.files?.[0];e.currentTarget.value="";if(!f)return;try{setBannerSaving(true);setBannerDesktopUrl(await uploadBannerFile(f,1440,480));setMessage("Desktop banner tayyor.");}catch(err){setMessage(err instanceof Error?err.message:"Desktop banner yuklanmadi.")}finally{setBannerSaving(false)}}}/><span>▣</span><b>Desktop banner</b><small>1440 × 480 px · 3:1</small>{bannerDesktopUrl&&<img src={bannerDesktopUrl} alt="Desktop banner preview"/>}</label>
             <label className="banner-upload-card"><input type="file" accept="image/*" disabled={bannerSaving} onChange={async e=>{const f=e.target.files?.[0];e.currentTarget.value="";if(!f)return;try{setBannerSaving(true);setBannerMobileUrl(await uploadBannerFile(f,1080,540));setMessage("Mobile banner tayyor.");}catch(err){setMessage(err instanceof Error?err.message:"Mobile banner yuklanmadi.")}finally{setBannerSaving(false)}}}/><span>▯</span><b>Telefon banner</b><small>1080 × 540 px · 2:1</small>{bannerMobileUrl&&<img src={bannerMobileUrl} alt="Mobile banner preview"/>}</label>
+          </div>          <div className="banner-target-box">
+            <div><span className="editor-section-kicker">BANNER · YO'NALISH</span><h3>Banner bosilganda qayerga o'tadi?</h3><p>Endi banner bosilganda avtomatik ravishda faqat mahsulotlar sahifasi ochilmaydi — yo'nalishni seller tanlaydi.</p></div>
+            <select value={bannerTargetType} onChange={e=>{setBannerTargetType(e.target.value);setBannerTargetValue("");}}>
+              <option value="all-products">Barcha mahsulotlar</option><option value="new-products">Yangi mahsulotlar</option><option value="sale-products">Aksiyalar</option><option value="category">Kategoriya</option><option value="page">Yangi/maxsus sahifa</option><option value="url">Boshqa sayt yoki sahifa</option>
+            </select>
+            {bannerTargetType==="category"&&<select value={bannerTargetValue} onChange={e=>setBannerTargetValue(e.target.value)}><option value="">Kategoriya tanlang</option>{["care","makeup","perfume","fashion","health","home","kids"].map(x=><option key={x} value={x}>{x}</option>)}</select>}
+            {bannerTargetType==="page"&&<><select value={bannerTargetValue} onChange={e=>setBannerTargetValue(e.target.value)}><option value="">Sahifa tanlang</option>{landingPages.filter(x=>x.active).map(p=><option key={p.id} value={p.slug}>{p.title}</option>)}</select><button type="button" className="secondary small" onClick={()=>setPageEditorOpen(true)}>＋ Yangi sahifa yaratish</button></>}
+            {bannerTargetType==="url"&&<input value={bannerTargetValue} onChange={e=>setBannerTargetValue(e.target.value)} placeholder="https://..." />}
+            {["all-products","new-products","sale-products"].includes(bannerTargetType)&&<small>Customer shu tanlangan katalog oynasini ochadi.</small>}
           </div>
+          {pageEditorOpen&&<div className="banner-page-editor">
+            <div><span className="editor-section-kicker">CUSTOM PAGE</span><h3>Yangi maxsus sahifa</h3><p>Mahsulotlarni tanlang, sarlavha va maxsus taklifni yozing.</p></div>
+            <input value={pageTitle} onChange={e=>setPageTitle(e.target.value)} placeholder="Masalan: Kuzgi go'zallik haftaligi" />
+            <input value={pageSubtitle} onChange={e=>setPageSubtitle(e.target.value)} placeholder="Qisqa sarlavha" />
+            <textarea rows={3} value={pageDescription} onChange={e=>setPageDescription(e.target.value)} placeholder="Sahifa haqida..." />
+            <input value={pageOfferText} onChange={e=>setPageOfferText(e.target.value)} placeholder="Maxsus taklif: 20% gacha chegirma" />
+            <div className="page-product-picker">{products.map(p=><label key={p.id}><input type="checkbox" checked={pageProductIds.includes(p.id)} onChange={e=>setPageProductIds(x=>e.target.checked?[...x,p.id]:x.filter(id=>id!==p.id))}/><span>{p.name}</span></label>)}</div>
+            <div className="editor-footer-actions"><button type="button" className="secondary" onClick={()=>setPageEditorOpen(false)}>Bekor qilish</button><button type="button" className="primary" disabled={pageSaving} onClick={()=>void createLandingPage()}>{pageSaving?"Saqlanmoqda...":"Sahifani yaratish"}</button></div>
+          </div>}
           <button className="primary banner-publish-button" onClick={()=>void createBanner()} disabled={bannerSaving||!bannerDesktopUrl||!bannerMobileUrl}>{bannerSaving?<><span className="refresh-spinner"/>Yuklanmoqda...</>:<>Bannerlarni customer saytiga joylash <span>→</span></>}</button>
-          <div className="banner-list">{bannerLoading?<DbTableSkeleton rows={2}/>:banners.length?banners.map(b=><div className={"banner-row "+(!b.active?"inactive":"")} key={b.id}><div className="banner-previews"><img src={b.desktopImageUrl} alt=""/><img src={b.mobileImageUrl} alt=""/></div><div className="banner-row-copy"><b>{b.active?"Customer saytida ko'rinmoqda":"O'chirilgan"}</b><small>Desktop 1440×480 · Mobile 1080×540</small></div><button className="secondary small" onClick={()=>void toggleBanner(b)}>{b.active?"O'chirish":"Yoqish"}</button><button className="icon-action danger" onClick={()=>void deleteBanner(b)} aria-label="Bannerni o'chirish">×</button></div>):<div className="banner-empty">Hali banner joylanmagan.</div>}</div>
+          <div className="banner-list">{bannerLoading?<DbTableSkeleton rows={2}/>:banners.length?banners.map(b=><div className={"banner-row "+(!b.active?"inactive":"")} key={b.id}><div className="banner-previews"><img src={b.desktopImageUrl} alt=""/><img src={b.mobileImageUrl} alt=""/></div><div className="banner-row-copy"><b>{b.active?"Customer saytida ko'rinmoqda":"O'chirilgan"}</b><small>Desktop 1440×480 · Mobile 1080×540 · {b.targetType==="page"?"Sahifa: "+b.targetValue:b.targetType==="url"?"Tashqi URL":b.targetType==="category"?"Kategoriya: "+b.targetValue:b.targetType==="new-products"?"Yangi mahsulotlar":b.targetType==="sale-products"?"Aksiyalar":"Barcha mahsulotlar"}</small></div><button className="secondary small" onClick={()=>void toggleBanner(b)}>{b.active?"O'chirish":"Yoqish"}</button><button className="icon-action danger" onClick={()=>void deleteBanner(b)} aria-label="Bannerni o'chirish">×</button></div>):<div className="banner-empty">Hali banner joylanmagan.</div>}</div>
         </div>
+<div className="landing-page-list"><div className="panel-head"><div><h3>Maxsus sahifalar</h3><span className="muted">Banner uchun yaratilgan sahifalar: mahsulotlar + maxsus takliflar.</span></div></div>{landingPages.length?landingPages.map(p=><div className="banner-row" key={p.id}><div className="banner-row-copy"><b>{p.title}</b><small>/{p.slug} · {p.productIds.length} ta mahsulot{p.offerText?" · "+p.offerText:""}</small></div><button className="secondary small" onClick={()=>{setBannerTargetType("page");setBannerTargetValue(p.slug)}}>Bannerga tanlash</button><button className="secondary small" onClick={()=>void toggleLandingPage(p)}>{p.active?"O'chirish":"Yoqish"}</button><button className="icon-action danger" onClick={()=>void deleteLandingPage(p)}>×</button></div>):<div className="banner-empty">Hali maxsus sahifa yaratilmagan.</div>}</div>
         {loading?<DbTableSkeleton rows={7}/>:<div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{(p.imageUrls?.[0]||p.imageUrl)?<img loading="lazy" decoding="async" src={p.imageUrls?.[0]||p.imageUrl} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>{setPromoProduct(p);window.history.pushState({},"","/xaccount/marketing/aksiya/"+p.id)}}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div>}</section>}
       {editing&&<div className="modal-backdrop editor-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!saving&&!editingImageLoading)setEditing(null)}}><form className="modal product-editor-modal" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}>
   <header className="product-editor-header">
