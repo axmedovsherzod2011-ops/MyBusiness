@@ -17,7 +17,7 @@ type Chat = {
   hasUnreadForSeller?:boolean; sellerLastReadAt?:string|null;
 };
 type ChatMessage = { id:number; senderRole:"customer"|"seller"; body:string; createdAt:string };
-type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string; targetType:string; targetValue:string };
+type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string; targetType:string; targetValue:string; primaryColor:string };
 type LandingPage = { id:number; slug:string; title:string; subtitle:string; description:string; offerText:string; productIds:number[]; active:boolean };
 const statusLabels:Record<string,string> = {
   new:"Yangi", confirmed:"Qabul qilindi", preparing:"Tayyorlanmoqda",
@@ -81,6 +81,7 @@ export default function App(){
   const [bannerMobileUrl,setBannerMobileUrl]=useState("");
   const [bannerTargetType,setBannerTargetType]=useState("all-products");
   const [bannerTargetValue,setBannerTargetValue]=useState("");
+  const [bannerPrimaryColor,setBannerPrimaryColor]=useState("#f4f1f7");
   const [landingPages,setLandingPages]=useState<LandingPage[]>([]);
   const [pageEditorOpen,setPageEditorOpen]=useState(false);
   const [pageSaving,setPageSaving]=useState(false);
@@ -279,8 +280,8 @@ export default function App(){
   async function createBanner(){
     if(!bannerDesktopUrl||!bannerMobileUrl){setMessage("Avval desktop va mobile banner rasmlarini yuklang.");return;}
     if(["category","page","url"].includes(bannerTargetType)&&!bannerTargetValue){setMessage("Banner qayerga olib borishini tanlang.");return;}
-    try{setBannerSaving(true);const d=await api("/api/v1/banners",{method:"POST",body:JSON.stringify({desktopImageUrl:bannerDesktopUrl,mobileImageUrl:bannerMobileUrl,sortOrder:banners.length,targetType:bannerTargetType,targetValue:bannerTargetValue})});
-      setBanners(x=>[...x,d.banner]);setBannerDesktopUrl("");setBannerMobileUrl("");setMessage("Banner customer saytiga joylandi.");
+    try{setBannerSaving(true);const d=await api("/api/v1/banners",{method:"POST",body:JSON.stringify({desktopImageUrl:bannerDesktopUrl,mobileImageUrl:bannerMobileUrl,sortOrder:banners.length,targetType:bannerTargetType,targetValue:bannerTargetValue,primaryColor:bannerPrimaryColor})});
+      setBanners(x=>[...x,d.banner]);setBannerDesktopUrl("");setBannerMobileUrl("");setBannerPrimaryColor("#f4f1f7");setMessage("Banner customer saytiga joylandi.");
     }catch(e){setMessage(e instanceof Error?e.message:"Bannerni saqlab bo'lmadi.");}finally{setBannerSaving(false)}
   }
   async function toggleBanner(b:Banner){
