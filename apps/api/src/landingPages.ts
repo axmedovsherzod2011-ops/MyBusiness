@@ -6,7 +6,10 @@ function toPage(row: Record<string, unknown>) {
     id: Number(row.id), slug: String(row.slug), title: String(row.title),
     subtitle: String(row.subtitle ?? ""), description: String(row.description ?? ""),
     offerText: String(row.offer_text ?? ""), productIds: Array.isArray(row.product_ids) ? row.product_ids.map(Number) : [],
-    active: Boolean(row.active), createdAt: String(row.created_at), updatedAt: String(row.updated_at)
+    active: Boolean(row.active), createdAt: String(row.created_at), updatedAt: String(row.updated_at),
+    primaryColor: /^#[0-9a-fA-F]{6}$/.test(String(row.primary_color ?? ""))
+      ? String(row.primary_color).toLowerCase()
+      : "#f4f1f7"
   };
 }
 
@@ -20,7 +23,21 @@ export function registerLandingPageRoutes(app: Express): void {
     } catch { res.status(503).json({message:"Sahifani yuklab bo'lmadi."}); }
   });
   app.get("/api/v1/landing-pages/manage", async (_req: Request, res: Response) => {
-    try { await initializeDatabase(); const db=requireDatabase(); const result=await db.query("SELECT * FROM marketplace_landing_pages ORDER BY updated_at DESC, id DESC"); res.json({pages:result.rows.map(toPage)}); }
+    try { await initializeDatabase(); const db=requireDatabase(); const result=await db.query(`
+        SELECT lp.*,
+          COALESCE((
+            SELECT b.primary_color
+            FROM marketplace_banners b
+            WHERE b.target_type='page'
+              AND b.target_value=lp.slug
+              AND b.active=TRUE
+            ORDER BY b.created_at DESC, b.id DESC
+            LIMIT 1
+          ), '#f4f1f7') AS primary_color
+        FROM marketplace_landing_pages lp
+        ORDER BY lp.updated_at DESC, lp.id DESC
+      `);
+      res.json({pages:result.rows.map(toPage)}); }
     catch { res.status(503).json({message:"Sahifalarni yuklab bo'lmadi."}); }
   });
   app.post("/api/v1/landing-pages", async (req: Request,res: Response)=>{
@@ -54,7 +71,12 @@ export function registerLandingPageRoutes(app: Express): void {
       const offerText=typeof req.body?.offerText==="string"?req.body.offerText.trim():String(row.offer_text??"");
       const productIds=Array.isArray(req.body?.productIds)?req.body.productIds.map(Number).filter(Number.isInteger):row.product_ids;
       const active=typeof req.body?.active==="boolean"?req.body.active:Boolean(row.active);
-      const result=await db.query(`UPDATE marketplace_landing_pages SET title=$1,subtitle=$2,description=$3,offer_text=$4,product_ids=$5,active=$6,updated_at=NOW() WHERE id=$7 RETURNING *`,[title,subtitle,description,offerText,productIds,active,req.params.id]);
+      const result=await db.query(`
+        UPDATE marketplace_landing_pages
+        SET title=$1,subtitle=$2,description=$3,offer_text=$4,product_ids=$5,active=$6,updated_at=NOW()
+        WHERE id=$7
+        RETURNING *
+      `,[title,subtitle,description,offerText,productIds,active,req.params.id]);
       res.json({page:toPage(result.rows[0])});
     } catch { res.status(500).json({message:"Sahifani yangilab bo'lmadi."}); }
   });
