@@ -189,7 +189,8 @@ export async function initializeDatabase(): Promise<void> {
 
       ALTER TABLE marketplace_banners
         ADD COLUMN IF NOT EXISTS target_type VARCHAR(30) NOT NULL DEFAULT 'all-products',
-        ADD COLUMN IF NOT EXISTS target_value TEXT NOT NULL DEFAULT '';
+        ADD COLUMN IF NOT EXISTS target_value TEXT NOT NULL DEFAULT '',
+        ADD COLUMN IF NOT EXISTS primary_color VARCHAR(7) NOT NULL DEFAULT '#f4f1f7';
 
       CREATE TABLE IF NOT EXISTS marketplace_landing_pages (
         id BIGSERIAL PRIMARY KEY,
