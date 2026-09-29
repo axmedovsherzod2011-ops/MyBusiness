@@ -406,7 +406,20 @@ export default function App(){
             <div className="thumb product-thumb">{(p.imageUrls?.[0]||firstImage(p.imageUrl))?<img src={p.imageUrls?.[0]||firstImage(p.imageUrl)} alt=""/>:"NO IMAGE"}</div>
             <div className="product-row-main"><b>{p.name}</b><span>SKU · {p.sku} · {p.promoPrice!=null?<><s>{formatPrice(p.price)}</s> {formatPrice(p.promoPrice)} · {p.promoDiscountPercent}% chegirma</>:formatPrice(p.price)}</span></div>
             {tab==="inventory"?<div className="stock-editor"><input type="number" min="0" value={stockDraft[p.id] ?? String(p.stock)} onChange={e=>setStockDraft(x=>({...x,[p.id]:e.target.value}))}/><button className="secondary small" onClick={()=>void saveStock(p)}>Saqlash</button></div>:<strong className={p.stock===0?"out":p.stock<=5?"low":""}>{p.stock} dona</strong>}
-            {tab==="products"&&<div className="row-actions"><button className="secondary small" onClick={()=>setEditing(p)}>Tahrirlash</button><button className="secondary small" onClick={()=>setPromoProduct(p)}>Aksiya</button><button className="secondary small" onClick={()=>void deleteProduct(p.id)}>O'chirish</button></div>}
+            {tab==="products"&&<div className="row-actions product-actions" aria-label={p.name+" amallari"}>
+  <button type="button" className="product-action edit-action" onClick={()=>setEditing(p)} title="Mahsulotni tahrirlash" aria-label={p.name+" ni tahrirlash"}>
+    <span className="product-action-icon" aria-hidden="true">✎</span><span>Tahrirlash</span>
+  </button>
+  <button type="button" className={"product-action promo-action "+(p.promoPrice!=null?"promo-active":"")} onClick={()=>setPromoProduct(p)} title={p.promoPrice!=null?"Aksiyani o'zgartirish":"Aksiya yaratish"} aria-label={p.promoPrice!=null?"Aksiyani o'zgartirish":"Aksiya yaratish"}>
+    <span className="product-action-icon" aria-hidden="true">%</span><span>{p.promoPrice!=null?"Aksiya":"Aksiya"}</span>
+  </button>
+  {p.promoPrice!=null&&<button type="button" className="product-action stop-action" onClick={()=>void stopPromotion(p.id)} title="Aksiyani to'xtatish" aria-label={p.name+" aksiyasini to'xtatish"}>
+    <span className="product-action-icon" aria-hidden="true">⏸</span><span>To'xtatish</span>
+  </button>}
+  <button type="button" className="product-action delete-action" onClick={()=>void deleteProduct(p.id)} title="Mahsulotni o'chirish" aria-label={p.name+" ni o'chirish"}>
+    <span className="product-action-icon" aria-hidden="true">⌫</span><span>O'chirish</span>
+  </button>
+</div>}
           </div>)}
         </div>:<div className="empty"><b>Mahsulot topilmadi.</b><span>Qidiruvni o'zgartiring yoki yangi mahsulot qo'shing.</span></div>}
       </section>}
