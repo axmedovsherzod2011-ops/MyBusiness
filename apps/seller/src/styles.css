@@ -663,3 +663,146 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
+
+
+/* Inventory workspace — bulk editing */
+.stock-editor{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:9px;
+  min-width:180px;
+}
+.stock-stepper{
+  display:grid;
+  grid-template-columns:32px 62px 32px;
+  align-items:center;
+  height:40px;
+  overflow:hidden;
+  border:1px solid #d9dfd7;
+  border-radius:11px;
+  background:#fff;
+  box-shadow:0 3px 12px rgba(25,30,25,.04);
+}
+.stock-stepper button{
+  width:32px;
+  height:40px;
+  border:0;
+  background:#f7f9f6;
+  color:#465044;
+  font-size:18px;
+  line-height:1;
+  cursor:pointer;
+  transition:background .14s ease,color .14s ease,transform .14s ease;
+}
+.stock-stepper button:hover{background:#eef3ec;color:#182018}
+.stock-stepper button:active{transform:scale(.9)}
+.stock-stepper input{
+  width:62px;
+  height:40px;
+  box-sizing:border-box;
+  border:0;
+  border-left:1px solid #e5e9e3;
+  border-right:1px solid #e5e9e3;
+  outline:0;
+  background:#fff;
+  color:#1b211b;
+  text-align:center;
+  font:800 14px/1 inherit;
+  appearance:textfield;
+}
+.stock-stepper input::-webkit-outer-spin-button,
+.stock-stepper input::-webkit-inner-spin-button{margin:0;appearance:none}
+.stock-stepper:focus-within{border-color:#9ba899;box-shadow:0 0 0 3px rgba(91,109,88,.09),0 4px 14px rgba(25,30,25,.05)}
+.stock-editor-dirty .stock-stepper{border-color:#8c9b89;box-shadow:0 0 0 2px rgba(91,109,88,.08),0 5px 15px rgba(25,30,25,.06)}
+.stock-unit{font-size:9px;font-weight:850;color:#7f887e;white-space:nowrap}
+.inventory-save-bar{
+  position:fixed;
+  z-index:80;
+  left:50%;
+  bottom:22px;
+  transform:translateX(-50%);
+  width:min(720px,calc(100vw - 34px));
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding:12px 13px 12px 16px;
+  border:1px solid rgba(215,222,213,.95);
+  border-radius:15px;
+  background:rgba(255,255,255,.98);
+  box-shadow:0 18px 55px rgba(22,28,22,.16),0 3px 12px rgba(22,28,22,.06);
+  animation:inventoryBarIn .2s ease-out;
+}
+.inventory-save-bar-info{display:flex;align-items:center;gap:11px;min-width:0}
+.inventory-save-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#4d7653;box-shadow:0 0 0 5px rgba(77,118,83,.1)}
+.inventory-save-bar-info div{display:grid;gap:2px;min-width:0}
+.inventory-save-bar-info b{font-size:11px;letter-spacing:-.01em}
+.inventory-save-bar-info small{font-size:9px;color:#7d867c;line-height:1.35}
+.inventory-save-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.inventory-discard-button,.inventory-save-button{
+  min-height:38px;
+  padding:0 14px;
+  border-radius:9px;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+  transition:transform .14s ease,box-shadow .14s ease,background .14s ease,border-color .14s ease;
+}
+.inventory-discard-button{
+  border:1px solid #dfe4dd;
+  background:#f7f9f6;
+  color:#596258;
+}
+.inventory-save-button{
+  border:1px solid #263025;
+  background:#263025;
+  color:#fff;
+  box-shadow:0 5px 15px rgba(38,48,37,.16);
+}
+.inventory-discard-button:hover:not(:disabled){background:#eef2ec;border-color:#cbd3c8;transform:translateY(-1px)}
+.inventory-save-button:hover:not(:disabled){background:#1b241a;transform:translateY(-1px);box-shadow:0 8px 20px rgba(38,48,37,.22)}
+.inventory-discard-button:active:not(:disabled),.inventory-save-button:active:not(:disabled){transform:scale(.98)}
+.inventory-discard-button:disabled,.inventory-save-button:disabled{opacity:.65;cursor:wait}
+.inventory-save-button .refresh-spinner{border-color:rgba(255,255,255,.35);border-top-color:#fff}
+@keyframes inventoryBarIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+
+.inventory-leave-backdrop{z-index:120}
+.inventory-leave-modal{
+  position:relative;
+  width:min(460px,calc(100vw - 30px));
+  padding:24px!important;
+  border-radius:20px!important;
+  text-align:left;
+  box-shadow:0 25px 80px rgba(0,0,0,.24)!important;
+}
+.inventory-leave-icon{
+  width:42px;height:42px;margin-bottom:12px;
+  display:grid;place-items:center;
+  border-radius:12px;
+  background:#f5f8f3;
+  border:1px solid #dfe7dd;
+  color:#566853;
+  font-weight:950;
+}
+.inventory-leave-modal h2{margin:7px 35px 7px 0;font-size:22px;letter-spacing:-.04em}
+.inventory-leave-modal p{margin:0 0 18px;color:#7b8479;font-size:11px;line-height:1.5}
+.inventory-leave-actions{display:grid;grid-template-columns:1fr 1.25fr;gap:8px}
+.inventory-leave-actions button{min-height:42px}
+.inventory-leave-close{position:absolute;right:16px;top:16px}
+
+@media(max-width:760px){
+  .stock-editor{justify-content:flex-start;min-width:0}
+  .inventory-save-bar{bottom:12px;width:calc(100vw - 24px);padding:11px}
+  .inventory-save-bar-info small{display:none}
+  .inventory-save-actions{width:45%;display:grid;grid-template-columns:1fr 1.35fr}
+  .inventory-discard-button,.inventory-save-button{padding:0 9px;font-size:9px;min-height:36px}
+}
+@media(max-width:520px){
+  .stock-stepper{grid-template-columns:30px 58px 30px}
+  .stock-stepper input{width:58px}
+  .inventory-save-bar{display:grid;grid-template-columns:1fr;gap:9px}
+  .inventory-save-actions{width:100%}
+  .inventory-leave-actions{grid-template-columns:1fr}
+  .inventory-leave-actions .primary{order:-1}
+}
