@@ -69,7 +69,8 @@ function cat(p:Product){
 }
 function label(k:string){ return categories.find(c=>c[0]===k)?.[1] || "Boshqa"; }
 
-function productImages(p:Product){return (p.imageUrls?.length?p.imageUrls:(p.imageUrl||"").split(/[\n|]+/)).map(x=>x.trim()).filter(Boolean);}
+function productImages(p:Product){return (p.imageUrls?.length?p.imageUrls:(p.imageUrl||"").split(/[
+|]+/)).map(x=>x.trim()).filter(Boolean);}
 
 function productTokens(value:string){
   return value.toLowerCase().replace(/[^a-z0-9а-яё'’]+/gi," ").split(/\s+/).filter(x=>x.length>2);
@@ -536,7 +537,11 @@ export default function App(){
     document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"});
   }
 
-  useEffect(()=>{\n    setLandingPrimaryColor(isLandingPage && landingBanner ? (landingBanner.primaryColor || "#f4f1f7") : "#f4f1f7");\n  },[isLandingPage,landingBanner?.id,landingBanner?.primaryColor]);\n\n  return <main className={"market "+(isLandingPage?"landing-mode":"")} style={isLandingPage?{"--landing-primary":landingPrimaryColor,backgroundColor:landingPrimaryColor} as React.CSSProperties:undefined}>
+  useEffect(()=>{
+    setLandingPrimaryColor(isLandingPage && landingBanner ? (landingBanner.primaryColor || "#f4f1f7") : "#f4f1f7");
+  },[isLandingPage,landingBanner?.id,landingBanner?.primaryColor]);
+
+  return <main className={"market "+(isLandingPage?"landing-mode":"")} style={isLandingPage?{"--landing-primary":landingPrimaryColor,backgroundColor:landingPrimaryColor} as React.CSSProperties:undefined}>
     {isLandingPage&&<button className="landing-back-button" type="button" onClick={()=>{setRouteHash("#/");window.location.hash="#/";window.scrollTo({top:0,left:0,behavior:"auto"})}}><Icon name="back" size={22}/><span>Asosiyga qaytish</span></button>}
     {!isLandingPage&&panel===null&&<header className="app-header">
       <a className="logo" href="/" aria-label="MyBusiness Market">MYBUSINESS<span>MARKET</span></a>
