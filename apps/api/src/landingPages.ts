@@ -14,15 +14,8 @@ function toPage(row: Record<string, unknown>) {
 }
 
 export function registerLandingPageRoutes(app: Express): void {
-  app.get("/api/v1/landing-pages/:slug", async (req: Request, res: Response) => {
-    try {
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
-      await initializeDatabase(); const db = requireDatabase();
-      const result = await db.query("SELECT * FROM marketplace_landing_pages WHERE slug=$1 AND active=TRUE", [req.params.slug]);
-      if (!result.rowCount) return res.status(404).json({message:"Sahifa topilmadi."});
-      res.json({page:toPage(result.rows[0])});
-    } catch { res.status(503).json({message:"Sahifani yuklab bo'lmadi."}); }
-  });
+
+
   app.get("/api/v1/landing-pages/manage", async (_req: Request, res: Response) => {
     try {
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0"); await initializeDatabase(); const db=requireDatabase(); const result=await db.query(`
@@ -41,6 +34,28 @@ export function registerLandingPageRoutes(app: Express): void {
       `);
       res.json({pages:result.rows.map(toPage)}); }
     catch { res.status(503).json({message:"Sahifalarni yuklab bo'lmadi."}); }
+  });
+  app.get("/api/v1/landing-pages/:slug", async (req: Request, res: Response) => {
+    try {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      await initializeDatabase(); const db = requireDatabase();
+      const result = await db.query(`
+        SELECT lp.*,
+          COALESCE((
+            SELECT b.primary_color
+            FROM marketplace_banners b
+            WHERE b.target_type='page'
+              AND b.target_value=lp.slug
+              AND b.active=TRUE
+            ORDER BY b.created_at DESC, b.id DESC
+            LIMIT 1
+          ), '#f4f1f7') AS primary_color
+        FROM marketplace_landing_pages lp
+        WHERE lp.slug=$1 AND lp.active=TRUE
+      `, [req.params.slug]);
+      if (!result.rowCount) return res.status(404).json({message:"Sahifa topilmadi."});
+      res.json({page:toPage(result.rows[0])});
+    } catch { res.status(503).json({message:"Sahifani yuklab bo'lmadi."}); }
   });
   app.post("/api/v1/landing-pages", async (req: Request,res: Response)=>{
     const title=typeof req.body?.title==="string"?req.body.title.trim():"";
