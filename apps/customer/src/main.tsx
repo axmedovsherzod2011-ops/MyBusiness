@@ -5,7 +5,7 @@ import "./styles.css";
 
 const apiBase = "https://mybusiness-api-e6dk.onrender.com";
 type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string; targetType:string; targetValue:string; primaryColor:string };
-type LandingPage = { id:number; slug:string; title:string; subtitle:string; description:string; offerText:string; productIds:number[]; active:boolean };
+type LandingPage = { id:number; slug:string; title:string; subtitle:string; description:string; offerText:string; productIds:number[]; active:boolean; primaryColor:string };
 
 const categories = [
   ["all","Barcha mahsulotlar","✦"],
@@ -539,7 +539,9 @@ export default function App(){
   }
 
   useEffect(()=>{
-    const color=isLandingPage && landingBanner ? (landingBanner.primaryColor || "#f4f1f7") : "#f4f1f7";
+    const color=isLandingPage
+      ? (landingPage?.primaryColor || landingBanner?.primaryColor || "#f4f1f7")
+      : "#f4f1f7";
     setLandingPrimaryColor(color);
     document.documentElement.style.setProperty("--landing-primary",color);
     document.body.style.backgroundColor=isLandingPage ? color : "";
@@ -548,7 +550,7 @@ export default function App(){
       document.body.style.backgroundColor="";
       document.documentElement.style.backgroundColor="";
     };
-  },[isLandingPage,landingBanner?.id,landingBanner?.primaryColor]);
+  },[isLandingPage,landingPage?.primaryColor,landingBanner?.id,landingBanner?.primaryColor]);
 
   return <main className={"market "+(isLandingPage?"landing-mode":"")} style={isLandingPage?{"--landing-primary":landingPrimaryColor,backgroundColor:landingPrimaryColor} as React.CSSProperties:undefined}>
     {isLandingPage&&<button className="landing-back-button" type="button" onClick={()=>{setRouteHash("#/");window.location.hash="#/";window.scrollTo({top:0,left:0,behavior:"auto"})}}><Icon name="back" size={22}/><span>Asosiyga qaytish</span></button>}
