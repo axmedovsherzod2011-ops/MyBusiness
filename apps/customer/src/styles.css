@@ -2333,3 +2333,12 @@ html{
   .customer-banner{border-radius:18px}
   .customer-banner img{aspect-ratio:2/1;object-fit:cover}
 }
+
+
+.customer-banner{border:0;padding:0;width:100%;font:inherit;cursor:pointer}
+.landing-page{width:min(1200px,calc(100% - 32px));margin:18px auto 0}
+.landing-page-hero{padding:38px 42px;border-radius:26px;background:linear-gradient(135deg,#f7f7f8,#fff);border:1px solid #ececef;box-shadow:0 12px 35px rgba(20,20,30,.06)}
+.landing-page-hero h1{margin:8px 0 6px;font-size:clamp(30px,5vw,54px);letter-spacing:-.045em}
+.landing-page-hero h2{margin:0 0 10px;font-size:20px;color:#555b66}.landing-page-hero p{max-width:760px;color:#707681;line-height:1.7}
+.landing-offer{display:inline-flex;margin-top:12px;padding:11px 15px;border-radius:12px;background:#111;color:#fff;font-weight:800}
+@media(max-width:700px){.landing-page{width:calc(100% - 24px)}.landing-page-hero{padding:25px 22px;border-radius:20px}.landing-page-hero h1{font-size:32px}}
