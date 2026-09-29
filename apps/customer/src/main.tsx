@@ -233,7 +233,8 @@ export default function App(){
 
   function routeUrl(r:RouteState){
     let path="/";
-    if(r.chatProductId!=null)path="/chat/"+r.chatProductId;
+    if(r.pageSlug)path="/page/"+encodeURIComponent(r.pageSlug);
+    else if(r.chatProductId!=null)path="/chat/"+r.chatProductId;
     else if(r.productId!=null)path="/product/"+r.productId;
     else if(r.panel==="profile")path="/profile/"+r.profileView;
     else if(r.panel)path="/"+r.panel;
@@ -290,11 +291,6 @@ export default function App(){
   },[panel,profileView,quick?.id,chatProduct?.id,authOpen,checkoutOpen]);
 
 
-  useEffect(()=>{
-    fetch(apiBase+"/api/v1/landing-pages/"+encodeURIComponent(routeFromUrl().pageSlug||""))
-      .then(async r=>{if(!routeFromUrl().pageSlug)return null;const d=await r.json() as {page?:LandingPage};if(r.ok)setLandingPage(d.page||null);})
-      .catch(()=>setLandingPage(null));
-  },[]);
   useEffect(()=>{
     const slug=routeFromUrl().pageSlug;
     if(!slug){setLandingPage(null);return;}
