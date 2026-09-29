@@ -538,19 +538,7 @@ export default function App(){
     document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"});
   }
 
-  useEffect(()=>{
-    const color=isLandingPage
-      ? (landingPage?.primaryColor || landingBanner?.primaryColor || "#f4f1f7")
-      : "#f4f1f7";
-    setLandingPrimaryColor(color);
-    document.documentElement.style.setProperty("--landing-primary",color);
-    document.body.style.backgroundColor=isLandingPage ? color : "";
-    document.documentElement.style.backgroundColor=isLandingPage ? color : "";
-    return()=>{
-      document.body.style.backgroundColor="";
-      document.documentElement.style.backgroundColor="";
-    };
-  },[isLandingPage,landingPage?.primaryColor,landingBanner?.id,landingBanner?.primaryColor]);
+
 
   return <main className={"market "+(isLandingPage?"landing-mode":"")}>
     {isLandingPage&&<button className="landing-back-button" type="button" onClick={()=>{setRouteHash("#/");window.location.hash="#/";window.scrollTo({top:0,left:0,behavior:"auto"})}}><Icon name="back" size={22}/><span>Asosiyga qaytish</span></button>}
