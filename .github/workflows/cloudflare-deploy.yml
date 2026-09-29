@@ -17,6 +17,8 @@ on:
 permissions:
   contents: read
 
+# Cloudflare deploy is validated on every main frontend change.
+
 concurrency:
   group: cloudflare-build-${{ github.ref }}
   cancel-in-progress: true
