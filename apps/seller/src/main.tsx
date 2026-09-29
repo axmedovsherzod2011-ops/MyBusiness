@@ -77,7 +77,15 @@ export default function App(){
   const tabRef=useRef(tab);
   const dirtyCountRef=useRef(inventoryDirtyCount);
   useEffect(()=>{tabRef.current=tab;dirtyCountRef.current=inventoryDirtyCount;},[tab,inventoryDirtyCount]);
-  useEffect(()=>{const modal=routeModal();if(!modal||!products.length)return;const product=products.find(p=>p.id===modal.id);if(!product)return;if(modal.kind==="edit"){setEditing(product);setPromoProduct(null);setDeleteProductTarget(null);}else if(modal.kind==="promo"){setPromoProduct(product);setEditing(null);setDeleteProductTarget(null);}else{setDeleteProductTarget(product);setEditing(null);setPromoProduct(null);}},[products]);
+  useEffect(()=>{
+    const modal=routeModal();
+    if(!modal||!products.length)return;
+    const product=products.find(p=>p.id===modal.id);
+    if(!product)return;
+    if(modal.kind==="edit"){setEditing(product);setPromoProduct(null);setDeleteProductTarget(null);}
+    else if(modal.kind==="promo"){setPromoProduct(product);setEditing(null);setDeleteProductTarget(null);}
+    else{setDeleteProductTarget(product);setEditing(null);setPromoProduct(null);}
+  },[products]);
 
   function syncRoute(){const next=tabFromLocation();setTab(next);}
   function requestNavigation(nextTab:string){
