@@ -305,6 +305,7 @@ export default function App(){
     try{
       const results=await Promise.all(changes.map(async ({product,value})=>({id:product.id,data:await api("/api/v1/products/"+product.id,{method:"PATCH",body:JSON.stringify({...product,stock:value})})})));
       setProducts(current=>current.map(product=>{const result=results.find(x=>x.id===product.id);return result?.data?.product||product;}));
+      inventoryOriginalRef.current={};
       setStockDraft({});setMessage(changes.length+" ta mahsulot qoldig'i saqlandi.");
       const destination=nextPath||pendingNavigation;
       if(destination){setPendingNavigation(null);window.history.pushState({},"",destination);syncRoute();}
