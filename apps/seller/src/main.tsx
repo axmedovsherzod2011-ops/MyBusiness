@@ -63,6 +63,7 @@ export default function App(){
   const [lastSync,setLastSync]=useState<Date|null>(null);
   const [editing,setEditing]=useState<Product|null>(null);
   const [stockDraft,setStockDraft]=useState<Record<number,string>>({});
+  const inventoryOriginalRef=useRef<Record<number,number>>({});
   const [analytics,setAnalytics]=useState<any|null>(null);
   const [promoProduct,setPromoProduct]=useState<Product|null>(null);
   const [promoDiscount,setPromoDiscount]=useState("10");
@@ -72,7 +73,7 @@ export default function App(){
   const [deleteLoading,setDeleteLoading]=useState(false);
   const [editingImageLoading,setEditingImageLoading]=useState(false);
 
-  const inventoryDirtyIds=useMemo(()=>Object.keys(stockDraft).filter(id=>{const product=products.find(p=>p.id===Number(id));return product&&Number(stockDraft[Number(id)])!==Number(product.stock)}).map(Number),[products,stockDraft]);
+  const inventoryDirtyIds=useMemo(()=>Object.keys(stockDraft).filter(id=>{const productId=Number(id);const product=products.find(p=>p.id===productId);const original=inventoryOriginalRef.current[productId];return product&&Number(stockDraft[productId])!==Number(original??product.stock)}).map(Number),[products,stockDraft]);
   const inventoryDirtyCount=inventoryDirtyIds.length;
   const tabRef=useRef(tab);
   const dirtyCountRef=useRef(inventoryDirtyCount);
@@ -98,7 +99,13 @@ export default function App(){
     const nextPath=pendingNavigation;
     if(!nextPath)return;
     if(save){void saveAllStock(nextPath);return;}
-    setStockDraft({});setPendingNavigation(null);window.history.pushState({},"",nextPath);syncRoute();
+    const originals=inventoryOriginalRef.current;
+    setProducts(current=>current.map(product=>Object.prototype.hasOwnProperty.call(originals,product.id)?{...product,stock:originals[product.id]}:product));
+    inventoryOriginalRef.current={};
+    setStockDraft({});
+    setPendingNavigation(null);
+    window.history.pushState({},"",nextPath);
+    syncRoute();
   }
 
   async function api(path:string, options:RequestInit={}) {
@@ -304,7 +311,13 @@ export default function App(){
     }catch(e){setMessage(e instanceof Error?e.message:"Ombor o'zgarishlarini saqlab bo'lmadi.");}
     finally{setInventorySaving(false)}
   }
-  function cancelAllStock(){setStockDraft({});setMessage("Ombor o'zgarishlari bekor qilindi.");}
+  function cancelAllStock(){
+    const originals=inventoryOriginalRef.current;
+    setProducts(current=>current.map(product=>Object.prototype.hasOwnProperty.call(originals,product.id)?{...product,stock:originals[product.id]}:product));
+    inventoryOriginalRef.current={};
+    setStockDraft({});
+    setMessage("Ombor o'zgarishlari bekor qilindi.");
+  });setMessage("Ombor o'zgarishlari bekor qilindi.");}
   async function loadAnalytics(){
     setAnalyticsLoading(true);
     try{const d=await api("/api/v1/analytics/summary?days=30");setAnalytics(d);}
@@ -476,7 +489,7 @@ export default function App(){
           {filtered.map(p=><div className="row seller-product-row" key={p.id}>
             <div className="thumb product-thumb">{(p.imageUrls?.[0]||firstImage(p.imageUrl))?<img loading="lazy" decoding="async" src={p.imageUrls?.[0]||firstImage(p.imageUrl)} alt=""/>:"NO IMAGE"}</div>
             <div className="product-row-main"><b>{p.name}</b><span>SKU · {p.sku} · {p.promoPrice!=null?<><s>{formatPrice(p.price)}</s> {formatPrice(p.promoPrice)} · {p.promoDiscountPercent}% chegirma</>:formatPrice(p.price)}</span></div>
-            {tab==="inventory"?<div className={"stock-editor "+(inventoryDirtyIds.includes(p.id)?"stock-editor-dirty":"")}><div className="stock-stepper"><button type="button" onClick={()=>setStockDraft(x=>({...x,[p.id]:String(Math.max(0,Number(x[p.id]??p.stock)-1))}))} aria-label="Bitta kamaytirish">−</button><input aria-label={p.name+" qoldig'i"} type="number" min="0" value={stockDraft[p.id] ?? String(p.stock)} onChange={e=>setStockDraft(x=>({...x,[p.id]:e.target.value}))}/><button type="button" onClick={()=>setStockDraft(x=>({...x,[p.id]:String(Math.max(0,Number(x[p.id]??p.stock)+1))}))} aria-label="Bitta oshirish">+</button></div><span className="stock-unit">dona</span></div>:<strong className={p.stock===0?"out":p.stock<=5?"low":""}>{p.stock} dona</strong>}
+            {tab==="inventory"?<div className={"stock-editor "+(inventoryDirtyIds.includes(p.id)?"stock-editor-dirty":"")}><div className="stock-stepper"><button type="button" onClick={()=>{if(!Object.prototype.hasOwnProperty.call(inventoryOriginalRef.current,p.id))inventoryOriginalRef.current[p.id]=p.stock;setStockDraft(x=>({...x,[p.id]:String(Math.max(0,Number(x[p.id]??p.stock)-1))}))}} aria-label="Bitta kamaytirish">−</button><input aria-label={p.name+" qoldig'i"} type="number" min="0" value={stockDraft[p.id] ?? String(p.stock)} onChange={e=>{if(!Object.prototype.hasOwnProperty.call(inventoryOriginalRef.current,p.id))inventoryOriginalRef.current[p.id]=p.stock;setStockDraft(x=>({...x,[p.id]:e.target.value}))}}/><button type="button" onClick={()=>{if(!Object.prototype.hasOwnProperty.call(inventoryOriginalRef.current,p.id))inventoryOriginalRef.current[p.id]=p.stock;setStockDraft(x=>({...x,[p.id]:String(Math.max(0,Number(x[p.id]??p.stock)+1))}))}} aria-label="Bitta oshirish">+</button></div><span className="stock-unit">dona</span></div>:<strong className={p.stock===0?"out":p.stock<=5?"low":""}>{p.stock} dona</strong>}
             {tab==="products"&&<div className="row-actions product-actions" aria-label={p.name+" amallari"}>
   <button type="button" className="product-action edit-action" onClick={()=>{setEditing(p);window.history.pushState({},"","/xaccount/mahsulotlar/edit/"+p.id)}} title="Mahsulotni tahrirlash" aria-label={p.name+" ni tahrirlash"}>
     <span className="product-action-icon" aria-hidden="true">✎</span><span>Tahrirlash</span>
