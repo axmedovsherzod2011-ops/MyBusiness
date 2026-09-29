@@ -317,7 +317,7 @@ export default function App(){
     inventoryOriginalRef.current={};
     setStockDraft({});
     setMessage("Ombor o'zgarishlari bekor qilindi.");
-  });setMessage("Ombor o'zgarishlari bekor qilindi.");}
+  }
   async function loadAnalytics(){
     setAnalyticsLoading(true);
     try{const d=await api("/api/v1/analytics/summary?days=30");setAnalytics(d);}
