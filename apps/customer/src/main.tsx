@@ -184,6 +184,7 @@ export default function App(){
   const [orderStatusFilter,setOrderStatusFilter]=useState<"all"|"new"|"preparing"|"shipping"|"completed">("all");
   const [myChats,setMyChats]=useState<Array<any>>([]);
   const [profileLoading,setProfileLoading]=useState(false);
+  const [routeHash,setRouteHash]=useState(()=>window.location.hash);
 
   type RouteState = {
     panel: "cart"|"favorites"|"menu"|"profile"|"filters"|"search"|null;
@@ -275,6 +276,7 @@ export default function App(){
 
   useEffect(()=>{
     const onPop=()=>{
+      setRouteHash(window.location.hash);
       const r=routeFromUrl();
       if(r.productId!=null && !products.some(p=>p.id===r.productId))return;
       applyRoute(r);
@@ -299,7 +301,7 @@ export default function App(){
       .then(async r=>{const d=await r.json() as {page?:LandingPage};if(r.ok)setLandingPage(d.page||null);else setLandingPage(null);})
       .catch(()=>setLandingPage(null))
       .finally(()=>setLandingPageLoading(false));
-  },[window.location.hash]);
+  },[routeHash]);
   useEffect(()=>{
     fetch(apiBase+"/api/v1/banners",{headers:{Accept:"application/json"}})
       .then(async r=>{const d=await r.json() as {banners?:Banner[]};if(r.ok)setBanners(d.banners||[])})
