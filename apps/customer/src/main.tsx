@@ -97,6 +97,8 @@ function SimilarProducts({items,onOpen,onCart,cart,onQty,favs,onLike,onAsk}:{ite
   </section>;
 }
 
+function isNew(p:Product){ const t=Date.parse(p.createdAt); return Number.isFinite(t) && Date.now()-t <= 30*24*60*60*1000; }
+
 function ProductCard({p,liked,qty,onLike,onCart,onQty,onAsk,onOpen}:{p:Product;liked:boolean;qty:number;onLike:(id:number)=>void;onCart:(p:Product)=>void;onQty:(id:number,d:number)=>void;onAsk:(p:Product)=>void;onOpen:(p:Product)=>void}){
   const sale=p.promoPrice!=null; const images=productImages(p);
   return <article className={"product-card "+(sale?"sale-product-card":"")}>
