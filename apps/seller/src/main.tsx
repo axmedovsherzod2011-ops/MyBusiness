@@ -81,7 +81,6 @@ export default function App(){
   const [bannerMobileUrl,setBannerMobileUrl]=useState("");
   const [bannerTargetType,setBannerTargetType]=useState("all-products");
   const [bannerTargetValue,setBannerTargetValue]=useState("");
-  const [bannerPrimaryColor,setBannerPrimaryColor]=useState("#f4f1f7");
   const [landingPages,setLandingPages]=useState<LandingPage[]>([]);
   const [pageEditorOpen,setPageEditorOpen]=useState(false);
   const [pageSaving,setPageSaving]=useState(false);
@@ -310,8 +309,8 @@ export default function App(){
   async function createBanner(){
     if(!bannerDesktopUrl||!bannerMobileUrl){setMessage("Avval desktop va mobile banner rasmlarini yuklang.");return;}
     if(["category","page","url"].includes(bannerTargetType)&&!bannerTargetValue){setMessage("Banner qayerga olib borishini tanlang.");return;}
-    try{setBannerSaving(true);const d=await api("/api/v1/banners",{method:"POST",body:JSON.stringify({desktopImageUrl:bannerDesktopUrl,mobileImageUrl:bannerMobileUrl,sortOrder:banners.length,targetType:bannerTargetType,targetValue:bannerTargetValue,primaryColor:bannerPrimaryColor})});
-      setBanners(x=>[...x,d.banner]);setBannerDesktopUrl("");setBannerMobileUrl("");setBannerPrimaryColor("#f4f1f7");setMessage("Banner customer saytiga joylandi.");
+    try{setBannerSaving(true);const d=await api("/api/v1/banners",{method:"POST",body:JSON.stringify({desktopImageUrl:bannerDesktopUrl,mobileImageUrl:bannerMobileUrl,sortOrder:banners.length,targetType:bannerTargetType,targetValue:bannerTargetValue})});
+      setBanners(x=>[...x,d.banner]);setBannerDesktopUrl("");setBannerMobileUrl("");setMessage("Banner customer saytiga joylandi.");
     }catch(e){setMessage(e instanceof Error?e.message:"Bannerni saqlab bo'lmadi.");}finally{setBannerSaving(false)}
   }
   async function toggleBanner(b:Banner){
@@ -619,25 +618,7 @@ export default function App(){
             <label className="banner-upload-card"><input type="file" accept="image/*" disabled={bannerSaving} onChange={async e=>{const f=e.target.files?.[0];e.currentTarget.value="";if(!f)return;try{setBannerSaving(true);setBannerDesktopUrl(await uploadBannerFile(f,1440,480));setMessage("Desktop banner tayyor.");}catch(err){setMessage(err instanceof Error?err.message:"Desktop banner yuklanmadi.")}finally{setBannerSaving(false)}}}/><span>▣</span><b>Desktop banner</b><small>1440 × 480 px · 3:1</small>{bannerDesktopUrl&&<img src={bannerDesktopUrl} alt="Desktop banner preview"/>}</label>
             <label className="banner-upload-card"><input type="file" accept="image/*" disabled={bannerSaving} onChange={async e=>{const f=e.target.files?.[0];e.currentTarget.value="";if(!f)return;try{setBannerSaving(true);setBannerMobileUrl(await uploadBannerFile(f,1080,540));setMessage("Mobile banner tayyor.");}catch(err){setMessage(err instanceof Error?err.message:"Mobile banner yuklanmadi.")}finally{setBannerSaving(false)}}}/><span>▯</span><b>Telefon banner</b><small>1080 × 540 px · 2:1</small>{bannerMobileUrl&&<img src={bannerMobileUrl} alt="Mobile banner preview"/>}</label>
           </div>          <div className="banner-target-box">
-            <div className="banner-color-editor">
-              <span className="editor-section-kicker">BANNER · SAHIFA RANGI</span>
-              <h3>Maxsus sahifa fon rangi</h3>
-              <p>Tanlangan rang banner ochilganda maxsus sahifaning <b>butun foniga</b> qo'llanadi.</p>
-              <div className="banner-color-controls">
-                <label className="banner-color-picker" title="Rangni tanlash">
-                  <input type="color" value={bannerPrimaryColor} onChange={e=>setBannerPrimaryColor(e.target.value)} aria-label="Sahifa rangini tanlash"/>
-                  <span style={{background:bannerPrimaryColor}}/>
-                </label>
-                <div className="banner-color-value">
-                  <span>HEX rang</span>
-                  <input className="banner-color-hex" value={bannerPrimaryColor} onChange={e=>{const v=e.target.value.trim().replace(/[^#0-9a-fA-F]/g,"");setBannerPrimaryColor(v.startsWith("#")?v:"#"+v)}} onBlur={()=>{if(!/^#[0-9a-fA-F]{6}$/.test(bannerPrimaryColor))setBannerPrimaryColor("#f4f1f7")}} placeholder="#F4F1F7" maxLength={7} aria-label="HEX rang"/>
-                </div>
-                <div className="banner-color-presets" aria-label="Tayyor ranglar">
-                  {["#F4F1F7","#EAF4FF","#ECFDF5","#FFF7ED","#FFF1F2","#F5F3FF"].map(c=><button type="button" key={c} className="banner-color-swatch" style={{background:c}} aria-label={c} title={c} onClick={()=>setBannerPrimaryColor(c.toLowerCase())}/>)}
-                </div>
-                <div className="banner-color-live-preview" style={{background:bannerPrimaryColor}}><span>Preview</span><b>{bannerPrimaryColor.toUpperCase()}</b></div>
-              </div>
-            </div><div><span className="editor-section-kicker">BANNER · YO'NALISH</span><h3>Banner bosilganda qayerga o'tadi?</h3><p>Endi banner bosilganda avtomatik ravishda faqat mahsulotlar sahifasi ochilmaydi — yo'nalishni seller tanlaydi.</p></div>
+            <div><span className="editor-section-kicker">BANNER · YO'NALISH</span><h3>Banner bosilganda qayerga o'tadi?</h3><p>Endi banner bosilganda avtomatik ravishda faqat mahsulotlar sahifasi ochilmaydi — yo'nalishni seller tanlaydi.</p></div>
             <select value={bannerTargetType} onChange={e=>{setBannerTargetType(e.target.value);setBannerTargetValue("");}}>
               <option value="all-products">Barcha mahsulotlar</option><option value="new-products">Yangi mahsulotlar</option><option value="sale-products">Aksiyalar</option><option value="category">Kategoriya</option><option value="page">Yangi/maxsus sahifa</option><option value="url">Boshqa sayt yoki sahifa</option>
             </select>
