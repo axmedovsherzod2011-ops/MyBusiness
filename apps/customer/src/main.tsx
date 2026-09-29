@@ -185,6 +185,7 @@ export default function App(){
   const [myChats,setMyChats]=useState<Array<any>>([]);
   const [profileLoading,setProfileLoading]=useState(false);
   const [routeHash,setRouteHash]=useState(()=>window.location.hash);
+  const [landingPrimaryColor,setLandingPrimaryColor]=useState("#f4f1f7");
 
   type RouteState = {
     panel: "cart"|"favorites"|"menu"|"profile"|"filters"|"search"|null;
@@ -516,10 +517,18 @@ export default function App(){
   }
   function signOut(){localStorage.removeItem("mybusiness:customer-auth");setAuthUser(null);setAuthSession("");setAuthStatus("idle");setAuthFirstName("");setAuthLastName("");}
 
-  const isLandingPage = Boolean(routeFromUrl().pageSlug);
+  const currentUrlRoute=routeFromUrl();
+  const isLandingPage = Boolean(currentUrlRoute.pageSlug);
+  const landingBanner = currentUrlRoute.pageSlug ? banners.find(b=>b.targetType==="page" && b.targetValue===currentUrlRoute.pageSlug) : null;
 
   function openBannerTarget(b:Banner){
-    if(b.targetType==="page" && b.targetValue){window.location.hash="#/page/"+encodeURIComponent(b.targetValue);window.scrollTo(0,0);return;}
+    if(b.targetType==="page" && b.targetValue){
+      const nextHash="#/page/"+encodeURIComponent(b.targetValue);
+      setRouteHash(nextHash);
+      window.location.hash=nextHash;
+      window.scrollTo({top:0,left:0,behavior:"auto"});
+      return;
+    }
     if(b.targetType==="url" && b.targetValue){window.open(b.targetValue,"_blank","noopener,noreferrer");return;}
     if(b.targetType==="new-products"){setCategory("new");setTimeout(()=>document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"}),0);return;}
     if(b.targetType==="sale-products"){setCategory("sale");setTimeout(()=>document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"}),0);return;}
@@ -527,8 +536,35 @@ export default function App(){
     document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"});
   }
 
-  return <main className="market">
-    {panel===null&&<header className="app-header">
+  useEffect(()=>{
+    if(!isLandingPage || !landingBanner){setLandingPrimaryColor("#f4f1f7");return;}
+    const src=landingBanner.desktopImageUrl || landingBanner.mobileImageUrl;
+    const img=new Image();
+    img.crossOrigin="anonymous";
+    img.onload=()=>{
+      try{
+        const canvas=document.createElement("canvas");
+        const size=48; canvas.width=size; canvas.height=size;
+        const ctx=canvas.getContext("2d",{willReadFrequently:true});
+        if(!ctx)throw new Error("no canvas");
+        ctx.drawImage(img,0,0,size,size);
+        const data=ctx.getImageData(0,0,size,size).data;
+        let r=0,g=0,b=0,n=0;
+        for(let i=0;i<data.length;i+=16){if(data[i+3]<180)continue;r+=data[i];g+=data[i+1];b+=data[i+2];n++;}
+        if(n){
+          r=Math.round(r/n);g=Math.round(g/n);b=Math.round(b/n);
+          const lift=0.72; r=Math.round(r+(255-r)*lift);g=Math.round(g+(255-g)*lift);b=Math.round(b+(255-b)*lift);
+          setLandingPrimaryColor(`rgb(${r}, ${g}, ${b})`);
+        }
+      }catch{setLandingPrimaryColor("#f4f1f7");}
+    };
+    img.onerror=()=>setLandingPrimaryColor("#f4f1f7");
+    img.src=src;
+  },[isLandingPage,landingBanner?.id,landingBanner?.desktopImageUrl]);
+
+  return <main className={"market "+(isLandingPage?"landing-mode":"")} style={isLandingPage?{"--landing-primary":landingPrimaryColor} as React.CSSProperties:undefined}>
+    {isLandingPage&&<button className="landing-back-button" type="button" onClick={()=>{setRouteHash("#/");window.location.hash="#/";window.scrollTo({top:0,left:0,behavior:"auto"})}}><Icon name="back" size={22}/><span>Asosiyga qaytish</span></button>}
+    {!isLandingPage&&panel===null&&<header className="app-header">
       <a className="logo" href="/" aria-label="MyBusiness Market">MYBUSINESS<span>MARKET</span></a>
       <form className="header-search-trigger" role="search" onSubmit={e=>{e.preventDefault();openSearch(query)}}>
         <span className="search-leading" aria-hidden="true"><Icon name="search" size={21}/></span>
