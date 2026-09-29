@@ -20,7 +20,7 @@ export function registerBannerRoutes(app: Express): void {
     try {
       await initializeDatabase();
       const db = requireDatabase();
-      const result = await db.query(`SELECT id, desktop_image_url, mobile_image_url, active, sort_order, created_at, target_type, target_value
+      const result = await db.query(`SELECT id, desktop_image_url, mobile_image_url, active, sort_order, created_at, target_type, target_value, primary_color
         FROM marketplace_banners WHERE active=TRUE ORDER BY sort_order ASC, created_at DESC, id DESC`);
       res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
       res.json({ banners: result.rows.map(toBanner) });
