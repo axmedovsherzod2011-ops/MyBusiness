@@ -10,6 +10,8 @@ on:
 permissions:
   contents: read
 
+# CI is intentionally run on every main push.
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
