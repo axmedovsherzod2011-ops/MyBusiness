@@ -25,10 +25,13 @@ export default {
     if (
       response.status === 404 &&
       (request.method === "GET" || request.method === "HEAD") &&
-      (request.headers.get("accept") ?? "").includes("text/html")
+      true
     ) {
       const indexUrl = new URL("/index.html", url);
-      response = await env.ASSETS.fetch(new Request(indexUrl.toString(), request));
+      response = await env.ASSETS.fetch(new Request(indexUrl.toString(), {
+        method: "GET",
+        headers: request.headers,
+      }));
     }
 
     const contentType = response.headers.get("content-type") ?? "";
