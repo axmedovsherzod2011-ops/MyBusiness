@@ -4,6 +4,7 @@ import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
 
 const apiBase = "https://mybusiness-api-e6dk.onrender.com";
+type Banner = { id:number; desktopImageUrl:string; mobileImageUrl:string; active:boolean; sortOrder:number; createdAt:string };
 
 const categories = [
   ["all","Barcha mahsulotlar","✦"],
@@ -139,6 +140,7 @@ function HomeProductGrid({items,favs,cart,onLike,onCart,onQty,onAsk,onOpen,onPro
 
 export default function App(){
   const [products,setProducts]=useState<Product[]>([]);
+  const [banners,setBanners]=useState<Banner[]>([]);
   const [query,setQuery]=useState("");
   const [category,setCategory]=useState("all");
   const [sub,setSub]=useState("");
@@ -280,6 +282,11 @@ export default function App(){
   },[panel,profileView,quick?.id,chatProduct?.id,authOpen,checkoutOpen]);
 
 
+  useEffect(()=>{
+    fetch(apiBase+"/api/v1/banners",{headers:{Accept:"application/json"}})
+      .then(async r=>{const d=await r.json() as {banners?:Banner[]};if(r.ok)setBanners(d.banners||[])})
+      .catch(()=>setBanners([]));
+  },[]);
   useEffect(()=>{
     fetch(apiBase+"/api/v1/products",{headers:{Accept:"application/json"}})
       .then(async r=>{const d=await r.json() as ProductsResponse & {message?:string};if(!r.ok)throw new Error(d.message||"API xatosi");setProducts(d.products||[])})
@@ -498,6 +505,13 @@ export default function App(){
       </form>
     </header>}
 
+    {banners.length>0&&<section className="customer-banner-section" aria-label="Maxsus takliflar">
+      <div className="customer-banner-track">
+        {banners.map(b=><a className="customer-banner" key={b.id} href={currentRoute()==="/"?"#all-products":"#all-products"} onClick={e=>{e.preventDefault();document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"})}}>
+          <picture><source media="(max-width: 700px)" srcSet={b.mobileImageUrl}/><img src={b.desktopImageUrl} alt="Maxsus taklif" loading="eager" decoding="async"/></picture>
+        </a>)}
+      </div>
+    </section>}
     <section className="app-hero">
       <div className="app-hero-copy"><span className="eyebrow">MYBUSINESS MARKET</span><h1>Kerakli mahsulotlar<br/><em>bir joyda.</em></h1><p>Yangi mahsulotlar, kundalik xaridlar va maxsus takliflar.</p><button className="primary" onClick={()=>document.getElementById("all-products")?.scrollIntoView({behavior:"smooth"})}>Barcha mahsulotlarni ko'rish</button></div>
       <div className="app-hero-art"><span>NEW</span><b>Tanlangan<br/>mahsulotlar</b><strong>MB</strong></div>
