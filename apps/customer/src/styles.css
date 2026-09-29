@@ -2454,3 +2454,99 @@ html{
   transition:transform .16s ease,box-shadow .16s ease;
 }
 .product-load-more button:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(20,20,30,.09)}
+
+
+/* Promotions: sale products are visually marked across cards and product details. */
+.product-card.sale-product-card{
+  background:#dc2626!important;
+  border-color:#b91c1c!important;
+  color:#fff!important;
+}
+.product-card.sale-product-card .product-info,
+.product-card.sale-product-card .product-name{
+  color:#fff!important;
+}
+.product-card.sale-product-card .product-cat,
+.product-card.sale-product-card .product-info p,
+.product-card.sale-product-card .product-stock-text{
+  color:rgba(255,255,255,.82)!important;
+}
+.product-card.sale-product-card .product-image{
+  background:#fff;
+}
+.product-card.sale-product-card .sale-badge{
+  background:#dc2626!important;
+  color:#fff!important;
+  border:1px solid rgba(255,255,255,.28);
+}
+.product-card.sale-product-card .stock-badge{
+  background:#fff!important;
+  color:#b91c1c!important;
+}
+.product-card.sale-product-card .old-price{
+  color:rgba(255,255,255,.7)!important;
+}
+.product-card.sale-product-card .promo-price,
+.product-card.sale-product-card .product-price{
+  color:#fff!important;
+}
+.product-card.sale-product-card .add-button{
+  background:#fff!important;
+  color:#b91c1c!important;
+}
+.product-card.sale-product-card .card-qty{
+  background:rgba(255,255,255,.16)!important;
+  color:#fff!important;
+  border-color:rgba(255,255,255,.3)!important;
+}
+.product-card.sale-product-card .card-qty button{
+  color:#fff!important;
+}
+.product-detail.sale-product-detail{
+  background:#dc2626!important;
+  color:#fff!important;
+  border-radius:22px!important;
+  padding:24px 22px 120px!important;
+  border:1px solid #b91c1c!important;
+}
+.product-detail.sale-product-detail .detail-info,
+.product-detail.sale-product-detail .detail-info h1,
+.product-detail.sale-product-detail .detail-category,
+.product-detail.sale-product-detail .detail-meta,
+.product-detail.sale-product-detail .detail-description,
+.product-detail.sale-product-detail .detail-block span,
+.product-detail.sale-product-detail .detail-block b{
+  color:#fff!important;
+}
+.product-detail.sale-product-detail .detail-block{
+  background:rgba(255,255,255,.12)!important;
+  border:1px solid rgba(255,255,255,.2)!important;
+}
+.product-detail.sale-product-detail .detail-stock{
+  background:#fff!important;
+  color:#b91c1c!important;
+}
+.product-detail.sale-product-detail .old-price{
+  color:rgba(255,255,255,.72)!important;
+}
+.product-detail.sale-product-detail .promo-price,
+.product-detail.sale-product-detail .detail-price{
+  color:#fff!important;
+}
+.product-detail.sale-product-detail .detail-add{
+  background:#fff!important;
+  color:#b91c1c!important;
+}
+.product-detail.sale-product-detail .detail-qty{
+  border-color:rgba(255,255,255,.3)!important;
+  background:rgba(255,255,255,.12)!important;
+  color:#fff!important;
+}
+.product-detail.sale-product-detail .detail-qty button{
+  color:#fff!important;
+}
+.product-detail.sale-product-detail .detail-ask{
+  background:rgba(255,255,255,.12)!important;
+  border-color:rgba(255,255,255,.35)!important;
+  color:#fff!important;
+}
