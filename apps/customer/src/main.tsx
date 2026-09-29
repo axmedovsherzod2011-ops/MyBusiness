@@ -186,6 +186,7 @@ export default function App(){
   const [profileLoading,setProfileLoading]=useState(false);
   const [routeHash,setRouteHash]=useState(()=>window.location.hash);
   const [landingPrimaryColor,setLandingPrimaryColor]=useState("#f4f1f7");
+  const [visibleLimit,setVisibleLimit]=useState(32);
 
   type RouteState = {
     panel: "cart"|"favorites"|"menu"|"profile"|"filters"|"search"|null;
@@ -398,9 +399,10 @@ export default function App(){
   const cartItems=Object.entries(cart).map(([id,q])=>({p:products.find(x=>x.id===Number(id)),q})).filter(x=>x.p) as {p:Product;q:number}[];
   const cartCount=cartItems.reduce((s,x)=>s+x.q,0);
   const cartTotal=cartItems.reduce((s,x)=>s+effectivePrice(x.p)*x.q,0);
-  const newProducts=[...products].filter(isNew).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt)).slice(0,8);
-  const popular=[...products].filter(p=>p.stock>0).sort((a,b)=>b.stock-a.stock).slice(0,8);
-  const categoryCounts=products.reduce<Record<string,number>>((acc,p)=>{const k=cat(p);acc[k]=(acc[k]||0)+1;return acc},{}); 
+  const renderedProducts=visible.slice(0,visibleLimit);
+  const newProducts=useMemo(()=>[...products].filter(isNew).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt)).slice(0,8),[products]);
+  const popular=useMemo(()=>[...products].filter(p=>p.stock>0).sort((a,b)=>b.stock-a.stock).slice(0,8),[products]);
+  const categoryCounts=useMemo(()=>products.reduce<Record<string,number>>((acc,p)=>{const k=cat(p);acc[k]=(acc[k]||0)+1;return acc},{}),[products]); 
 
   function catalog(){document.getElementById("catalog")?.scrollIntoView({behavior:"smooth"});}
   function chooseCategory(k:string){setCategory(k);setSub("");setPanel(null);setTimeout(catalog,30);}
@@ -537,7 +539,15 @@ export default function App(){
   }
 
   useEffect(()=>{
-    setLandingPrimaryColor(isLandingPage && landingBanner ? (landingBanner.primaryColor || "#f4f1f7") : "#f4f1f7");
+    const color=isLandingPage && landingBanner ? (landingBanner.primaryColor || "#f4f1f7") : "#f4f1f7";
+    setLandingPrimaryColor(color);
+    document.documentElement.style.setProperty("--landing-primary",color);
+    document.body.style.backgroundColor=isLandingPage ? color : "";
+    document.documentElement.style.backgroundColor=isLandingPage ? color : "";
+    return()=>{
+      document.body.style.backgroundColor="";
+      document.documentElement.style.backgroundColor="";
+    };
   },[isLandingPage,landingBanner?.id,landingBanner?.primaryColor]);
 
   return <main className={"market "+(isLandingPage?"landing-mode":"")} style={isLandingPage?{"--landing-primary":landingPrimaryColor,backgroundColor:landingPrimaryColor} as React.CSSProperties:undefined}>
@@ -554,8 +564,8 @@ export default function App(){
 
     {banners.length>0&&<section className="customer-banner-section" aria-label="Maxsus takliflar">
       <div className="customer-banner-track">
-        {banners.map(b=><button className={"customer-banner "+(isLandingPage?"customer-banner-static":"")} key={b.id} type="button" disabled={isLandingPage} onClick={()=>{if(!isLandingPage)openBannerTarget(b)}} aria-label={isLandingPage?"Banner":"Bannerga o'tish"}>
-          <picture><source media="(max-width: 700px)" srcSet={b.mobileImageUrl}/><img src={b.desktopImageUrl} alt="Maxsus taklif" loading="eager" decoding="async"/></picture>
+        {banners.map((b,i)=><button className={"customer-banner "+(isLandingPage?"customer-banner-static":"")} key={b.id} type="button" disabled={isLandingPage} onClick={()=>{if(!isLandingPage)openBannerTarget(b)}} aria-label={isLandingPage?"Banner":"Bannerga o'tish"}>
+          <picture><source media="(max-width: 700px)" srcSet={b.mobileImageUrl}/><img src={b.desktopImageUrl} alt="Maxsus taklif" loading={i===0?"eager":"lazy"} decoding="async"/></picture>
         </button>)}
       </div>
     </section>}
@@ -565,7 +575,7 @@ export default function App(){
     </section>:null}
     {!landingPage&&!landingPageLoading&&<section id="all-products" className="product-section app-products">
       <div className="catalog-filter-bar"><button className="filter-main-button" onClick={()=>setPanel("filters")}><span>Filtrlar</span><Icon name="grid" size={17}/></button><button className="sort-button" onClick={()=>setPanel("filters")}><span>{sort==="price-low"?"Arzon → qimmat":sort==="price-high"?"Qimmat → arzon":sort==="name"?"Nomi bo‘yicha":"Yangi mahsulotlar"}</span><span>⌄</span></button>{(category!=="all"||sub||availability==="stock"||minPrice||maxPrice||query)&&<button className="filter-reset-chip" onClick={clearFilters}>Tozalash</button>}</div>
-      {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<HomeProductGrid items={visible} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
+      {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<><HomeProductGrid items={renderedProducts} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>{renderedProducts.length<visible.length&&<div className="product-load-more"><span>{renderedProducts.length} / {visible.length} ta mahsulot ko'rsatilmoqda</span><button type="button" onClick={()=>setVisibleLimit(n=>Math.min(n+32,visible.length))}>Yana 32 ta ko'rsatish</button></div>}</>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
     </section>}
 
     {!isLandingPage&&<nav className="mobile-nav" aria-label="Asosiy navigatsiya">
