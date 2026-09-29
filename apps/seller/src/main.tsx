@@ -60,6 +60,7 @@ export default function App(){
   const [imageUrlInput,setImageUrlInput]=useState("");
   const [deleteProductTarget,setDeleteProductTarget]=useState<Product|null>(null);
   const [deleteLoading,setDeleteLoading]=useState(false);
+  const [editingImageLoading,setEditingImageLoading]=useState(false);
 
   async function api(path:string, options:RequestInit={}) {
     const r=await fetch(apiBase+path,{...options,headers:{"Accept":"application/json","Content-Type":"application/json",...(options.headers||{})}});
@@ -178,10 +179,11 @@ export default function App(){
   }
 
   async function uploadEditingImage(file:File){
-    if(!editing)return;
+    if(!editing||editingImageLoading)return;
     if(!file.type.startsWith("image/")){setMessage("Faqat rasm fayli tanlang.");return;}
     if(file.size>12*1024*1024){setMessage("Rasm 12 MB dan kichik bo'lishi kerak.");return;}
     try{
+      setEditingImageLoading(true);
       const normalized=await new Promise<Blob>((resolve,reject)=>{
         const source=URL.createObjectURL(file); const img=new Image();
         img.onload=()=>{URL.revokeObjectURL(source);const canvas=document.createElement("canvas");canvas.width=1080;canvas.height=1440;
@@ -194,6 +196,7 @@ export default function App(){
       const url=await uploadImage(new File([normalized],file.name.replace(/\.[^.]+$/,"")+".jpg",{type:"image/jpeg"}));
       setEditing(p=>p?{...p,imageUrl:p.imageUrls?.[0]||url,imageUrls:[...(p.imageUrls||[]),url]}:p);
     }catch(e){setMessage(e instanceof Error?e.message:"Rasmni yuklab bo'lmadi.");}
+    finally{setEditingImageLoading(false)}
   }
   function removeEditingImage(url:string){
     setEditing(p=>{if(!p)return p;const urls=(p.imageUrls||[]).filter(x=>x!==url);return {...p,imageUrls:urls,imageUrl:urls[0]||""};});
@@ -217,11 +220,13 @@ export default function App(){
     if(!/^[A-Z0-9._-]+$/.test(normalizedSku)){setMessage("SKU faqat harf, raqam, -, _, . belgilaridan iborat bo'lishi mumkin.");return;}
     product={...product,sku:normalizedSku};
     try{
+      setSaving(true);
       const d=await api("/api/v1/products/"+product.id,{method:"PATCH",body:JSON.stringify({
         name:product.name,sku:product.sku,description:product.description,price:product.price,stock:product.stock,imageUrl:product.imageUrls?.[0]||product.imageUrl,imageUrls:product.imageUrls||[]
       })});
       setProducts(x=>x.map(p=>p.id===product.id?d.product:p)); setEditing(null); setMessage("Mahsulot yangilandi.");
     }catch(e){setMessage(e instanceof Error?e.message:"Mahsulotni yangilab bo'lmadi.")}
+    finally{setSaving(false)}
   }
   async function deleteProduct(product:Product){
     if(deleteLoading)return;
@@ -445,29 +450,34 @@ export default function App(){
 
       {tab==="analytics"&&<section className="panel analytics-panel"><div className="analytics-hero"><div><span className="eyebrow">BUSINESS INTELLIGENCE · 30 KUN</span><h2>Analitika</h2><p>Do'koningizning real savdo va ombor ko'rsatkichlari Neon bazasidan avtomatik yuklanadi.</p></div><div className="analytics-live"><span className="live-dot"/> LIVE DATA</div></div>{analyticsLoading?<DbTableSkeleton rows={8}/>:!analytics?<div className="empty"><b>Analitika hozircha mavjud emas</b><span>Ma'lumotlar bazadan yuklanmoqda yoki vaqtincha mavjud emas.</span></div>:<><div className="stats"><div><span>30 kunlik tushum</span><b>{formatPrice(Number(analytics.summary.revenue))}</b><small>Faqat yakunlangan buyurtmalar</small></div><div><span>Buyurtmalar</span><b>{analytics.summary.totalOrders}</b><small>{analytics.summary.completedOrders} tasi yakunlangan</small></div><div><span>O'rtacha chek</span><b>{formatPrice(Number(analytics.summary.averageOrder))}</b><small>Yakunlangan buyurtmalar</small></div><div><span>Past qoldiq</span><b>{analytics.stock.lowStock}</b><small>{analytics.stock.outOfStock} ta tugagan</small></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><h2>Eng ko'p tushum bergan mahsulotlar</h2><button className="db-refresh-button small-refresh" onClick={()=>void refreshAll()} disabled={refreshLoading}>{refreshLoading?<><span className="refresh-spinner" aria-hidden="true"/>Yangilanmoqda...</>:<><span className="refresh-icon" aria-hidden="true">↻</span>Yangilash</>}</button></div>{analytics.topProducts.map((x:any)=><div className="overview-list" key={x.productId}><div><span>{x.productName}</span><b>{formatPrice(Number(x.revenue))}</b></div></div>)}</section><section className="panel"><div className="panel-head"><h2>Kundalik savdo</h2></div>{analytics.daily.map((x:any)=><div className="overview-list" key={String(x.day)}><div><span>{formatAnalyticsDay(String(x.day))}</span><b>{formatPrice(Number(x.revenue))} · {x.orders} buyurtma</b></div></div>)}</section></div></>}</section>}
       {tab==="marketing"&&<section className="panel"><div className="panel-head"><div><h2>Marketing & Aksiyalar</h2><span className="muted">Aksiyalar real katalogga saqlanadi va customer API orqali chegirmali narx sifatida qaytadi.</span></div></div>{loading?<DbTableSkeleton rows={7}/>:<div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{(p.imageUrls?.[0]||p.imageUrl)?<img src={p.imageUrls?.[0]||p.imageUrl} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo'q"}</span></div><button className="secondary small" onClick={()=>setPromoProduct(p)}>{p.promoPrice!=null?"O'zgartirish":"Aksiya qo'shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To'xtatish</button>}</div>)}</div>}</section>}
-      {editing&&<div className="modal-backdrop editor-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setEditing(null)}}><form className="modal product-editor-modal" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}>
-  <div className="panel-head editor-head"><div><span className="eyebrow">PRODUCT EDITOR</span><h2>Mahsulotni tahrirlash</h2><span className="muted">Barcha ma'lumotlar va rasmlar shu oynadan boshqariladi.</span></div><button type="button" className="modal-close-button" onClick={()=>setEditing(null)} aria-label="Yopish" title="Yopish"><span aria-hidden="true">×</span></button></div>
-  <div className="editor-grid"><div className="editor-fields">
-    <label>Nomi<input required maxLength={180} value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})}/></label>
-    <label>Qisqa SKU<input required maxLength={40} value={editing.sku} onChange={e=>setEditing({...editing,sku:e.target.value.toUpperCase()})} autoComplete="off"/><small className="field-help">SKU faqat seller panelida ishlatiladi.</small></label>
-    <label>Tavsif<textarea rows={7} value={editing.description} onChange={e=>setEditing({...editing,description:e.target.value})}/></label>
-    <div className="two"><label>Narx<input required type="number" min="0" step="0.01" value={editing.price} onChange={e=>setEditing({...editing,price:Number(e.target.value)})}/></label><label>Qoldiq<input required type="number" min="0" step="1" value={editing.stock} onChange={e=>setEditing({...editing,stock:Number(e.target.value)})}/></label></div>
-  </div><div className="editor-media">
-    <div className="editor-media-head"><div><b>Mahsulot rasmlari</b><small>Surib tartibni o'zgartiring. 1-rasm — asosiy.</small></div><span>{(editing.imageUrls||[]).length}/12</span></div>
-    <div className="editor-image-drop" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();void Promise.all(Array.from(e.dataTransfer.files||[]).map(uploadEditingImage))}}>
-      <input type="file" accept="image/*" multiple onChange={e=>{const files=Array.from(e.target.files||[]);void Promise.all(files.map(uploadEditingImage));e.currentTarget.value=""}}/>
-      <b>Rasm qo'shish</b><span>Drag & drop yoki fayl tanlang</span>
-    </div>
-    <div className="image-url-add"><input value={imageUrlInput} onChange={e=>setImageUrlInput(e.target.value)} placeholder="https://.../image.jpg" onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addEditingImageUrl()}}}/><button type="button" className="secondary small" onClick={addEditingImageUrl}>Qo'shish</button></div>
-    <div className="editor-image-grid">{(editing.imageUrls||[]).map((url,i)=><div className={"editor-image-card "+(i===0?"primary-image":"")} key={url} draggable onDragStart={e=>e.dataTransfer.setData("text/plain",String(i))} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const from=Number(e.dataTransfer.getData("text/plain"));reorderEditingImage(from,i)}}>
-      <img src={url} alt={editing.name+" "+(i+1)}/><span className="editor-image-index">{i===0?"ASOSIY":i+1}</span><button type="button" className="editor-image-delete" onClick={()=>removeEditingImage(url)} aria-label="Rasmni o'chirish">×</button>
-      <div className="editor-image-actions"><button type="button" disabled={i===0} onClick={()=>reorderEditingImage(i,0)}>Asosiy</button><button type="button" disabled={i===0} onClick={()=>reorderEditingImage(i,i-1)}>←</button><button type="button" disabled={i===(editing.imageUrls||[]).length-1} onClick={()=>reorderEditingImage(i,i+1)}>→</button></div>
-    </div>)}</div>
-    {!editing.imageUrls?.length&&<div className="editor-no-images">Hali rasm qo'shilmagan.</div>}
-  </div></div>
-  <div className="editor-footer"><span>Rasm tartibi saqlanganda customer saytida ham shu ketma-ketlik ishlatiladi.</span><button className="primary" disabled={saving}>O'zgarishlarni saqlash</button></div>
-</form></div>}
-      {deleteProductTarget&&<div className="modal-backdrop delete-confirm-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!deleteLoading)setDeleteProductTarget(null)}}><div className="modal delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-product-title">
+      {editing&&<div className="modal-backdrop editor-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!saving&&!editingImageLoading)setEditing(null)}}><form className="modal product-editor-modal" onSubmit={e=>{e.preventDefault();void saveProduct(editing)}}>
+  <header className="product-editor-header">
+    <div className="product-editor-title-wrap"><div className="product-editor-avatar">{(editing.imageUrls?.[0]||editing.imageUrl)?<img src={editing.imageUrls?.[0]||editing.imageUrl} alt=""/>:<span>MB</span>}</div><div><span className="eyebrow">CATALOG · PRODUCT EDITOR</span><h2>Mahsulotni tahrirlash</h2><p>{editing.name||"Yangi mahsulot"} <span>·</span> SKU {editing.sku||"—"}</p></div></div>
+    <div className="product-editor-header-actions"><span className="editor-live-badge"><i/> Bazaga ulangan</span><button type="button" className="modal-close-button" onClick={()=>setEditing(null)} disabled={saving||editingImageLoading} aria-label="Yopish" title="Yopish"><span aria-hidden="true">×</span></button></div>
+  </header>
+  <div className="product-editor-body">
+    <section className="editor-details-column">
+      <div className="editor-section-card"><div className="editor-section-head"><div><span className="editor-section-kicker">01 · ASOSIY MA'LUMOT</span><h3>Mahsulot tafsilotlari</h3><p>Customer saytida ko‘rinadigan asosiy ma'lumotlarni boshqaring.</p></div></div>
+        <div className="editor-field-grid">
+          <label className="editor-field editor-field-wide"><span>Mahsulot nomi <em>*</em></span><input required maxLength={180} value={editing.name} onChange={e=>setEditing({...editing,name:e.target.value})} placeholder="Masalan: Faberlic kir yuvish geli"/></label>
+          <label className="editor-field"><span>SKU <em>*</em></span><input required maxLength={40} value={editing.sku} onChange={e=>setEditing({...editing,sku:e.target.value.toUpperCase()})} autoComplete="off" placeholder="SKU-001"/><small>Faqat seller panelida ko‘rinadi.</small></label>
+          <label className="editor-field"><span>Narx <em>*</em></span><div className="editor-input-with-suffix"><input required type="number" min="0" step="0.01" value={editing.price} onChange={e=>setEditing({...editing,price:Number(e.target.value)})}/><b>so‘m</b></div></label>
+          <label className="editor-field"><span>Ombordagi qoldiq <em>*</em></span><div className="editor-input-with-suffix"><input required type="number" min="0" step="1" value={editing.stock} onChange={e=>setEditing({...editing,stock:Number(e.target.value)})}/><b>dona</b></div></label>
+          <label className="editor-field editor-field-wide"><span>Tavsif</span><textarea rows={9} maxLength={3000} value={editing.description} onChange={e=>setEditing({...editing,description:e.target.value})} placeholder="Mahsulotning xususiyatlari, hajmi, tarkibi va foydali ma'lumotlari..."/><small>{String(editing.description||"").length}/3000 belgi</small></label>
+        </div>
+      </div>
+      <div className="editor-summary-card"><div className="editor-summary-title"><span>Saqlashdan oldingi holat</span><b>LIVE PREVIEW</b></div><div className="editor-summary-grid"><div><span>Narx</span><strong>{formatPrice(Number(editing.price)||0)}</strong></div><div><span>Qoldiq</span><strong>{Number(editing.stock)||0} dona</strong></div><div><span>Rasmlar</span><strong>{(editing.imageUrls||[]).length}/12</strong></div></div></div>
+    </section>
+    <section className="editor-media-column"><div className="editor-section-card editor-media-card">
+      <div className="editor-section-head editor-media-section-head"><div><span className="editor-section-kicker">02 · MEDIA</span><h3>Mahsulot rasmlari</h3><p>Asosiy rasm birinchi turadi. Tartib customer saytida ham saqlanadi.</p></div><span className="editor-image-counter">{(editing.imageUrls||[]).length}<small>/ 12</small></span></div>
+      <div className={"editor-image-drop-zone "+(editingImageLoading?"is-loading":"")} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!editingImageLoading)void Promise.all(Array.from(e.dataTransfer.files||[]).map(uploadEditingImage))}}><input type="file" accept="image/*" multiple disabled={editingImageLoading} onChange={e=>{const files=Array.from(e.target.files||[]);void Promise.all(files.map(uploadEditingImage));e.currentTarget.value=""}}/>{editingImageLoading?<><span className="editor-upload-spinner" aria-hidden="true"/><b>Rasm yuklanmoqda...</b><span>Storage'ga saqlanmoqda</span></>:<><span className="editor-upload-icon" aria-hidden="true">＋</span><b>Rasmlarni shu yerga tashlang</b><span>yoki fayldan tanlang · JPG, PNG, WEBP · 12 MB gacha</span></>}</div>
+      <div className="editor-url-row"><div className="editor-url-input"><span>↗</span><input value={imageUrlInput} onChange={e=>setImageUrlInput(e.target.value)} placeholder="Rasm URL manzilini kiriting..." onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();addEditingImageUrl()}}}/></div><button type="button" className="secondary editor-add-url" onClick={addEditingImageUrl}>URL qo‘shish</button></div>
+      {(editing.imageUrls||[]).length>0?<div className="editor-image-grid-pro">{(editing.imageUrls||[]).map((url,i)=><div className={"editor-image-card-pro "+(i===0?"primary-image":"")} key={url} draggable={!editingImageLoading} onDragStart={e=>e.dataTransfer.setData("text/plain",String(i))} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();const from=Number(e.dataTransfer.getData("text/plain"));reorderEditingImage(from,i)}}><div className="editor-image-visual"><img src={url} alt={editing.name+" "+(i+1)}/><span className="editor-image-number">{i+1}</span>{i===0&&<span className="editor-primary-label">ASOSIY</span>}<button type="button" className="editor-image-delete-pro" onClick={()=>removeEditingImage(url)} aria-label="Rasmni o‘chirish">×</button></div><div className="editor-image-card-footer"><div><b>{i===0?"Asosiy rasm":"Rasm "+(i+1)}</b><small>{i===0?"Customer vitrinasi":"Tartibni o‘zgartirish uchun suring"}</small></div><button type="button" disabled={i===0||editingImageLoading} onClick={()=>reorderEditingImage(i,0)}>{i===0?"✓":"Asosiy qilish"}</button></div></div>)}</div>:<div className="editor-empty-media"><span aria-hidden="true">▧</span><b>Hali rasm yo‘q</b><small>Birinchi rasm mahsulotning asosiy rasmi bo‘ladi.</small></div>}
+      <div className="editor-media-tip"><span>💡</span><p><b>Pro maslahat:</b> mahsulotning eng toza va tushunarli rasmini birinchi o‘ringa qo‘ying. Qolgan rasmlarni sudrab tartiblang.</p></div>
+    </div></section>
+  </div>
+  <footer className="product-editor-footer"><div className="editor-save-status"><span className={saving?"saving-dot":"ready-dot"}/><span>{saving?"O‘zgarishlar saqlanmoqda...":"O‘zgarishlar saqlashga tayyor"}</span></div><div className="editor-footer-actions"><button type="button" className="secondary editor-cancel-button" onClick={()=>setEditing(null)} disabled={saving||editingImageLoading}>Bekor qilish</button><button className="primary editor-save-button" disabled={saving||editingImageLoading}>{saving?<><span className="refresh-spinner" aria-hidden="true"/>Saqlanmoqda...</>:<>O‘zgarishlarni saqlash <span>→</span></>}</button></div></footer>
+</form></div>}      {deleteProductTarget&&<div className="modal-backdrop delete-confirm-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget&&!deleteLoading)setDeleteProductTarget(null)}}><div className="modal delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-product-title">
         <div className="delete-confirm-head"><div className="delete-confirm-icon" aria-hidden="true">⌫</div><button type="button" className="modal-close-button" onClick={()=>setDeleteProductTarget(null)} disabled={deleteLoading} aria-label="Yopish" title="Yopish"><span aria-hidden="true">×</span></button></div>
         <div className="delete-confirm-content"><span className="eyebrow">MAHSULOTNI O'CHIRISH</span><h2 id="delete-product-title">Shu mahsulotni o'chirishga aminmisiz?</h2><p>Bu amal mahsulotni seller katalogidan olib tashlaydi.</p></div>
         <div className="delete-product-preview"><div className="delete-product-image">{(deleteProductTarget.imageUrls?.[0]||firstImage(deleteProductTarget.imageUrl))?<img src={deleteProductTarget.imageUrls?.[0]||firstImage(deleteProductTarget.imageUrl)} alt={deleteProductTarget.name}/>:<span>NO IMAGE</span>}</div><div className="delete-product-info"><b>{deleteProductTarget.name}</b><span>SKU · {deleteProductTarget.sku||"—"}</span><small>{formatPrice(Number(deleteProductTarget.price))} · {deleteProductTarget.stock} dona</small></div></div>
