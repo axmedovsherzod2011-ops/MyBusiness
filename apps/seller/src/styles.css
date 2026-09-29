@@ -806,3 +806,20 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{
   .inventory-leave-actions{grid-template-columns:1fr}
   .inventory-leave-actions .primary{order:-1}
 }
+
+
+/* Customer banner manager */
+.banner-manager{margin:18px 0 26px;padding:22px;border:1px solid #e8e8ec;border-radius:24px;background:linear-gradient(145deg,#fff,#fafafd);box-shadow:0 14px 38px rgba(25,25,35,.055)}
+.banner-manager-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
+.banner-manager-head h3{margin:5px 0 5px;font-size:20px;letter-spacing:-.025em}.banner-manager-head p{margin:0;color:#7a7d86;font-size:12px;line-height:1.6}.banner-manager-head p b{color:#202126}
+.banner-size-badge{padding:8px 11px;border-radius:999px;background:#f1f1f5;font-size:9px;font-weight:900;letter-spacing:.1em}
+.banner-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.banner-upload-card{position:relative;min-height:170px;padding:18px;border:1.5px dashed #d9d9e0;border-radius:18px;background:#fbfbfd;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;cursor:pointer;overflow:hidden;transition:.2s ease}
+.banner-upload-card:hover{border-color:#aeb0b9;background:#f7f7fa;transform:translateY(-1px)}.banner-upload-card input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.banner-upload-card>span{font-size:28px;line-height:1;margin-bottom:8px}.banner-upload-card b{font-size:13px}.banner-upload-card small{margin-top:4px;color:#858893;font-size:10px}
+.banner-upload-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.22;pointer-events:none}.banner-upload-card img~b,.banner-upload-card img~small,.banner-upload-card img~span{position:relative;z-index:1}
+.banner-publish-button{margin-top:14px;width:100%;height:48px;border-radius:14px}
+.banner-list{margin-top:18px;display:grid;gap:9px}.banner-row{display:grid;grid-template-columns:170px minmax(0,1fr) auto auto;align-items:center;gap:14px;padding:10px;border:1px solid #e8e8ed;border-radius:15px;background:#fff}.banner-row.inactive{opacity:.62}
+.banner-previews{display:grid;grid-template-columns:1fr 48px;gap:5px;height:54px;overflow:hidden;border-radius:9px;background:#f3f3f5}.banner-previews img{width:100%;height:100%;object-fit:cover}.banner-row-copy{min-width:0}.banner-row-copy b{display:block;font-size:12px}.banner-row-copy small{display:block;margin-top:4px;color:#858893;font-size:10px}
+.icon-action{width:34px;height:34px;border:1px solid #e7e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:20px}.icon-action.danger{color:#a34b4b}.banner-empty{padding:24px;text-align:center;color:#898c94;font-size:12px;border:1px dashed #dddde4;border-radius:15px}
+@media(max-width:760px){.banner-manager{padding:15px;border-radius:19px}.banner-upload-grid{grid-template-columns:1fr}.banner-row{grid-template-columns:110px 1fr auto auto}.banner-previews{height:46px}.banner-manager-head{flex-direction:column;gap:8px}}
