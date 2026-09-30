@@ -3,8 +3,8 @@ import express, { type Express, type NextFunction, type Request, type Response }
 import { checkDatabaseConnection, initializeDatabase } from "./db.js";
 import { productsRouter } from "./products.js";
 import { registerTelegramAuthRoutes } from "./telegram-auth.js";
-import { registerOrderRoutes } from "./orders.js";
-import { registerChatRoutes } from "./chats.js";
+import { registerOrderRoutes, registerCustomerOrderRoutes } from "./orders.js";
+import { registerChatRoutes, registerCustomerChatRoutes } from "./chats.js";
 import { registerAnalyticsRoutes } from "./analytics.js";
 import { registerUploadRoutes } from "./uploads.js";
 import { registerFavoriteRoutes } from "./favorites.js";
@@ -75,7 +75,9 @@ app.get("/api/v1", (_req: Request, res: Response) => {
 
 registerTelegramAuthRoutes(app);
 registerOrderRoutes(app);
+registerCustomerOrderRoutes(app);
 registerChatRoutes(app);
+registerCustomerChatRoutes(app);
 registerAnalyticsRoutes(app);
 registerUploadRoutes(app);
 registerFavoriteRoutes(app);
