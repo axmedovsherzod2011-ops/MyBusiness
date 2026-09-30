@@ -2932,3 +2932,85 @@ html{
     gap:10px;
   }
 }
+
+
+/* Product card actions: keep both purchase and seller actions usable at every width. */
+.product-actions{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+  gap:7px!important;
+  width:100%!important;
+  min-width:0!important;
+  align-items:stretch!important;
+}
+.product-actions .ask-seller-button,
+.product-actions .card-add,
+.product-actions .card-qty{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:42px!important;
+  min-height:42px!important;
+  margin:0!important;
+  box-sizing:border-box!important;
+}
+.product-actions .ask-seller-button{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0 6px!important;
+  overflow:hidden!important;
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+  font-size:10px!important;
+  line-height:1!important;
+}
+.product-actions .ask-seller-button span,
+.product-actions .card-add span{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.product-actions .card-add{
+  padding:0 6px!important;
+  font-size:10px!important;
+  gap:5px!important;
+}
+.product-actions .card-qty{
+  grid-column:2!important;
+}
+.product-card.sale-product-card .ask-seller-button{
+  border-color:#efb8b8!important;
+  background:#fff!important;
+  color:#b91c1c!important;
+}
+.product-card.sale-product-card .card-add{
+  background:#dc2626!important;
+  color:#fff!important;
+}
+@media(max-width:520px){
+  .product-actions{
+    grid-template-columns:1fr!important;
+    gap:6px!important;
+  }
+  .product-actions .ask-seller-button,
+  .product-actions .card-add,
+  .product-actions .card-qty{
+    grid-column:1!important;
+    height:40px!important;
+    min-height:40px!important;
+  }
+  .product-actions .ask-seller-button,
+  .product-actions .card-add{
+    font-size:10px!important;
+  }
+}
+@media(max-width:360px){
+  .product-actions .ask-seller-button,
+  .product-actions .card-add{
+    height:38px!important;
+    min-height:38px!important;
+    font-size:9px!important;
+  }
+}
