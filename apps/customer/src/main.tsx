@@ -101,7 +101,7 @@ function isNew(p:Product){ const t=Date.parse(p.createdAt); return Number.isFini
 
 function ProductCard({p,liked,qty,onLike,onCart,onQty,onAsk,onOpen}:{p:Product;liked:boolean;qty:number;onLike:(id:number)=>void;onCart:(p:Product)=>void;onQty:(id:number,d:number)=>void;onAsk:(p:Product)=>void;onOpen:(p:Product)=>void}){
   const sale=p.promoPrice!=null; const images=productImages(p);
-  return <article className={"product-card "+(sale?"sale-product-card":"")}>
+  return <article className={"product-card "+(sale?"sale-product-card":"")} onClick={()=>onOpen(p)}>
     <div className={"product-image "+(images.length>1?"has-gallery":"single-image")} onClick={()=>onOpen(p)}>
       <div className="product-image-track">{images.length?images.map((src,i)=><img key={src+i} src={src} alt={i===0?p.name:""} loading="lazy"/>):<div className="no-image">MYBUSINESS</div>}</div>
       <div className="badges">{sale&&<span className="sale-badge">AKSIYADA</span>}{p.stock>0&&<span className="stock-badge">SOTUVDA</span>}</div>
@@ -110,12 +110,12 @@ function ProductCard({p,liked,qty,onLike,onCart,onQty,onAsk,onOpen}:{p:Product;l
     </div>
     <div className="product-info">
       <span className="product-cat">{label(cat(p))}</span>
-      <button className="product-name" onClick={()=>onOpen(p)}>{p.name}</button>
+      <button className="product-name" onClick={e=>{e.stopPropagation();onOpen(p)}}>{p.name}</button>
       <p>{p.description||"Mahsulot tavsifi kiritilmagan."}</p>
       <strong className="product-price">{p.promoPrice!=null?<><s className="old-price">{money(p.price)}</s><span className="promo-price">{money(p.promoPrice)}</span></>:money(p.price)}</strong>
       <small className="product-stock-text">{p.stock>0?"Sotuvda":"Tugagan"}</small>
       <div className="product-actions">
-        {qty>0?<div className="card-qty"><button onClick={()=>onQty(p.id,-1)} aria-label="Kamaytirish">−</button><b>{qty}</b><button onClick={()=>onQty(p.id,1)} disabled={!p.stock||qty>=p.stock} aria-label="Ko'paytirish">+</button></div>:<button className="add-button card-add" disabled={p.stock<=0} onClick={()=>onCart(p)}><Icon name="cart" size={18}/><span>{p.stock>0?"Savatga qo'shish":"Tugagan"}</span></button>}
+        {qty>0?<div className="card-qty"><button onClick={e=>{e.stopPropagation();onQty(p.id,-1)}} aria-label="Kamaytirish">−</button><b>{qty}</b><button onClick={e=>{e.stopPropagation();onQty(p.id,1)}} disabled={!p.stock||qty>=p.stock} aria-label="Ko'paytirish">+</button></div>:<button className="add-button card-add" disabled={p.stock<=0} onClick={e=>{e.stopPropagation();onCart(p)}}><Icon name="cart" size={18}/><span>{p.stock>0?"Savatga qo'shish":"Tugagan"}</span></button>}
       </div>
     </div>
   </article>;
