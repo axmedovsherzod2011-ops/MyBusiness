@@ -1244,6 +1244,72 @@ body{min-width:320px!important}
 }
 
 
+/* Sale product detail actions: keep seller + cart controls inside the phone viewport. */
+.sale-product-detail-screen .detail-actions{
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.sale-product-detail-screen .detail-purchase-row{
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+.sale-product-detail-screen .detail-purchase-row .detail-ask,
+.sale-product-detail-screen .detail-purchase-row .detail-add,
+.sale-product-detail-screen .detail-purchase-row .detail-qty{
+  min-width:0!important;
+  max-width:100%!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.sale-product-detail-screen .detail-purchase-row .detail-ask,
+.sale-product-detail-screen .detail-purchase-row .detail-add{
+  white-space:nowrap!important;
+  text-overflow:ellipsis!important;
+}
+.sale-product-detail-screen .detail-purchase-row .detail-add span{
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+@media(max-width:700px){
+  .product-detail.sale-product-detail{
+    padding:14px 12px 125px!important;
+    border-radius:0!important;
+  }
+  .sale-product-detail-screen .detail-actions{
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom))!important;
+  }
+  .sale-product-detail-screen .detail-purchase-row{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    gap:7px!important;
+  }
+  .sale-product-detail-screen .detail-purchase-row .detail-ask,
+  .sale-product-detail-screen .detail-purchase-row .detail-add,
+  .sale-product-detail-screen .detail-purchase-row .detail-qty{
+    height:48px!important;
+    min-height:48px!important;
+  }
+  .sale-product-detail-screen .detail-purchase-row .detail-ask,
+  .sale-product-detail-screen .detail-purchase-row .detail-add{
+    padding-left:5px!important;
+    padding-right:5px!important;
+    font-size:10px!important;
+  }
+}
+@media(max-width:380px){
+  .sale-product-detail-screen .detail-purchase-row{
+    gap:5px!important;
+  }
+  .sale-product-detail-screen .detail-purchase-row .detail-ask,
+  .sale-product-detail-screen .detail-purchase-row .detail-add{
+    font-size:9px!important;
+  }
+}
+
+
 /* Product card cart control: fill the card width after seller action was removed. */
 .product-actions{
   grid-template-columns:1fr!important;
