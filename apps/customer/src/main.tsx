@@ -60,6 +60,16 @@ function Icon({name,size=20}:{name:"home"|"grid"|"search"|"bag"|"cart"|"user"|"h
 }
 
 function money(n:number){ return new Intl.NumberFormat("uz-UZ").format(n)+" so'm"; }
+function safeStorageJson<T>(key:string,fallback:T):T{
+  try{
+    const raw=localStorage.getItem(key);
+    return raw?JSON.parse(raw) as T:fallback;
+  }catch{
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
 function effectivePrice(p:Product){ return p.promoPrice!=null ? p.promoPrice : p.price; }
 function promotionCountdown(endsAt:string|null|undefined, now:number){
   if(!endsAt)return null;
@@ -184,8 +194,8 @@ export default function App(){
   const [loading,setLoading]=useState(true);
   const [productsLoaded,setProductsLoaded]=useState(false);
   const [error,setError]=useState("");
-  const [favs,setFavs]=useState<number[]>(()=>JSON.parse(localStorage.getItem("mybusiness:favorites")||"[]"));
-  const [cart,setCart]=useState<Record<string,number>>(()=>JSON.parse(localStorage.getItem("mybusiness:cart")||"{}"));
+  const [favs,setFavs]=useState<number[]>(()=>safeStorageJson<number[]>("mybusiness:favorites",[]));
+  const [cart,setCart]=useState<Record<string,number>>(()=>safeStorageJson<Record<string,number>>("mybusiness:cart",{}));
   const [panel,setPanel]=useState<"cart"|"favorites"|"menu"|"profile"|"filters"|"search"|null>(null);
   const [quick,setQuick]=useState<Product|null>(null);
   const [quickImageIndex,setQuickImageIndex]=useState(0);
@@ -195,7 +205,30 @@ export default function App(){
   const [promoNow,setPromoNow]=useState(()=>Date.now());
   const imageViewerTouchRef=useRef<{x:number;y:number;distance:number;zoom:number}|null>(null);
   const [toast,setToast]=useState("");
-  const [authUser,setAuthUser]=useState<{name:string;phone?:string;token?:string}|null>(()=>{try{return JSON.parse(localStorage.getItem("mybusiness:customer-auth")||"null")}catch{return null}});
+  const [authUser,setAuthUser]=useState<{name:string;phone?:string;token?:string}|null>(()=>safeStorageJson<{name:string;phone?:string;token?:string}|null>("mybusiness:customer-auth",null));
+  function invalidateCustomerSession(message="Sessiya tugagan. Iltimos, qayta kiring."){
+    localStorage.removeItem("mybusiness:customer-auth");
+    setAuthUser(null); setMyOrders([]); setMyChats([]);
+    setAuthSession(""); setAuthStatus("idle");
+    setToast(message);
+  }
+  async function customerFetch(path:string,options:RequestInit={}):Promise<Response>{
+    const headers=new Headers(options.headers||{});
+    headers.set("Accept","application/json");
+    headers.set("Cache-Control","no-store");
+    if(options.body && !headers.has("Content-Type"))headers.set("Content-Type","application/json");
+    if(authUser?.token)headers.set("Authorization","Bearer "+authUser.token);
+    const controller=new AbortController();
+    const timer=window.setTimeout(()=>controller.abort(),15000);
+    try{
+      const response=await fetch(apiBase+path,{...options,headers,signal:controller.signal,cache:"no-store"});
+      if(response.status===401&&authUser?.token)invalidateCustomerSession();
+      return response;
+    }catch(error){
+      if(error instanceof DOMException&&error.name==="AbortError")throw new Error("Server javobi kutilgan vaqtda kelmadi.");
+      throw new Error("Internet yoki server bilan ulanishda xatolik.");
+    }finally{window.clearTimeout(timer);}
+  }
   const [authOpen,setAuthOpen]=useState(false);
   const [authSession,setAuthSession]=useState("");
   const [authStatus,setAuthStatus]=useState<"idle"|"waiting"|"verified"|"expired"|"error">("idle");
@@ -356,9 +389,9 @@ export default function App(){
   },[]);
   useEffect(()=>localStorage.setItem("mybusiness:favorites",JSON.stringify(favs)),[favs]);
   useEffect(()=>{
-    if(!authUser?.token){setFavs(JSON.parse(localStorage.getItem("mybusiness:favorites")||"[]"));return;}
+    if(!authUser?.token){setFavs(safeStorageJson<number[]>("mybusiness:favorites",[]));return;}
     let stopped=false;
-    fetch(apiBase+"/api/v1/favorites",{headers:{Accept:"application/json",Authorization:"Bearer "+authUser.token}})
+    customerFetch("/api/v1/favorites")
       .then(async r=>{const d=await r.json() as {favorites?:number[];message?:string};if(!r.ok)throw new Error(d.message||"Sevimlilarni yuklab bo'lmadi.");if(!stopped)setFavs(d.favorites||[]);})
       .catch(()=>{if(!stopped)setToast("Sevimlilarni yuklab bo'lmadi.")});
     return()=>{stopped=true};
@@ -368,7 +401,7 @@ export default function App(){
   useEffect(()=>{if(!chatId||!chatProduct)return;
     let stopped=false;
     const refresh=async()=>{try{
-      const r=await fetch(apiBase+"/api/v1/chats/"+chatId+"/messages",{headers:{Accept:"application/json"}});
+      const r=await customerFetch("/api/v1/customer/chats/"+chatId+"/messages");
       const d=await r.json() as {messages?:Array<{id:number;senderRole:"customer"|"seller";body:string;createdAt:string}>};
       if(!stopped&&r.ok)setChatMessages(d.messages||[]);
     }catch{}};
@@ -456,7 +489,7 @@ export default function App(){
     const wasLiked=favs.includes(id);
     setFavs(f=>wasLiked?f.filter(x=>x!==id):[...f,id]);
     try{
-      const r=await fetch(apiBase+"/api/v1/favorites/"+id,{method:"PUT",headers:{Accept:"application/json",Authorization:"Bearer "+authUser.token}});
+      const r=await customerFetch("/api/v1/favorites/"+id,{method:"PUT"});
       const d=await r.json() as {liked?:boolean;message?:string};
       if(!r.ok||typeof d.liked!=="boolean")throw new Error(d.message||"Sevimlini saqlab bo'lmadi.");
       setFavs(f=>d.liked?(f.includes(id)?f:[...f,id]):f.filter(x=>x!==id));
@@ -470,14 +503,14 @@ export default function App(){
     setChatLoading(true);
     try{
       if(chatId){
-        const r=await fetch(apiBase+"/api/v1/chats/"+chatId+"/messages",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({message:body})});
+        const r=await customerFetch("/api/v1/customer/chats/"+chatId+"/messages",{method:"POST",body:JSON.stringify({message:body})});
         const d=await r.json() as {message?:{id:number;senderRole:"customer"|"seller";body:string;createdAt:string}|string};
         if(!r.ok||!d.message||typeof d.message==="string")throw new Error(typeof d.message==="string"?d.message:"Xabar yuborilmadi.");
         const sentMessage = d.message;
         if (!sentMessage || typeof sentMessage === "string") throw new Error("Xabar yuborilmadi.");
         setChatMessages(x=>[...x, sentMessage]);
       }else{
-        const r=await fetch(apiBase+"/api/v1/chats",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({customerName:authUser.name||"Mijoz",customerUserId:null,productId:chatProduct.id,message:body})});
+        const r=await customerFetch("/api/v1/customer/chats",{method:"POST",body:JSON.stringify({productId:chatProduct.id,message:body})});
         const d=await r.json() as {chatId?:number;message?:{id:number;senderRole:"customer"|"seller";body:string;createdAt:string};error?:string};
         if(!r.ok||!d.chatId||!d.message)throw new Error(d.error||"Chat ochilmadi.");
         setChatId(d.chatId);setChatMessages([d.message]);
@@ -495,13 +528,13 @@ export default function App(){
     setProfileLoading(true);
     try{
       const [or,cr]=await Promise.all([
-        fetch(apiBase+"/api/v1/orders",{headers:{Accept:"application/json"}}),
-        fetch(apiBase+"/api/v1/chats",{headers:{Accept:"application/json"}})
+        customerFetch("/api/v1/customer/orders"),
+        customerFetch("/api/v1/customer/chats")
       ]);
       const od=await or.json() as {orders?:any[]}; const cd=await cr.json() as {chats?:any[]};
       const phone=authUser.phone.replace(/\D/g,"");
-      setMyOrders((od.orders||[]).filter(o=>String(o.customerPhone||"").replace(/\D/g,"")===phone));
-      setMyChats((cd.chats||[]).filter(x=>x.customerName===authUser.name));
+      setMyOrders((od.orders||[]));
+      setMyChats((cd.chats||[]));
     }catch{setToast("Profil ma'lumotlarini yuklab bo'lmadi.")}finally{setProfileLoading(false)}
   }
   function openProfileView(view:typeof profileView){
@@ -513,7 +546,7 @@ export default function App(){
     if(!checkoutName.trim()||!checkoutPhone.trim()||!cartItems.length)return;
     setCheckoutLoading(true);setCheckoutError("");
     try{
-      const r=await fetch(apiBase+"/api/v1/orders",{method:"POST",headers:{"content-type":"application/json",Accept:"application/json"},body:JSON.stringify({customerName:checkoutName.trim(),customerPhone:checkoutPhone.trim(),customerUserId:null,paymentMethod:checkoutPayment,deliveryAddress:checkoutAddress.trim(),items:cartItems.map(x=>({productId:x.p.id,quantity:x.q}))})});
+      const r=await customerFetch("/api/v1/customer/orders",{method:"POST",body:JSON.stringify({customerName:checkoutName.trim(),customerPhone:checkoutPhone.trim(),paymentMethod:checkoutPayment,deliveryAddress:checkoutAddress.trim(),items:cartItems.map(x=>({productId:x.p.id,quantity:x.q}))})});
       const d=await r.json() as {order?:{id:number};message?:string};
       if(!r.ok||!d.order)throw new Error(d.message||"Buyurtma yaratilmadi.");
       setCart({});setCheckoutOpen(false);setToast("Buyurtma #"+d.order.id+" qabul qilindi.");
@@ -700,7 +733,7 @@ export default function App(){
 
           {profileView==="chats"&&<div className="profile-content profile-subview">
             <div className="profile-subview-heading"><span>ALOQA</span><h3>Chatlar</h3><p>Mahsulot rasmi va nomi bilan barcha suhbatlaringiz.</p></div>
-            {profileLoading?<div className="state">Yuklanmoqda...</div>:myChats.length?myChats.map(x=>{const p=products.find(p=>p.id===Number(x.productId));const chatProductData=p||{id:Number(x.productId),name:x.productName||"Mahsulot",description:"",price:0,stock:0,createdAt:"",imageUrl:x.productImageUrl||""};return <button className="profile-chat-row profile-chat-row-v2" key={x.id} onClick={async()=>{setChatProduct(chatProductData as Product);setChatId(Number(x.id));setChatMessages([]);setChatInput("");setPanel(null);try{const r=await fetch(apiBase+"/api/v1/chats/"+x.id+"/messages",{headers:{Accept:"application/json"}});const d=await r.json() as {messages?:Array<{id:number;senderRole:"customer"|"seller";body:string;createdAt:string}>};if(r.ok)setChatMessages(d.messages||[]);}catch{setToast("Xabarlarni yuklab bo'lmadi.")}}}>
+            {profileLoading?<div className="state">Yuklanmoqda...</div>:myChats.length?myChats.map(x=>{const p=products.find(p=>p.id===Number(x.productId));const chatProductData=p||{id:Number(x.productId),name:x.productName||"Mahsulot",description:"",price:0,stock:0,createdAt:"",imageUrl:x.productImageUrl||""};return <button className="profile-chat-row profile-chat-row-v2" key={x.id} onClick={async()=>{setChatProduct(chatProductData as Product);setChatId(Number(x.id));setChatMessages([]);setChatInput("");setPanel(null);try{const r=await customerFetch("/api/v1/customer/chats/"+x.id+"/messages");const d=await r.json() as {messages?:Array<{id:number;senderRole:"customer"|"seller";body:string;createdAt:string}>};if(r.ok)setChatMessages(d.messages||[]);}catch{setToast("Xabarlarni yuklab bo'lmadi.")}}}>
               <span className="profile-chat-image profile-chat-image-v2">{(p?.imageUrl||x.productImageUrl)?<img src={p?.imageUrl||x.productImageUrl} alt="" />:<span>MB</span>}</span>
               <div><span className="profile-chat-label">MAHSULOT</span><b>{p?.name||x.productName||"Mahsulot"}</b><small>{x.lastMessage||"Yangi chat"} · {x.status==="open"?"Ochiq":"Yopiq"}</small></div><strong>›</strong>
             </button>}):<div className="drawer-empty">Hali chatlar yo'q.</div>}
