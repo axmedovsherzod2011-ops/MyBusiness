@@ -532,7 +532,6 @@ export default function App(){
         customerFetch("/api/v1/customer/chats")
       ]);
       const od=await or.json() as {orders?:any[]}; const cd=await cr.json() as {chats?:any[]};
-      const phone=authUser.phone.replace(/\D/g,"");
       setMyOrders((od.orders||[]));
       setMyChats((cd.chats||[]));
     }catch{setToast("Profil ma'lumotlarini yuklab bo'lmadi.")}finally{setProfileLoading(false)}
@@ -589,7 +588,14 @@ export default function App(){
       setToast("Kirish muvaffaqiyatli");
     }catch(e){setAuthError(e instanceof Error?e.message:"Hisobni yaratib bo'lmadi.");}
   }
-  function signOut(){localStorage.removeItem("mybusiness:customer-auth");setAuthUser(null);setAuthSession("");setAuthStatus("idle");setAuthFirstName("");setAuthLastName("");}
+  async function signOut(){
+    const token=authUser?.token;
+    if(token){try{await customerFetch("/api/v1/auth/logout",{method:"POST"});}catch{}}
+    localStorage.removeItem("mybusiness:customer-auth");
+    setAuthUser(null);setMyOrders([]);setMyChats([]);setFavs(safeStorageJson<number[]>("mybusiness:favorites",[]));
+    setAuthSession("");setAuthStatus("idle");setAuthFirstName("");setAuthLastName("");
+    setProfileView("home");setToast("Akkauntdan chiqildi");
+  }
 
   const currentUrlRoute=routeFromUrl();
   const isLandingPage = Boolean(currentUrlRoute.pageSlug);
