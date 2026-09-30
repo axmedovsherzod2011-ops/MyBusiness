@@ -16,6 +16,7 @@ function toProduct(row: Record<string, unknown>) {
     stock: Number(row.stock),
     createdAt: String(row.created_at),
     promoDiscountPercent: row.promo_discount_percent == null ? null : Number(row.promo_discount_percent),
+    promoEndsAt: row.promo_ends_at == null ? null : String(row.promo_ends_at),
     promoPrice: row.promo_discount_percent == null ? null : Math.round(Number(row.price) * (1 - Number(row.promo_discount_percent) / 100) * 100) / 100,
   };
 }
@@ -55,10 +56,11 @@ router.get("/", async (_req: Request, res: Response) => {
     const db = requireDatabase();
     const result = await db.query(
       `SELECT p.id, p.name, p.sku, p.description, p.price, p.image_url, p.image_urls, p.stock, p.created_at,
-              pr.discount_percent AS promo_discount_percent
+              pr.discount_percent AS promo_discount_percent,
+              pr.ends_at AS promo_ends_at
        FROM marketplace_products p
        LEFT JOIN LATERAL (
-         SELECT discount_percent FROM marketplace_promotions
+         SELECT discount_percent, ends_at FROM marketplace_promotions
          WHERE product_id=p.id AND active=TRUE AND starts_at <= NOW()
            AND (ends_at IS NULL OR ends_at > NOW())
          ORDER BY created_at DESC LIMIT 1
