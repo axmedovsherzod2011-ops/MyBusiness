@@ -2615,13 +2615,194 @@ html{
 }
 
 
-/* Special landing pages: the page canvas is sale red, while sale product cards become white. */
+/* Special landing pages — campaign-focused visual system. */
 .landing-mode{
-  background:#dc2626!important;
+  --campaign-red:#dc2626;
+  --campaign-deep:#991b1b;
+  --campaign-white:#fff;
+  --campaign-ink:#17191b;
+  --campaign-muted:#fff;
+  --campaign-line:rgba(255,255,255,.22);
+  background:
+    radial-gradient(circle at 8% 4%,rgba(255,255,255,.16),transparent 28%),
+    radial-gradient(circle at 92% 18%,rgba(127,29,29,.22),transparent 30%),
+    linear-gradient(145deg,#ef2b2b 0%,#dc2626 48%,#c81e1e 100%)!important;
+  color:#fff;
+  min-height:100vh;
+  min-height:100dvh;
 }
+
+.landing-mode .landing-page{
+  width:100%;
+  max-width:none;
+  margin:0;
+  min-height:100vh;
+  padding:0 0 110px;
+  background:transparent!important;
+}
+
+.landing-mode .customer-banner-section{
+  width:min(1180px,calc(100% - 32px));
+  margin:74px auto 0;
+  position:relative;
+  z-index:1;
+}
+.landing-mode .customer-banner-track{gap:14px}
+.landing-mode .customer-banner{
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:24px;
+  box-shadow:0 20px 55px rgba(92,12,12,.2);
+}
+
+.landing-mode .landing-page-hero{
+  position:relative;
+  isolation:isolate;
+  width:min(1180px,calc(100% - 32px));
+  max-width:none;
+  margin:0 auto;
+  padding:78px 34px 54px;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  border-radius:0!important;
+  overflow:hidden;
+  text-align:center;
+}
+.landing-mode .landing-page-hero:before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  width:420px;
+  height:420px;
+  left:50%;
+  top:12px;
+  transform:translateX(-50%);
+  border-radius:50%;
+  background:rgba(255,255,255,.09);
+  filter:blur(4px);
+}
+.landing-mode .landing-page-hero:after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  left:10%;
+  right:10%;
+  bottom:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent);
+}
+
+.landing-mode .landing-page-hero .eyebrow{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:32px;
+  padding:0 13px;
+  border:1px solid rgba(255,255,255,.3);
+  border-radius:999px;
+  background:rgba(255,255,255,.11);
+  color:#fff!important;
+  font-size:10px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  backdrop-filter:blur(12px);
+  box-shadow:0 8px 25px rgba(70,0,0,.1);
+}
+.landing-mode .landing-page-hero h1{
+  max-width:920px;
+  margin:18px auto 10px;
+  color:#fff!important;
+  font-size:clamp(36px,6vw,72px);
+  line-height:.98;
+  letter-spacing:-.055em;
+  font-weight:900;
+  text-wrap:balance;
+  text-shadow:0 5px 24px rgba(92,12,12,.16);
+}
+.landing-mode .landing-page-hero h2{
+  max-width:720px;
+  margin:0 auto 14px;
+  color:rgba(255,255,255,.94)!important;
+  font-size:clamp(18px,2.4vw,27px);
+  line-height:1.25;
+  letter-spacing:-.02em;
+  font-weight:750;
+}
+.landing-mode .landing-page-hero p{
+  max-width:690px;
+  margin:0 auto;
+  color:rgba(255,255,255,.82)!important;
+  font-size:15px;
+  line-height:1.65;
+  font-weight:500;
+}
+.landing-mode .landing-offer{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:48px;
+  margin-top:22px;
+  padding:0 21px;
+  border:1px solid rgba(255,255,255,.72);
+  border-radius:14px;
+  background:#fff;
+  color:#b91c1c;
+  font-size:14px;
+  line-height:1.2;
+  font-weight:900;
+  letter-spacing:-.01em;
+  box-shadow:0 14px 32px rgba(70,0,0,.18);
+}
+
+.landing-mode .landing-page .product-section{
+  width:min(1180px,calc(100% - 32px));
+  max-width:none;
+  margin:0 auto;
+  padding:30px 0 0;
+  background:transparent!important;
+}
+.landing-mode .landing-page .panel-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:18px;
+  padding:0 4px;
+  color:#fff!important;
+}
+.landing-mode .landing-page .panel-head h2{
+  margin:0;
+  color:#fff!important;
+  font-size:clamp(22px,3vw,32px);
+  line-height:1.05;
+  letter-spacing:-.035em;
+  font-weight:900;
+}
+.landing-mode .landing-page .panel-head .muted{
+  display:block;
+  margin-top:6px;
+  color:rgba(255,255,255,.68)!important;
+  font-size:11px;
+  font-weight:650;
+}
+.landing-mode .landing-page .product-grid{
+  gap:14px;
+}
+.landing-mode .landing-page .product-card{
+  box-shadow:0 12px 32px rgba(92,12,12,.14);
+  transition:transform .22s ease,box-shadow .22s ease;
+}
+.landing-mode .landing-page .product-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 18px 40px rgba(92,12,12,.2);
+}
+
+/* Sale cards intentionally become quiet white islands against the red campaign canvas. */
 .landing-mode .product-card.sale-product-card{
   background:#fff!important;
-  border-color:#e5e5e5!important;
+  border:1px solid rgba(255,255,255,.88)!important;
   color:#191a1b!important;
 }
 .landing-mode .product-card.sale-product-card .product-info,
@@ -2643,6 +2824,7 @@ html{
 .landing-mode .product-card.sale-product-card .sale-badge{
   background:#dc2626!important;
   color:#fff!important;
+  border-color:#dc2626!important;
 }
 .landing-mode .product-card.sale-product-card .stock-badge{
   background:#fff!important;
@@ -2660,4 +2842,93 @@ html{
 }
 .landing-mode .product-card.sale-product-card .card-qty button{
   color:#dc2626!important;
+}
+
+/* Non-sale cards keep the marketplace's normal white surface, with campaign-friendly depth. */
+.landing-mode .product-card:not(.sale-product-card){
+  background:#fff!important;
+  color:#191a1b!important;
+}
+.landing-mode .product-card:not(.sale-product-card) .product-info,
+.landing-mode .product-card:not(.sale-product-card) .product-name{
+  color:#191a1b!important;
+}
+.landing-mode .product-card:not(.sale-product-card) .product-cat,
+.landing-mode .product-card:not(.sale-product-card) .product-info p,
+.landing-mode .product-card:not(.sale-product-card) .product-stock-text{
+  color:#666b70!important;
+}
+.landing-mode .product-card:not(.sale-product-card) .product-price{
+  color:#191a1b!important;
+}
+.landing-mode .product-card:not(.sale-product-card) .add-button{
+  background:#17191b!important;
+  color:#fff!important;
+}
+.landing-mode .product-card:not(.sale-product-card) .card-qty{
+  background:#fff!important;
+  color:#191a1b!important;
+  border-color:#e5e5e5!important;
+}
+.landing-mode .product-card:not(.sale-product-card) .card-qty button{
+  color:#dc2626!important;
+}
+
+@media(max-width:700px){
+  .landing-mode{
+    background:
+      radial-gradient(circle at 50% 0,rgba(255,255,255,.14),transparent 32%),
+      linear-gradient(155deg,#ef2b2b 0%,#dc2626 55%,#c81e1e 100%)!important;
+  }
+  .landing-mode .customer-banner-section{
+    width:100%;
+    margin-top:64px;
+    padding:0 12px;
+  }
+  .landing-mode .customer-banner{
+    border-radius:18px;
+  }
+  .landing-mode .landing-page{
+    padding-bottom:94px;
+  }
+  .landing-mode .landing-page-hero{
+    width:100%;
+    padding:48px 18px 38px;
+  }
+  .landing-mode .landing-page-hero:before{
+    width:290px;
+    height:290px;
+    top:0;
+  }
+  .landing-mode .landing-page-hero h1{
+    margin-top:15px;
+    font-size:clamp(34px,11vw,48px);
+    line-height:1;
+  }
+  .landing-mode .landing-page-hero h2{
+    font-size:18px;
+  }
+  .landing-mode .landing-page-hero p{
+    font-size:13px;
+    line-height:1.55;
+  }
+  .landing-mode .landing-offer{
+    width:100%;
+    min-height:46px;
+    margin-top:18px;
+  }
+  .landing-mode .landing-page .product-section{
+    width:100%;
+    padding:24px 12px 0;
+  }
+  .landing-mode .landing-page .panel-head{
+    margin-bottom:13px;
+    padding:0 2px;
+  }
+  .landing-mode .landing-page .panel-head h2{
+    font-size:23px;
+  }
+  .landing-mode .landing-page .product-grid{
+    gap:10px;
+  }
 }
