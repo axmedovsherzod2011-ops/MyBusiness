@@ -2375,7 +2375,7 @@ html{
   width:100%;
   max-width:none;
   margin:0;
-  padding:86px clamp(16px,4vw,56px) 110px;
+  background:#dc2626!important;
   background:#ffde59!important;
 }
 .landing-mode .landing-page-hero{
@@ -2612,4 +2612,52 @@ html{
 .product-detail-screen.sale-product-detail-screen .product-detail-head>span{
   color:#fff!important;
   visibility:visible!important;
+}
+
+
+/* Special landing pages: the page canvas is sale red, while sale product cards become white. */
+.landing-mode{
+  background:#dc2626!important;
+}
+.landing-mode .product-card.sale-product-card{
+  background:#fff!important;
+  border-color:#e5e5e5!important;
+  color:#191a1b!important;
+}
+.landing-mode .product-card.sale-product-card .product-info,
+.landing-mode .product-card.sale-product-card .product-name{
+  color:#191a1b!important;
+}
+.landing-mode .product-card.sale-product-card .product-cat,
+.landing-mode .product-card.sale-product-card .product-info p,
+.landing-mode .product-card.sale-product-card .product-stock-text{
+  color:#666b70!important;
+}
+.landing-mode .product-card.sale-product-card .old-price{
+  color:#8a8f94!important;
+}
+.landing-mode .product-card.sale-product-card .promo-price,
+.landing-mode .product-card.sale-product-card .product-price{
+  color:#dc2626!important;
+}
+.landing-mode .product-card.sale-product-card .sale-badge{
+  background:#dc2626!important;
+  color:#fff!important;
+}
+.landing-mode .product-card.sale-product-card .stock-badge{
+  background:#fff!important;
+  color:#b91c1c!important;
+  border-color:#f0caca!important;
+}
+.landing-mode .product-card.sale-product-card .add-button{
+  background:#dc2626!important;
+  color:#fff!important;
+}
+.landing-mode .product-card.sale-product-card .card-qty{
+  background:#fff!important;
+  color:#191a1b!important;
+  border-color:#e5e5e5!important;
+}
+.landing-mode .product-card.sale-product-card .card-qty button{
+  color:#dc2626!important;
 }
