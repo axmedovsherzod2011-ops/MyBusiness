@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { requireDatabase } from "./db.js";
+import { requireCustomer } from "./customer-auth.js";
 
 const allowedStatuses = ["new","confirmed","preparing","shipping","completed","cancelled"] as const;
 
@@ -157,5 +158,86 @@ export function registerOrderRoutes(app: Express): void {
       console.error("Order status update failed", error);
       res.status(500).json({ message: "Buyurtma holatini o'zgartirib bo'lmadi." });
     }
+  });
+}
+
+
+export function registerCustomerOrderRoutes(app: Express): void {
+  app.get("/api/v1/customer/orders", async (req: Request, res: Response) => {
+    const customerId = await requireCustomer(req, res);
+    if (!customerId) return;
+    try {
+      const db = requireDatabase();
+      const result = await db.query(\`SELECT o.id,o.status,o.total,o.payment_method AS "paymentMethod",
+        o.delivery_address AS "deliveryAddress",o.created_at AS "createdAt",o.updated_at AS "updatedAt",
+        COALESCE(json_agg(json_build_object('id',i.id,'productId',i.product_id,'productName',i.product_name,
+        'sku',i.sku,'imageUrl',i.image_url,'price',i.price,'quantity',i.quantity) ORDER BY i.id)
+        FILTER(WHERE i.id IS NOT NULL),'[]') AS items
+        FROM marketplace_orders o LEFT JOIN marketplace_order_items i ON i.order_id=o.id
+        WHERE o.customer_user_id=$1 GROUP BY o.id ORDER BY o.created_at DESC LIMIT 200\`, [customerId]);
+      res.json({ orders: result.rows });
+    } catch (error) {
+      console.error("Customer orders list failed", error);
+      res.status(500).json({ message: "Buyurtmalarni yuklab bo'lmadi." });
+    }
+  });
+
+  app.post("/api/v1/customer/orders", async (req: Request, res: Response) => {
+    const customerId = await requireCustomer(req, res);
+    if (!customerId) return;
+    const body=req.body??{}, items=Array.isArray(body.items)?body.items:[];
+    const customerName=String(body.customerName??"").trim(), customerPhone=String(body.customerPhone??"").trim();
+    const paymentMethod=String(body.paymentMethod??"cash").trim()||"cash";
+    const deliveryAddress=String(body.deliveryAddress??"").trim();
+    if(!items.length||!customerName||!customerPhone||!["cash","card","debt"].includes(paymentMethod)){
+      res.status(400).json({message:"Mijoz va buyurtma mahsulotlari kerak."}); return;
+    }
+    const db=requireDatabase(), client=await db.connect();
+    try {
+      await client.query("BEGIN");
+      const ids=items.map((x:any)=>Number(x.productId)).filter(Number.isInteger);
+      const products=await client.query(\`SELECT p.id,p.name,p.sku,p.image_url,p.price,p.stock,
+        (SELECT discount_percent FROM marketplace_promotions WHERE product_id=p.id AND active=TRUE
+         AND starts_at<=NOW() AND (ends_at IS NULL OR ends_at>NOW())
+         ORDER BY created_at DESC LIMIT 1) AS promo_discount_percent
+        FROM marketplace_products p WHERE p.id=ANY($1::bigint[]) FOR UPDATE\`,[ids]);
+      const byId=new Map(products.rows.map((p:any)=>[Number(p.id),p])); let total=0; const normalized:any[]=[];
+      for(const item of items){
+        const p=byId.get(Number(item.productId)), quantity=Math.floor(Number(item.quantity));
+        if(!p||!Number.isFinite(quantity)||quantity<1||quantity>Number(p.stock)) throw new Error("Mahsulot qoldig'i yetarli emas yoki mahsulot topilmadi.");
+        const unitPrice=Number(p.price)*(p.promo_discount_percent==null?1:1-Number(p.promo_discount_percent)/100);
+        total+=unitPrice*quantity;
+        normalized.push({productId:Number(p.id),name:p.name,sku:String(p.sku??""),imageUrl:String(p.image_url??""),price:Math.round(unitPrice*100)/100,quantity});
+      }
+      const order=await client.query(\`INSERT INTO marketplace_orders(customer_user_id,customer_name,customer_phone,status,total,payment_method,delivery_address)
+        VALUES($1,$2,$3,'new',$4,$5,$6) RETURNING id,customer_name AS "customerName",customer_phone AS "customerPhone",
+        status,total,payment_method AS "paymentMethod",delivery_address AS "deliveryAddress",created_at AS "createdAt"\`,
+        [customerId,customerName,customerPhone,total,paymentMethod,deliveryAddress]);
+      for(const item of normalized){
+        await client.query(\`INSERT INTO marketplace_order_items(order_id,product_id,product_name,sku,image_url,price,quantity)
+          VALUES($1,$2,$3,$4,$5,$6,$7)\`,[order.rows[0].id,item.productId,item.name,item.sku,item.imageUrl,item.price,item.quantity]);
+        await client.query("UPDATE marketplace_products SET stock=stock-$1 WHERE id=$2",[item.quantity,item.productId]);
+      }
+      await client.query("COMMIT"); res.status(201).json({order:order.rows[0]});
+    } catch(error) {
+      await client.query("ROLLBACK"); console.error("Customer order creation failed",error);
+      res.status(400).json({message:error instanceof Error?error.message:"Buyurtma yaratilmadi."});
+    } finally { client.release(); }
+  });
+
+  app.get("/api/v1/customer/orders/:id", async (req: Request, res: Response) => {
+    const customerId=await requireCustomer(req,res); if(!customerId)return;
+    try {
+      const db=requireDatabase();
+      const result=await db.query(\`SELECT o.id,o.status,o.total,o.payment_method AS "paymentMethod",
+        o.delivery_address AS "deliveryAddress",o.created_at AS "createdAt",o.updated_at AS "updatedAt",
+        COALESCE(json_agg(json_build_object('id',i.id,'productId',i.product_id,'productName',i.product_name,
+        'sku',i.sku,'imageUrl',i.image_url,'price',i.price,'quantity',i.quantity) ORDER BY i.id)
+        FILTER(WHERE i.id IS NOT NULL),'[]') AS items
+        FROM marketplace_orders o LEFT JOIN marketplace_order_items i ON i.order_id=o.id
+        WHERE o.id=$1 AND o.customer_user_id=$2 GROUP BY o.id\`,[req.params.id,customerId]);
+      if(!result.rowCount){res.status(404).json({message:"Buyurtma topilmadi."});return;}
+      res.json({order:result.rows[0]});
+    } catch(error) { console.error("Customer order lookup failed",error); res.status(500).json({message:"Buyurtmani yuklab bo'lmadi."}); }
   });
 }
