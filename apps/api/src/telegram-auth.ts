@@ -220,9 +220,10 @@ export function registerTelegramAuthRoutes(app: Express): void {
     try {
       const db = requireDatabase();
       const session = await db.query(
-        `SELECT phone, telegram_id, status
-         FROM telegram_auth_sessions
-         WHERE id = $1 AND status = 'verified' AND expires_at > NOW()`,
+        `UPDATE telegram_auth_sessions
+         SET status = 'completed', completed_at = NOW()
+         WHERE id = $1 AND status = 'verified' AND expires_at > NOW()
+         RETURNING phone, telegram_id, status`,
         [sessionId],
       );
       const row = session.rows[0] as { phone: string; telegram_id: number; status: string } | undefined;
@@ -267,7 +268,7 @@ export function registerTelegramAuthRoutes(app: Express): void {
 
       await db.query(
         `UPDATE telegram_auth_sessions
-         SET status = 'completed', completed_at = NOW(), first_name = $2, last_name = $3
+         SET first_name = $2, last_name = $3
          WHERE id = $1`,
         [sessionId, firstName, lastName],
       );
