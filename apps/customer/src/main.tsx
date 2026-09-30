@@ -523,6 +523,21 @@ export default function App(){
   const isLandingPage = Boolean(currentUrlRoute.pageSlug);
   const landingBanner = currentUrlRoute.pageSlug ? banners.find(b=>b.targetType==="page" && b.targetValue===currentUrlRoute.pageSlug) : null;
 
+  useEffect(()=>{
+    const background="#ffde59";
+    if(isLandingPage){
+      document.documentElement.style.backgroundColor=background;
+      document.body.style.backgroundColor=background;
+    }else{
+      document.documentElement.style.backgroundColor="";
+      document.body.style.backgroundColor="";
+    }
+    return()=>{
+      document.documentElement.style.backgroundColor="";
+      document.body.style.backgroundColor="";
+    };
+  },[isLandingPage]);
+
   function openBannerTarget(b:Banner){
     if(b.targetType==="page" && b.targetValue){
       const nextHash="#/page/"+encodeURIComponent(b.targetValue);
