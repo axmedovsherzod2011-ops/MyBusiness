@@ -152,7 +152,8 @@ export async function initializeDatabase(): Promise<void> {
         ADD COLUMN IF NOT EXISTS seller_last_read_at TIMESTAMPTZ;
 
       ALTER TABLE customer_users
-        ADD COLUMN IF NOT EXISTS auth_token UUID;
+        ADD COLUMN IF NOT EXISTS auth_token UUID,
+        ADD COLUMN IF NOT EXISTS auth_token_expires_at TIMESTAMPTZ;
       CREATE UNIQUE INDEX IF NOT EXISTS customer_users_auth_token_idx
         ON customer_users (auth_token);
 
