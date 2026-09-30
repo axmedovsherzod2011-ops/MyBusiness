@@ -19,6 +19,7 @@ export interface Product {
   createdAt: string;
   promoDiscountPercent?: number | null;
   promoPrice?: number | null;
+  promoEndsAt?: string | null;
 }
 
 export interface CreateProductInput {
