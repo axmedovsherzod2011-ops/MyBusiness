@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Product, ProductsResponse } from "@marketplace/shared";
 import "./styles.css";
@@ -121,6 +121,22 @@ function ProductCard({p,liked,qty,onLike,onCart,onQty,onAsk,onOpen}:{p:Product;l
   </article>;
 }
 
+function LoadingSkeleton({count=8}:{count?:number}){
+  return <div className="product-grid loading-skeleton-grid" aria-label="Mahsulotlar yuklanmoqda" aria-busy="true">
+    {Array.from({length:count},(_,i)=><article className="product-card skeleton-card" key={i}>
+      <div className="skeleton-image shimmer"/>
+      <div className="product-info">
+        <span className="skeleton-line skeleton-kicker shimmer"/>
+        <span className="skeleton-line skeleton-title shimmer"/>
+        <span className="skeleton-line skeleton-title short shimmer"/>
+        <span className="skeleton-line skeleton-copy shimmer"/>
+        <span className="skeleton-line skeleton-copy short shimmer"/>
+        <div className="skeleton-bottom"><span className="skeleton-price shimmer"/><span className="skeleton-button shimmer"/></div>
+      </div>
+    </article>)}
+  </div>;
+}
+
 function Grid({items,favs,cart,onLike,onCart,onQty,onAsk,onOpen}:{items:Product[];favs:number[];cart:Record<string,number>;onLike:(id:number)=>void;onCart:(p:Product)=>void;onQty:(id:number,d:number)=>void;onAsk:(p:Product)=>void;onOpen:(p:Product)=>void}){
   return <div className="product-grid">{items.map(p=><ProductCard key={p.id} p={p} liked={favs.includes(p.id)} qty={cart[p.id]||0} onLike={onLike} onCart={onCart} onQty={onQty} onAsk={onAsk} onOpen={onOpen}/>)}</div>;
 }
@@ -186,7 +202,7 @@ export default function App(){
   const [myChats,setMyChats]=useState<Array<any>>([]);
   const [profileLoading,setProfileLoading]=useState(false);
   const [routeHash,setRouteHash]=useState(()=>window.location.hash);
-  const [visibleLimit,setVisibleLimit]=useState(32);
+  const [visibleLimit,setVisibleLimit]=useState(24);
 
   type RouteState = {
     panel: "cart"|"favorites"|"menu"|"profile"|"filters"|"search"|null;
@@ -371,8 +387,10 @@ export default function App(){
     return()=>{stopped=true;window.clearInterval(timer)};
   },[authSession,authStatus]);
 
+  const deferredQuery=useDeferredValue(query);
+
   const visible=useMemo(()=>{
-    const q=query.toLowerCase().trim();
+    const q=deferredQuery.toLowerCase().trim();
     const filtered=products.filter(p=>{
       const text=(p.name+" "+p.description).toLowerCase();
       const subMatch=!sub||text.includes(sub.toLowerCase());
@@ -383,7 +401,7 @@ export default function App(){
       return (!q||text.includes(q))&&subMatch&&categoryMatch&&(availability==="all"||p.stock>0)&&priceMatch;
     });
     return [...filtered].sort((a,b)=>sort==="price-low"?a.price-b.price:sort==="price-high"?b.price-a.price:sort==="name"?a.name.localeCompare(b.name):Date.parse(b.createdAt)-Date.parse(a.createdAt));
-  },[products,query,category,sub,sort,availability,minPrice,maxPrice]);
+  },[products,deferredQuery,category,sub,sort,availability,minPrice,maxPrice]);
 
   const similarProducts=useMemo(()=>{
     const q=query.trim();
@@ -570,17 +588,17 @@ export default function App(){
     {banners.length>0&&<section className="customer-banner-section" aria-label="Maxsus takliflar">
       <div className="customer-banner-track">
         {banners.map((b,i)=><button className={"customer-banner "+(isLandingPage?"customer-banner-static":"")} key={b.id} type="button" disabled={isLandingPage} onClick={()=>{if(!isLandingPage)openBannerTarget(b)}} aria-label={isLandingPage?"Banner":"Bannerga o'tish"}>
-          <picture><source media="(max-width: 700px)" srcSet={b.mobileImageUrl}/><img src={b.desktopImageUrl} alt="Maxsus taklif" loading={i===0?"eager":"lazy"} decoding="async"/></picture>
+          <picture><source media="(max-width: 700px)" srcSet={b.mobileImageUrl}/><img src={b.desktopImageUrl} alt="Maxsus taklif" loading="lazy" decoding="async"/></picture>
         </button>)}
       </div>
     </section>}
-    {landingPageLoading?<div className="state">Sahifa yuklanmoqda...</div>:landingPage?<section className="landing-page">
+    {landingPageLoading?<div className="loading-state"><div className="loading-orb" aria-hidden="true"><span/></div><b>Sahifa tayyorlanmoqda</b><small>Kontentni tezda tayyorlayapmiz…</small></div>:landingPage?<section className="landing-page">
       <div className="landing-page-hero"><span className="eyebrow">MYBUSINESS · MAXSUS</span><h1>{landingPage.title}</h1>{landingPage.subtitle&&<h2>{landingPage.subtitle}</h2>}{landingPage.description&&<p>{landingPage.description}</p>}{landingPage.offerText&&<div className="landing-offer">{landingPage.offerText}</div>}</div>
       <section id="all-products" className="product-section app-products"><div className="panel-head"><div><h2>Tanlangan mahsulotlar</h2><span className="muted">{landingPage.productIds.length} ta mahsulot</span></div></div>{(()=>{const selected=products.filter(p=>landingPage.productIds.includes(p.id));return selected.length?<HomeProductGrid items={selected} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>:<div className="state">Bu sahifaga hali mahsulot qo'shilmagan.</div>})()}</section>
     </section>:null}
     {!landingPage&&!landingPageLoading&&<section id="all-products" className="product-section app-products">
       <div className="catalog-filter-bar"><button className="filter-main-button" onClick={()=>setPanel("filters")}><span>Filtrlar</span><Icon name="grid" size={17}/></button><button className="sort-button" onClick={()=>setPanel("filters")}><span>{sort==="price-low"?"Arzon → qimmat":sort==="price-high"?"Qimmat → arzon":sort==="name"?"Nomi bo‘yicha":"Yangi mahsulotlar"}</span><span>⌄</span></button>{(category!=="all"||sub||availability==="stock"||minPrice||maxPrice||query)&&<button className="filter-reset-chip" onClick={clearFilters}>Tozalash</button>}</div>
-      {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<><HomeProductGrid items={renderedProducts} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>{renderedProducts.length<visible.length&&<div className="product-load-more"><span>{renderedProducts.length} / {visible.length} ta mahsulot ko'rsatilmoqda</span><button type="button" onClick={()=>setVisibleLimit(n=>Math.min(n+32,visible.length))}>Yana 32 ta ko'rsatish</button></div>}</>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
+      {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<LoadingSkeleton count={8}/>:visible.length?<><HomeProductGrid items={renderedProducts} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>{renderedProducts.length<visible.length&&<div className="product-load-more"><span>{renderedProducts.length} / {visible.length} ta mahsulot ko'rsatilmoqda</span><button type="button" onClick={()=>setVisibleLimit(n=>Math.min(n+24,visible.length))}>Yana 24 ta ko'rsatish</button></div>}</>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
     </section>}
 
     {!isLandingPage&&!quick&&<nav className="mobile-nav" aria-label="Asosiy navigatsiya">
