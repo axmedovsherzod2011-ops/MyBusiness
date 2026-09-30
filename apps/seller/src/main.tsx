@@ -636,7 +636,7 @@ export default function App(){
           </div>
         </div>
         <div className="landing-page-list">
-          <div className="panel-head"><div><h3>Maxsus sahifalar</h3><span className="muted">Bannerlar uchun yaratilgan landing sahifalar: mahsulotlar + maxsus takliflar.</span></div><button type="button" className="secondary small" onClick={()=>setPageEditorOpen(true)}>＋ Yangi sahifa</button></div>
+          <div className="panel-head"><div><h3>Maxsus sahifalar</h3><span className="muted">Bannerlar uchun yaratilgan landing sahifalar: mahsulotlar + maxsus takliflar.</span></div><button type="button" className="secondary small" onClick={()=>{setPageEditorOpen(true);window.history.pushState({},"","/xaccount/marketing/bannerlar");syncRoute();}}>＋ Yangi sahifa</button></div>
           {landingPages.length?landingPages.map(p=><div className="banner-row" key={p.id}><div className="banner-row-copy"><b>{p.title}</b><small>/{p.slug} · {p.productIds.length} ta mahsulot{p.offerText?" · "+p.offerText:""}</small></div><button className="secondary small" onClick={()=>{setBannerTargetType("page");setBannerTargetValue(p.slug);window.history.pushState({},"","/xaccount/marketing/bannerlar");syncRoute();}}>Bannerga tanlash</button><button className="secondary small" onClick={()=>void toggleLandingPage(p)}>{p.active?"O‘chirish":"Yoqish"}</button><button className="icon-action danger" onClick={()=>void deleteLandingPage(p)} aria-label="Bannerni o‘chirish">×</button></div>):<div className="banner-empty">Hali maxsus sahifa yaratilmagan.</div>}
         </div>
         <section className="marketing-promotions" id="marketing-promotions">
