@@ -583,7 +583,7 @@ export default function App(){
       {error?<div className="state error"><b>Marketplace bilan ulanishda xatolik.</b><span>{error}</span><button onClick={()=>location.reload()}>Qayta urinish</button></div>:loading?<div className="state">Mahsulotlar yuklanmoqda...</div>:visible.length?<><HomeProductGrid items={renderedProducts} favs={favs} cart={cart} onLike={toggleFav} onCart={add} onQty={qty} onAsk={askSeller} onOpen={setQuick} onPromo={k=>chooseCategory(k)}/>{renderedProducts.length<visible.length&&<div className="product-load-more"><span>{renderedProducts.length} / {visible.length} ta mahsulot ko'rsatilmoqda</span><button type="button" onClick={()=>setVisibleLimit(n=>Math.min(n+32,visible.length))}>Yana 32 ta ko'rsatish</button></div>}</>:<div className="state"><b>Mahsulot topilmadi.</b><button onClick={clearFilters}>Filtrlarni tozalash</button></div>}
     </section>}
 
-    {!isLandingPage&&<nav className="mobile-nav" aria-label="Asosiy navigatsiya">
+    {!isLandingPage&&!quick&&<nav className="mobile-nav" aria-label="Asosiy navigatsiya">
   <button className={!isLandingPage&&panel===null?"active":""} onClick={()=>{window.location.hash="#/";scrollTo(0,0)}}><span><Icon name="home"/></span>{panel===null&&<b className="nav-label">Asosiy</b>}</button>
   <button className={panel==="menu"?"active":""} onClick={()=>setPanel("menu")}><span><Icon name="grid"/></span>{panel==="menu"&&<b className="nav-label">Mahsulotlar</b>}</button>
   <button className={panel==="search"?"active":""} onClick={()=>openSearch()}><span><Icon name="search"/></span>{panel==="search"&&<b className="nav-label">Qidirish</b>}</button>
