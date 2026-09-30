@@ -611,40 +611,45 @@ export default function App(){
       {pendingNavigation&&<div className="modal-backdrop inventory-leave-backdrop"><div className="modal inventory-leave-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-leave-title"><div className="inventory-leave-icon">!</div><span className="eyebrow">SAQLANMAGAN O'ZGARISHLAR</span><h2 id="inventory-leave-title">{inventoryDirtyCount} ta mahsulot o'zgartirildi</h2><p>Ombordan chiqishdan oldin o'zgarishlarni saqlaysizmi?</p><div className="inventory-leave-actions"><button type="button" className="secondary" onClick={()=>completePendingNavigation(false)} disabled={inventorySaving}>Voz kechish</button><button type="button" className="primary" onClick={()=>void completePendingNavigation(true)} disabled={inventorySaving}>{inventorySaving?<><span className="refresh-spinner" aria-hidden="true"/>Saqlanmoqda...</>:<>Saqlash va chiqish <span>→</span></>}</button></div><button type="button" className="modal-close-button inventory-leave-close" onClick={()=>setPendingNavigation(null)} disabled={inventorySaving} aria-label="Yopish" title="Yopish"><span aria-hidden="true">×</span></button></div></div>}
       {tab==="analytics"&&<section className="panel analytics-panel"><div className="analytics-hero"><div><span className="eyebrow">BUSINESS INTELLIGENCE · 30 KUN</span><h2>Analitika</h2><p>Do'koningizning real savdo va ombor ko'rsatkichlari Neon bazasidan avtomatik yuklanadi.</p></div><div className="analytics-live"><span className="live-dot"/> LIVE DATA</div></div>{analyticsLoading?<DbTableSkeleton rows={8}/>:!analytics?<div className="empty"><b>Analitika hozircha mavjud emas</b><span>Ma'lumotlar bazadan yuklanmoqda yoki vaqtincha mavjud emas.</span></div>:<><div className="stats"><div><span>30 kunlik tushum</span><b>{formatPrice(Number(analytics.summary.revenue))}</b><small>Faqat yakunlangan buyurtmalar</small></div><div><span>Buyurtmalar</span><b>{analytics.summary.totalOrders}</b><small>{analytics.summary.completedOrders} tasi yakunlangan</small></div><div><span>O'rtacha chek</span><b>{formatPrice(Number(analytics.summary.averageOrder))}</b><small>Yakunlangan buyurtmalar</small></div><div><span>Past qoldiq</span><b>{analytics.stock.lowStock}</b><small>{analytics.stock.outOfStock} ta tugagan</small></div></div><div className="dashboard-grid"><section className="panel"><div className="panel-head"><h2>Eng ko'p tushum bergan mahsulotlar</h2><button className="db-refresh-button small-refresh" onClick={()=>void refreshAll()} disabled={refreshLoading}>{refreshLoading?<><span className="refresh-spinner" aria-hidden="true"/>Yangilanmoqda...</>:<><span className="refresh-icon" aria-hidden="true">↻</span>Yangilash</>}</button></div>{analytics.topProducts.map((x:any)=><div className="overview-list" key={x.productId}><div><span>{x.productName}</span><b>{formatPrice(Number(x.revenue))}</b></div></div>)}</section><section className="panel"><div className="panel-head"><h2>Kundalik savdo</h2></div>{analytics.daily.map((x:any)=><div className="overview-list" key={String(x.day)}><div><span>{formatAnalyticsDay(String(x.day))}</span><b>{formatPrice(Number(x.revenue))} · {x.orders} buyurtma</b></div></div>)}</section></div></>}</section>}
       {tab==="marketing"&&window.location.pathname!=="/xaccount/marketing/bannerlar"&&<section className="panel marketing-page">
-        <div className="marketing-hero">
+        <div className="marketing-hero marketing-promotions-hero">
           <div>
             <span className="editor-section-kicker">SELLER · MARKETING</span>
-            <h2>Marketing & Aksiyalar</h2>
-            <p>Customer saytidagi reklama, maxsus sahifalar va mahsulot aksiyalarini boshqaring.</p>
+            <h2>Mahsulot aksiyalari</h2>
+            <p>Mahsulotlarga chegirma foizi va tugash vaqtini belgilang. Marketing oynasi asosan katalog aksiyalarini boshqarish uchun ishlaydi.</p>
           </div>
-          <button type="button" className="banner-open-button" onClick={()=>{window.history.pushState({},"","/xaccount/marketing/bannerlar");syncRoute();}}>
+          <button type="button" className="banner-corner-button" onClick={()=>{window.history.pushState({},\"\",\"/xaccount/marketing/bannerlar\");syncRoute();}} title="Banner Studio'ni ochish">
             <span className="banner-open-icon" aria-hidden="true">▣</span>
-            <span><b>Bannerlar</b><small>Customer bosh sahifasini boshqarish</small></span>
+            <span><b>Bannerlar</b><small>Bannerlar va maxsus sahifalar</small></span>
             <strong aria-hidden="true">→</strong>
           </button>
         </div>
-        <div className="marketing-feature-grid">
-          <div className="marketing-feature-card">
-            <span className="marketing-feature-icon">▣</span>
-            <div><b>Banner reklama</b><small>Desktop va mobile formatlarda professional banner yarating.</small></div>
-            <button type="button" className="secondary small" onClick={()=>{window.history.pushState({},"","/xaccount/marketing/bannerlar");syncRoute();}}>Bannerlarni ochish</button>
+
+        <section className="marketing-promotions marketing-promotions-main" id="marketing-promotions">
+          <div className="marketing-promotions-toolbar">
+            <div>
+              <span className="editor-section-kicker">PRODUCT PROMOTIONS</span>
+              <h3>Mahsulotlar aksiyasi</h3>
+              <span className="muted">Har bir mahsulot uchun chegirma foizi va aniq tugash vaqtini boshqaring.</span>
+            </div>
+            <div className="marketing-promo-summary">
+              <span><b>{products.filter(p=>p.promoPrice!=null).length}</b> ta faol aksiya</span>
+              <span><b>{products.length}</b> ta mahsulot</span>
+            </div>
           </div>
-          <div className="marketing-feature-card">
-            <span className="marketing-feature-icon">%</span>
-            <div><b>Mahsulot aksiyalari</b><small>Chegirma foizi va tugash vaqtini katalogdagi mahsulotlarga belgilang.</small></div>
-            <button type="button" className="secondary small" onClick={()=>{document.getElementById("marketing-promotions")?.scrollIntoView({behavior:"smooth"});}}>Aksiyalarni ko‘rish</button>
-          </div>
-        </div>
-        <div className="landing-page-list">
-          <div className="panel-head"><div><h3>Maxsus sahifalar</h3><span className="muted">Bannerlar uchun yaratilgan landing sahifalar: mahsulotlar + maxsus takliflar.</span></div><button type="button" className="secondary small" onClick={()=>{setPageEditorOpen(true);window.history.pushState({},"","/xaccount/marketing/bannerlar");syncRoute();}}>＋ Yangi sahifa</button></div>
-          {landingPages.length?landingPages.map(p=><div className="banner-row" key={p.id}><div className="banner-row-copy"><b>{p.title}</b><small>/{p.slug} · {p.productIds.length} ta mahsulot{p.offerText?" · "+p.offerText:""}</small></div><button className="secondary small" onClick={()=>{setBannerTargetType("page");setBannerTargetValue(p.slug);window.history.pushState({},"","/xaccount/marketing/bannerlar");syncRoute();}}>Bannerga tanlash</button><button className="secondary small" onClick={()=>void toggleLandingPage(p)}>{p.active?"O‘chirish":"Yoqish"}</button><button className="icon-action danger" onClick={()=>void deleteLandingPage(p)} aria-label="Bannerni o‘chirish">×</button></div>):<div className="banner-empty">Hali maxsus sahifa yaratilmagan.</div>}
-        </div>
-        <section className="marketing-promotions" id="marketing-promotions">
-          <div className="panel-head"><div><h3>Mahsulot aksiyalari</h3><span className="muted">Katalogdagi chegirmalarni boshqaring.</span></div></div>
-          {loading?<DbTableSkeleton rows={7}/>:<div className="table">{products.map(p=><div className="row" key={p.id}><div className="thumb">{(p.imageUrls?.[0]||p.imageUrl)?<img loading="lazy" decoding="async" src={p.imageUrls?.[0]||p.imageUrl} alt=""/>:"NO IMAGE"}</div><div><b>{p.name}</b><span>{p.promoPrice!=null?formatPrice(p.promoPrice)+" · "+p.promoDiscountPercent+"% chegirma":"Aksiya yo‘q"}</span></div><button className="secondary small" onClick={()=>{setPromoProduct(p);window.history.pushState({},"","/xaccount/marketing/aksiya/"+p.id)}}>{p.promoPrice!=null?"O‘zgartirish":"Aksiya qo‘shish"}</button>{p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To‘xtatish</button>}</div>)}</div>}
+          {loading?<DbTableSkeleton rows={7}/>:<div className="table marketing-promo-table">{products.map(p=><div className={"row marketing-promo-row "+(p.promoPrice!=null?"has-promotion":"")} key={p.id}>
+            <div className="thumb">{(p.imageUrls?.[0]||p.imageUrl)?<img loading="lazy" decoding="async" src={p.imageUrls?.[0]||p.imageUrl} alt=""/>:"NO IMAGE"}</div>
+            <div className="marketing-product-info">
+              <b>{p.name}</b>
+              <span>{p.promoPrice!=null?<><s>{formatPrice(p.price)}</s> <strong>{formatPrice(p.promoPrice)}</strong> · {p.promoDiscountPercent}% chegirma</>:formatPrice(p.price)+" · Aksiya yo‘q"}</span>
+            </div>
+            <div className="marketing-promo-status">{p.promoPrice!=null?<span className="promo-status-active">● Faol</span>:<span className="promo-status-idle">○ Aksiya yo‘q</span>}</div>
+            <div className="marketing-promo-actions">
+              <button className="primary small" onClick={()=>{setPromoProduct(p);window.history.pushState({},\"\",\"/xaccount/marketing/aksiya/\"+p.id)}}>{p.promoPrice!=null?"O‘zgartirish":"Aksiya qo‘shish"}</button>
+              {p.promoPrice!=null&&<button className="secondary small" onClick={()=>void stopPromotion(p.id)}>To‘xtatish</button>}
+            </div>
+          </div>)}</div>}
         </section>
       </section>}
-
       {tab==="marketing"&&window.location.pathname==="/xaccount/marketing/bannerlar"&&<section className="banner-workspace">
         <div className="banner-workspace-head">
           <div className="banner-workspace-title">
