@@ -524,7 +524,7 @@ export default function App(){
   const landingBanner = currentUrlRoute.pageSlug ? banners.find(b=>b.targetType==="page" && b.targetValue===currentUrlRoute.pageSlug) : null;
 
   useEffect(()=>{
-    const background="#ffde59";
+    const background="#dc2626";
     if(isLandingPage){
       document.documentElement.style.backgroundColor=background;
       document.body.style.backgroundColor=background;
