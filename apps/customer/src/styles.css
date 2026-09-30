@@ -913,7 +913,7 @@ body{min-width:320px!important}
   scrollbar-width:none!important;
 }
 .product-image-track::-webkit-scrollbar{display:none!important}
-.product-image.has-gallery .product-image-track{overflow-x:auto!important;overflow-y:hidden!important;touch-action:pan-x!important}
+.product-image.has-gallery .product-image-track{overflow-x:hidden!important;overflow-y:hidden!important;touch-action:pan-y!important}
 .product-image-track>img,
 .product-image-track>.no-image{
   flex:0 0 100%!important;
@@ -3320,4 +3320,12 @@ html{
   .shimmer::after,
   .loading-orb,
   .loading-state{animation:none!important}
+}
+
+
+/* Product-card gallery must not capture horizontal swipes on the catalog. Vertical page scrolling stays native. Only the product-detail gallery allows horizontal image swiping. */
+.product-card .product-image-track{
+  overflow-x:hidden!important;
+  overflow-y:hidden!important;
+  touch-action:pan-y!important;
 }
