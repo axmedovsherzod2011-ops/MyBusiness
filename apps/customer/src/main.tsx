@@ -112,14 +112,10 @@ function ProductCard({p,liked,qty,onLike,onCart,onQty,onAsk,onOpen}:{p:Product;l
       <span className="product-cat">{label(cat(p))}</span>
       <button className="product-name" onClick={()=>onOpen(p)}>{p.name}</button>
       <p>{p.description||"Mahsulot tavsifi kiritilmagan."}</p>
-      <div className="product-purchase-row">
-        <div className="product-price-wrap">
-          <strong className="product-price">{p.promoPrice!=null?<><s className="old-price">{money(p.price)}</s><span className="promo-price">{money(p.promoPrice)}</span></>:money(p.price)}</strong>
-          <small className="product-stock-text">{p.stock>0?"Sotuvda":"Tugagan"}</small>
-        </div>
-        <div className="product-actions">
-          {qty>0?<div className="card-qty"><button onClick={()=>onQty(p.id,-1)} aria-label="Kamaytirish">−</button><b>{qty}</b><button onClick={()=>onQty(p.id,1)} disabled={!p.stock||qty>=p.stock} aria-label="Ko'paytirish">+</button></div>:<button className="add-button card-add" disabled={p.stock<=0} onClick={()=>onCart(p)}><Icon name="cart" size={18}/><span>{p.stock>0?"Savatga qo'shish":"Tugagan"}</span></button>}
-        </div>
+      <strong className="product-price">{p.promoPrice!=null?<><s className="old-price">{money(p.price)}</s><span className="promo-price">{money(p.promoPrice)}</span></>:money(p.price)}</strong>
+      <small className="product-stock-text">{p.stock>0?"Sotuvda":"Tugagan"}</small>
+      <div className="product-actions">
+        {qty>0?<div className="card-qty"><button onClick={()=>onQty(p.id,-1)} aria-label="Kamaytirish">−</button><b>{qty}</b><button onClick={()=>onQty(p.id,1)} disabled={!p.stock||qty>=p.stock} aria-label="Ko'paytirish">+</button></div>:<button className="add-button card-add" disabled={p.stock<=0} onClick={()=>onCart(p)}><Icon name="cart" size={18}/><span>{p.stock>0?"Savatga qo'shish":"Tugagan"}</span></button>}
       </div>
     </div>
   </article>;
