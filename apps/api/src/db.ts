@@ -156,6 +156,8 @@ export async function initializeDatabase(): Promise<void> {
         ADD COLUMN IF NOT EXISTS auth_token_expires_at TIMESTAMPTZ;
       CREATE UNIQUE INDEX IF NOT EXISTS customer_users_auth_token_idx
         ON customer_users (auth_token);
+      UPDATE customer_users SET auth_token_expires_at = NOW() + INTERVAL '30 days'
+        WHERE auth_token IS NOT NULL AND auth_token_expires_at IS NULL;
 
       ALTER TABLE marketplace_products
         ADD COLUMN IF NOT EXISTS sku VARCHAR(40) NOT NULL DEFAULT '',
