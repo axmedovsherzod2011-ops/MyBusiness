@@ -10,6 +10,7 @@ import { registerUploadRoutes } from "./uploads.js";
 import { registerFavoriteRoutes } from "./favorites.js";
 import { registerBannerRoutes } from "./banners.js";
 import { registerLandingPageRoutes } from "./landingPages.js";
+import { revokeCustomerToken } from "./customer-auth.js";
 
 const appVersion = process.env.APP_VERSION ?? "0.1.0";
 const corsOrigins = (process.env.CORS_ORIGIN ?? "")
@@ -62,6 +63,8 @@ app.get("/ready", async (_req: Request, res: Response) => {
     version: appVersion,
   });
 });
+
+app.post("/api/v1/auth/logout", async (req: Request, res: Response) => { await revokeCustomerToken(req); res.setHeader("Cache-Control","no-store"); res.json({ ok: true }); });
 
 app.get("/api/v1", (_req: Request, res: Response) => {
   res.setHeader("Cache-Control", "no-store");
