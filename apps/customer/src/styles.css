@@ -2351,7 +2351,7 @@ html{
   min-height:100vh;
   min-height:100dvh;
   width:100%;
-  background:var(--landing-primary,#f4f1f7)!important;
+  background:#ffde59!important;
   padding-top:1px;
 }
 .landing-mode .customer-banner-section{margin-top:72px}
@@ -2376,7 +2376,7 @@ html{
   max-width:none;
   margin:0;
   padding:86px clamp(16px,4vw,56px) 110px;
-  background:var(--landing-primary,#f4f1f7)!important;
+  background:#ffde59!important;
 }
 .landing-mode .landing-page-hero{
   max-width:1200px;
