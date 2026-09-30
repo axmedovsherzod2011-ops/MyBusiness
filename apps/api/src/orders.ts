@@ -72,6 +72,10 @@ export function registerOrderRoutes(app: Express): void {
     const client = await db.connect();
     try {
       await client.query("BEGIN");
+      const user=await client.query("SELECT first_name,last_name,phone FROM customer_users WHERE id=$1 FOR UPDATE",[customerId]);
+      if(!user.rowCount){await client.query("ROLLBACK");res.status(401).json({message:"Akkaunt topilmadi."});return;}
+      const customerName=[user.rows[0].first_name,user.rows[0].last_name].filter(Boolean).join(" ")||"Mijoz";
+      const customerPhone=String(user.rows[0].phone||requestedPhone);
       const ids = items.map((x: any) => Number(x.productId)).filter(Number.isInteger);
       const products = await client.query(
         `SELECT p.id, p.name, p.sku, p.image_url, p.price, p.stock,
@@ -186,11 +190,11 @@ export function registerCustomerOrderRoutes(app: Express): void {
     const customerId = await requireCustomer(req, res);
     if (!customerId) return;
     const body=req.body??{}, items=Array.isArray(body.items)?body.items:[];
-    const customerName=String(body.customerName??"").trim(), customerPhone=String(body.customerPhone??"").trim();
+    const requestedName=String(body.customerName??"").trim(), requestedPhone=String(body.customerPhone??"").trim();
     const paymentMethod=String(body.paymentMethod??"cash").trim()||"cash";
     const deliveryAddress=String(body.deliveryAddress??"").trim();
-    if(!items.length||!customerName||!customerPhone||!["cash","card","debt"].includes(paymentMethod)){
-      res.status(400).json({message:"Mijoz va buyurtma mahsulotlari kerak."}); return;
+    if(!items.length||items.length>50||!requestedName||!requestedPhone||!["cash","card","debt"].includes(paymentMethod)||deliveryAddress.length>1000){
+      res.status(400).json({message:"Buyurtma ma'lumotlari noto'g'ri."}); return;
     }
     const db=requireDatabase(), client=await db.connect();
     try {
