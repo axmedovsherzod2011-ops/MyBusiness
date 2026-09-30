@@ -246,6 +246,7 @@ export function registerTelegramAuthRoutes(app: Express): void {
           `UPDATE customer_users
            SET telegram_id = $2,
                auth_token = $3,
+               auth_token_expires_at = NOW() + INTERVAL '30 days',
                updated_at = NOW()
            WHERE phone = $1
            RETURNING id, phone, first_name, last_name`,
@@ -257,8 +258,8 @@ export function registerTelegramAuthRoutes(app: Express): void {
           return;
         }
         user = await db.query(
-          `INSERT INTO customer_users (phone, telegram_id, first_name, last_name, auth_token)
-           VALUES ($1, $2, $3, $4, $5)
+          `INSERT INTO customer_users (phone, telegram_id, first_name, last_name, auth_token, auth_token_expires_at)
+           VALUES ($1, $2, $3, $4, $5, NOW() + INTERVAL '30 days')
            RETURNING id, phone, first_name, last_name`,
           [row.phone, row.telegram_id, firstName, lastName, token],
         );
@@ -294,6 +295,10 @@ export function registerTelegramAuthRoutes(app: Express): void {
 }
 
 export async function configureTelegramWebhook(): Promise<void> {
+  if (configuredWebhookSecret && !webhookSecret) {
+    console.error("Telegram webhook not configured: TELEGRAM_WEBHOOK_SECRET is invalid.");
+    return;
+  }
   if (!botToken || !publicApiUrl) {
     console.log("Telegram auth webhook not configured: set TELEGRAM_BOT_TOKEN and PUBLIC_API_URL.");
     return;
